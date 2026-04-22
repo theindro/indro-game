@@ -167,24 +167,34 @@ export async function createGame(hudElements) {
         }
 
         // Spawn boss
-        if (room.bosses > 0) {
+        bosses.length = 0;
+        bossActive = null;
+
+        for (let i = 0; i < room.bosses; i++) {
+
             let bx = 0, by = 0;
-            // Find spawn position away from props
-            let foundSpot = false;
-            for (let i = 0; i < 50; i++) {
+
+            for (let j = 0; j < 50; j++) {
                 const angle = Math.random() * Math.PI * 2;
                 const radius = Math.random() * (half - 150);
+
                 bx = Math.cos(angle) * radius;
                 by = Math.sin(angle) * radius;
+
                 const resolved = resolveVsColliders(bx, by, BOSS_RADIUS, colliders);
+
                 if (Math.abs(resolved.x - bx) < 0.1 && Math.abs(resolved.y - by) < 0.1) {
-                    foundSpot = true;
+                    bx = resolved.x;
+                    by = resolved.y;
                     break;
                 }
             }
+
             const b = spawnBoss(world, room.bossType || 'desert', bx, by);
+
             bosses.push(b);
             bossActive = b;
+
             showBossPanel(hudElements, b);
         }
     }
