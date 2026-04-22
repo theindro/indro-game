@@ -193,15 +193,22 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         lasers: [],
         wobble: 0,
         dead: false,
+        // Track last known player position for targeting
+        lastPlayerX: x,
+        lastPlayerY: y,
 
         update({ px, py, colliders, roomManager, enemyProjs, playerState, shakeRef }) {
             if (this.dead) return;
+
+            // Store player position for targeting
+            this.lastPlayerX = px;
+            this.lastPlayerY = py;
 
             // Wobble
             this.wobble += 0.04;
             this.c.scale.set(scale + Math.sin(this.wobble) * 0.03);
 
-            // Movement
+            // Movement towards player
             const dx = px - this.x, dy = py - this.y;
             const dist = Math.hypot(dx, dy);
             let nx = this.x, ny = this.y;
@@ -244,18 +251,32 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                 }
             }
 
-            // Laser attack — fire 1 random laser, enraged fires 3
+            // 🔴 UPDATED LASER ATTACK - NOW TARGETS PLAYER
             this.laserTimer++;
             const laserInterval = enraged ? this.laserInterval * 0.5 : this.laserInterval;
             if (this.laserTimer >= laserInterval) {
                 this.laserTimer = 0;
                 const count = enraged ? 3 : 1;
-                for (let i = 0; i < count; i++) {
-                    const angle = Math.random() * Math.PI * 2;
 
+                for (let i = 0; i < count; i++) {
+                    // Calculate angle to player with some spread for multiple lasers
+                    let angle;
+                    if (count === 1) {
+                        // Single laser: aim directly at player
+                        angle = Math.atan2(py - this.y, px - this.x);
+                    } else {
+                        // Multiple lasers: aim at player with spread
+                        const baseAngle = Math.atan2(py - this.y, px - this.x);
+                        const spread = (i - (count - 1) / 2) * 0.3; // Spread in radians
+                        angle = baseAngle + spread;
+                    }
+
+                    // Add slight delay between multiple lasers
                     setTimeout(() => {
-                        if (!this.dead) this.lasers.push(createLaser(world, this.x, this.y, angle, glowCol));
-                    }, i * 200);
+                        if (!this.dead) {
+                            this.lasers.push(createLaser(world, this.x, this.y, angle, glowCol));
+                        }
+                    }, i * 150);
                 }
             }
 
@@ -364,7 +385,7 @@ export function updateWaves(waves, world, px, py, onHit) {
     }
 }
 
-// ── LASER ATTACK ─────────────────────────────────────────────────────────────
+// ── LASER ATTACK (UPDATED) ─────────────────────────────────────────────────
 
 export function createLaser(world, bossX, bossY, angle, color) {
     const g = new Graphics();
@@ -374,15 +395,15 @@ export function createLaser(world, bossX, bossY, angle, color) {
         g,
         x: bossX,
         y: bossY,
-        angle,
+        angle,              // Now this is the calculated angle to player
         color,
         length: 0,
         maxLength: 900,
-        growSpeed: 28,     // units added per frame during grow
-        state: 'telegraphing', // telegraphing → growing → holding → fading
+        growSpeed: 28,
+        state: 'telegraphing',
         stateTimer: 0,
         telegraphDuration: 200,  // frames of warning before firing
-        holdDuration: 30,       // frames laser stays at full length
+        holdDuration: 30,
         width: 6,
         dead: false,
     };
@@ -404,17 +425,29 @@ export function updateLasers(lasers, world, px, py, onHit) {
         const ey = l.y + Math.sin(l.angle) * l.length;
 
         if (l.state === 'telegraphing') {
-            // Draw dashed warning line at full length
+            // Draw dashed warning line showing where the laser will fire
             const dashLength = 18;
             const gap = 12;
             const total = l.maxLength;
             let d = 0;
+
+            // Add targeting indicator (red crosshair at the predicted hit point)
+            const predictedX = l.x + Math.cos(l.angle) * l.maxLength;
+            const predictedY = l.y + Math.sin(l.angle) * l.maxLength;
+
+            // Draw targeting circle at the end of the laser
+            l.g.circle(predictedX, predictedY, 12)
+                .stroke({ color: 0xff0000, alpha: 0.4 + Math.sin(l.stateTimer * 0.3) * 0.2, width: 2 });
+            l.g.circle(predictedX, predictedY, 6)
+                .stroke({ color: 0xff0000, alpha: 0.6 + Math.sin(l.stateTimer * 0.3) * 0.3, width: 2 });
+
+            // Draw dashed line
             while (d < total) {
                 const startX = l.x + Math.cos(l.angle) * d;
                 const startY = l.y + Math.sin(l.angle) * d;
                 const endX   = l.x + Math.cos(l.angle) * Math.min(d + dashLength, total);
                 const endY   = l.y + Math.sin(l.angle) * Math.min(d + dashLength, total);
-                const alpha  = 0.15 + 0.15 * Math.sin(l.stateTimer * 0.3); // pulse
+                const alpha  = 0.3 + 0.2 * Math.sin(l.stateTimer * 0.3);
                 l.g.moveTo(startX, startY).lineTo(endX, endY)
                     .stroke({ color: l.color, alpha, width: 3 });
                 d += dashLength + gap;
