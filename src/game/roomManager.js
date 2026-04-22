@@ -8,131 +8,152 @@ export class RoomManager {
     constructor(world, colliders) {
         this.world = world;
         this.colliders = colliders;
+
         this.currentRoomIndex = 0;
         this.currentRoom = null;
+
         this.roomAssets = {
-            ground: null,
+            groundLayer: null,
             edges: [],
             props: [],
             decorations: []
         };
+
+        this.boundaries = [];
     }
 
+    // ─────────────────────────────
+    // Bounds
+    // ─────────────────────────────
     getRoomBounds(room) {
         const half = (room.size || 20) * 32;
+
         return {
             half,
             minX: -half,
             maxX: half,
             minY: -half,
-            maxY: half,
-            size: half * 2
+            maxY: half
         };
     }
 
+    // ─────────────────────────────
+    // CLEANUP (FIXED)
+    // ─────────────────────────────
     clearRoomAssets() {
-        // Clear ground
-        if (this.roomAssets.ground) {
-            this.world.removeChild(this.roomAssets.ground);
-            this.roomAssets.ground = null;
+        // Ground
+        if (this.roomAssets.groundLayer) {
+            this.world.removeChild(this.roomAssets.groundLayer);
+            this.roomAssets.groundLayer.destroy({ children: true });
+            this.roomAssets.groundLayer = null;
         }
 
-        // Clear edges/borders
-        this.roomAssets.edges.forEach(edge => {
+        // Edges
+        for (const edge of this.roomAssets.edges) {
             this.world.removeChild(edge);
             edge.destroy();
-        });
+        }
+        this.roomAssets.edges.length = 0;
 
-        this.roomAssets.edges = [];
+        // Props
+        for (const prop of this.roomAssets.props) {
+            this.world.removeChild(prop.container);
+            prop.container.destroy({ children: true });
+        }
+        this.roomAssets.props.length = 0;
 
-        // Clear props
-        //this.roomAssets.props.forEach(prop => {
-        //    if (prop.destroy) prop.destroy();
-        //    this.world.removeChild(prop);
-        //});
+        // Boundaries graphics
+        for (const b of this.boundaries) {
+            if (b.graphics) {
+                this.world.removeChild(b.graphics);
+                b.graphics.destroy();
+            }
+        }
+        this.boundaries.length = 0;
 
-        this.roomAssets.props = [];
-
-        // Clear colliders (room-specific)
+        // Colliders reset (IMPORTANT)
         this.colliders.length = 0;
     }
 
+    // ─────────────────────────────
+    // ROOM BORDERS
+    // ─────────────────────────────
     createRoomBoundaries(room, bounds) {
-        const boundaries = [];
         const half = bounds.half;
         const thickness = 8;
 
-        // Create invisible walls as colliders
         const walls = [
-            { x: 0, y: -half + thickness/2, w: half * 2, h: thickness }, // top
-            { x: 0, y: half - thickness/2, w: half * 2, h: thickness },  // bottom
-            { x: -half + thickness/2, y: 0, w: thickness, h: half * 2 },  // left
-            { x: half - thickness/2, y: 0, w: thickness, h: half * 2 }     // right
+            { x: 0, y: -half, w: half * 2, h: thickness },
+            { x: 0, y: half,  w: half * 2, h: thickness },
+            { x: -half, y: 0, w: thickness, h: half * 2 },
+            { x: half, y: 0,  w: thickness, h: half * 2 }
         ];
 
-        walls.forEach(wall => {
-            const wallGraphics = new Graphics();
-            wallGraphics.rect(wall.x - wall.w/2, wall.y - wall.h/2, wall.w, wall.h);
-            wallGraphics.fill(0x000000);
-            wallGraphics.alpha = 0;
-            this.world.addChild(wallGraphics);
+        for (const w of walls) {
+            const g = new Graphics();
+            g.rect(w.x - w.w / 2, w.y - w.h / 2, w.w, w.h).fill(0x000000);
+            g.alpha = 0;
 
-            boundaries.push({
-                x: wall.x,
-                y: wall.y,
-                w: wall.w,
-                h: wall.h,
-                graphics: wallGraphics
+            this.world.addChild(g);
+
+            this.boundaries.push({
+                x: w.x,
+                y: w.y,
+                w: w.w,
+                h: w.h,
+                graphics: g
             });
 
             this.colliders.push({
-                x: wall.x - wall.w/2,
-                y: wall.y - wall.h/2,
-                w: wall.w,
-                h: wall.h
+                x: w.x - w.w / 2,
+                y: w.y - w.h / 2,
+                w: w.w,
+                h: w.h
             });
-        });
+        }
 
         // Visual border
-        const visualBorder = new Graphics();
-        visualBorder.rect(-half, -half, half * 2, half * 2);
-        visualBorder.stroke({ width: 4, color: 0xffffff, alpha: 0.15 });
-        visualBorder.fill(0x000000);
-        visualBorder.alpha = 0.05;
-        this.world.addChild(visualBorder);
-        this.roomAssets.edges.push(visualBorder);
+        const border = new Graphics();
+        border
+            .rect(-half, -half, half * 2, half * 2)
+            .stroke({ width: 4, color: 0xffffff, alpha: 0.15 })
+            .fill(0x000000, 0.05);
 
-        return boundaries;
+        this.world.addChild(border);
+        this.roomAssets.edges.push(border);
+
+        return this.boundaries;
     }
 
-    loadRoom(index, onRoomLoaded) {
+    // ─────────────────────────────
+    // LOAD ROOM (FIXED FLOW)
+    // ─────────────────────────────
+    async loadRoom(index, onRoomLoaded) {
         if (!ROOMS[index]) return false;
 
-        // Clear previous room
+        // cleanup previous
         this.clearRoomAssets();
 
-        // Set new room
         this.currentRoomIndex = index;
         this.currentRoom = ROOMS[index];
 
         const bounds = this.getRoomBounds(this.currentRoom);
 
-        // Build ground for this room
-        const ground = buildGround(this.world, this.world, this.currentRoom);
-        this.roomAssets.ground = ground;
+        // ── Ground (await FIXED)
+        const ground = await buildGround(this.world, this.currentRoom);
+        this.roomAssets.groundLayer = ground.layer;
 
-        // Create boundaries
+        // ── Boundaries
         const boundaries = this.createRoomBoundaries(this.currentRoom, bounds);
 
-        // Spawn props with room-specific colliders
-        const roomProps = scatterProps(this.world, this.colliders, this.currentRoom);
-        this.roomAssets.props = roomProps;
+        // ── Props (await FIXED)
+        const props = await scatterProps(this.world, this.colliders, this.currentRoom);
+        this.roomAssets.props = props;
 
-        // Calculate spawn position (center-bottom of room)
+        // spawn position
         const spawnX = 0;
         const spawnY = bounds.half - 60;
 
-        // Callback with room data
         if (onRoomLoaded) {
             onRoomLoaded({
                 bounds,
@@ -146,28 +167,33 @@ export class RoomManager {
         return true;
     }
 
+    // ─────────────────────────────
+    // HELPERS
+    // ─────────────────────────────
     getCurrentBounds() {
         if (!this.currentRoom) return null;
         return this.getRoomBounds(this.currentRoom);
     }
 
-    isInsideRoom(x, y, radius = 0) {
-        const bounds = this.getCurrentBounds();
-        if (!bounds) return false;
+    isInsideRoom(x, y, r = 0) {
+        const b = this.getCurrentBounds();
+        if (!b) return false;
 
-        return x - radius >= bounds.minX &&
-            x + radius <= bounds.maxX &&
-            y - radius >= bounds.minY &&
-            y + radius <= bounds.maxY;
+        return (
+            x - r >= b.minX &&
+            x + r <= b.maxX &&
+            y - r >= b.minY &&
+            y + r <= b.maxY
+        );
     }
 
-    clampToRoom(x, y, radius = 0) {
-        const bounds = this.getCurrentBounds();
-        if (!bounds) return { x, y };
+    clampToRoom(x, y, r = 0) {
+        const b = this.getCurrentBounds();
+        if (!b) return { x, y };
 
         return {
-            x: Math.max(bounds.minX + radius, Math.min(bounds.maxX - radius, x)),
-            y: Math.max(bounds.minY + radius, Math.min(bounds.maxY - radius, y))
+            x: Math.max(b.minX + r, Math.min(b.maxX - r, x)),
+            y: Math.max(b.minY + r, Math.min(b.maxY - r, y))
         };
     }
 }

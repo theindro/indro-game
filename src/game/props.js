@@ -8,79 +8,79 @@ const MIN_PROP_DISTANCE = 40; // Minimum distance between prop centers
 
 export async function scatterProps(world, colliders, room) {
     const half = (room.size || 20) * 32;
-    const biome = room.biome;
+    const biome = BIOME_COLORS[room.biome];
     const count = room.propCount || 0;
-    const biomeConfig = BIOME_COLORS[biome];
 
-    const availableProps = biomeConfig?.props || [];
-    if (availableProps.length === 0) {
-        console.log('no props for biome');
-        return;
+    const props = biome?.props || [];
+    const result = [];
+
+    if (!props.length) return result;
+
+    const textures = new Map();
+
+    for (const p of props) {
+        try {
+            textures.set(p, await Assets.load(p));
+        } catch {}
     }
 
-    const propPositions = [];
     let placed = 0;
     let attempts = 0;
-    const maxAttempts = count * 30;
 
-    // Preload textures to get sizes before placing
-    const propSizes = new Map();
-    for (const propPath of availableProps) {
-        try {
-            const texture = await Assets.load(propPath);
-            propSizes.set(propPath, {
-                width: texture.width,
-                height: texture.height,
-                radius: Math.max(texture.width, texture.height) / 2 * 0.7
-            });
-        } catch (error) {
-            console.error(`Failed to load prop texture ${propPath}:`, error);
-            propSizes.set(propPath, { radius: 20 }); // Default size
-        }
-    }
+    while (placed < count && attempts < count * 25) {
+        const x = (Math.random() - 0.5) * half * 2;
+        const y = (Math.random() - 0.5) * half * 2;
 
-    while (placed < count && attempts < maxAttempts) {
-        const ax = (Math.random() - 0.5) * half * 2;
-        const ay = (Math.random() - 0.5) * half * 2;
-
-        // Keep center clear for player
-        if (Math.hypot(ax, ay) < 80) {
+        if (Math.hypot(x, y) < 120) {
             attempts++;
             continue;
         }
 
-        // Randomly select a prop type
-        const propPath = availableProps[Math.floor(Math.random() * availableProps.length)];
-        const propSize = propSizes.get(propPath);
-        const minDistance = propSize.radius * 2 + 10; // Dynamic minimum distance
+        const path = props[Math.floor(Math.random() * props.length)];
+        const tex = textures.get(path);
 
-        // Check collision with existing props
-        let overlaps = false;
-        for (const pos of propPositions) {
-            const distance = Math.hypot(pos.x - ax, pos.y - ay);
-            const requiredDistance = (pos.radius + propSize.radius) * 1.2; // 20% padding
-            if (distance < requiredDistance) {
-                overlaps = true;
-                break;
-            }
+        const container = new Container();
+        container.x = x;
+        container.y = y;
+
+        let radius = 40; // default safe value
+        let offsetY = 0;
+
+        if (tex) {
+            const s = new Sprite(tex);
+            s.anchor.set(0.5, 1); // bottom aligned
+            container.addChild(s);
+
+            // 🔥 REAL FIX: derive collision size from sprite
+            radius = Math.max(tex.width, tex.height) * 0.4;
+
+            // move collider upward slightly (important for tall props)
+            offsetY = -tex.height * 0.4;
         }
 
-        // Optional: Check collision with world boundaries
-        if (Math.abs(ax) + propSize.radius > half || Math.abs(ay) + propSize.radius > half) {
-            overlaps = true;
-        }
+        world.addChild(container);
 
-        if (!overlaps) {
-            await createCustomProp(world, colliders, ax, ay, propPath, biome);
-            propPositions.push({ x: ax, y: ay, radius: propSize.radius });
-            placed++;
-        }
+        // 🔥 FIXED collider placement
+        colliders.push({
+            x,
+            y: y + offsetY,
+            r: radius
+        });
 
+        result.push({
+            container,
+            x,
+            y,
+            r: radius
+        });
+
+        placed++;
         attempts++;
     }
 
-    console.log(`Placed ${placed}/${count} props in ${biome} biome (${attempts} attempts)`);
+    return result;
 }
+
 // Modified to return the collision radius
 async function createCustomProp(world, colliders, x, y, texturePath, biome) {
     const c = new Container();

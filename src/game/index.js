@@ -199,44 +199,47 @@ export async function createGame(hudElements) {
         }
     }
 
-    // Check if room is clear
-    function checkRoomClear() {
-        const noMobs = mobs.length === 0;
-        const noBoss = !bossActive || bossActive.dead;
+    let loadingRoom = false;
 
-        if (noMobs && noBoss) {
+    function checkRoomClear() {
+        if (loadingRoom) return;
+
+        const noMobs = mobs.length === 0;
+
+        const noBosses =
+            bosses.length === 0 ||
+            bosses.every(b => b.dead === true);
+
+        if (noMobs && noBosses) {
             const nextIndex = roomManager.currentRoomIndex + 1;
+
             if (nextIndex < ROOMS.length) {
+                loadingRoom = true;
                 loadRoom(nextIndex);
-            } else {
-                // Game complete!
-                console.log('Game completed!');
-                // You can add victory screen here
             }
         }
     }
 
     // Load room
     function loadRoom(index) {
-        roomManager.loadRoom(index, (roomData) => {
-            // Update player position and resolve collision with props
-            let spawnX = roomData.spawnX;
-            let spawnY = roomData.spawnY;
+        console.log("loading room:", index);
 
-            // Make sure player doesn't spawn inside a prop
-            const resolved = resolveVsColliders(spawnX, spawnY, PLAYER_RADIUS, colliders);
-            px = resolved.x;
-            py = resolved.y;
+        roomManager.loadRoom(index, (roomData) => {
+
+            px = roomData.spawnX;
+            py = roomData.spawnY;
+
             pCont.x = px;
             pCont.y = py;
 
-            // Move player to top layer after room loaded
             world.addChild(pCont);
 
-            // Spawn room entities
             spawnRoomEntities(roomData.room, roomData.bounds);
+
+            loadingRoom = false; // 🔥 IMPORTANT
         });
     }
+
 
     // XP System
     function addXP(amt) {
