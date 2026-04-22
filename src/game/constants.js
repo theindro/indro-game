@@ -52,21 +52,21 @@ export const BIOME_COLORS = {
     forest: {
         base: 0x0d3318,
         accent: 0x1a4a22,
-        texture: '/public/grass-ground.jpg',
+        texture: '/grass-ground.jpg',
         props: [],
         tint: '',
     },
     desert: {
         base: 0xb8843a,
         accent: 0xd4a055,
-        texture: '/public/desert-ground.png',
+        texture: '/desert-ground.png',
         tint: 0xddbb88,
         props: []
     },
     ice: {
         base: 0x8ec8de,
         accent: 0xb8e4f4,
-        texture: '/public/snow-ground.png',
+        texture: '/snow-ground.png',
         props: [],
         tint: 0xcceeff
     },
@@ -76,8 +76,8 @@ export const BIOME_COLORS = {
         glow: 0xff4400,
         magma: 0xff6600,
         obsidian: 0x1a0a0a,
-        texture: '/public/lava-ground.png',
-        props:['/public/testprop.png', '/public/testprop2.png', '/public/testprop3.png'],
+        texture: '/lava-ground.png',
+        props:['/testprop.png', '/testprop2.png', '/testprop3.png'],
         tint: ''
     },
 };
