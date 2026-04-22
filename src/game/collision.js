@@ -1,20 +1,17 @@
-// collision.js (updated with additional helpers)
-import { Graphics } from "pixi.js";
+import { Graphics } from 'pixi.js';
 
-/**
- * Resolves a circular entity against an array of circular colliders.
- * @param {number} nx          - proposed x position
- * @param {number} ny          - proposed y position
- * @param {number} radius      - entity radius
- * @param {Array}  colliders   - array of {x, y, r}
- * @returns {{ x: number, y: number }}
- */
+import { nearbyColliders } from './props.js';
+
 export function resolveVsColliders(nx, ny, radius, colliders) {
     let rx = nx, ry = ny;
-    for (const col of colliders) {
-        const dx = rx - col.x;
-        const dy = ry - col.y;
-        const d  = Math.sqrt(dx * dx + dy * dy);
+
+    // Only test colliders close enough to matter
+    const nearby = nearbyColliders(colliders, nx, ny, 200);
+
+    for (const col of nearby) {
+        const dx  = rx - col.x;
+        const dy  = ry - col.y;
+        const d   = Math.sqrt(dx * dx + dy * dy);
         const min = radius + col.r;
         if (d < min && d > 0.001) {
             const push = (min - d) / d;
@@ -25,73 +22,69 @@ export function resolveVsColliders(nx, ny, radius, colliders) {
     return { x: rx, y: ry };
 }
 
-/**
- * Checks if a position is colliding with any collider
- * @param {number} x - x position to check
- * @param {number} y - y position to check
- * @param {number} radius - entity radius
- * @param {Array} colliders - array of {x, y, r}
- * @returns {boolean} - true if colliding
- */
 export function isColliding(x, y, radius, colliders) {
     for (const col of colliders) {
         const dx = x - col.x;
         const dy = y - col.y;
         const d = Math.sqrt(dx * dx + dy * dy);
-        if (d < radius + col.r) {
-            return true;
-        }
+        if (d < radius + col.r) return true;
     }
     return false;
 }
 
-/**
- * Gets the closest collider to a position
- * @param {number} x - x position
- * @param {number} y - y position
- * @param {Array} colliders - array of {x, y, r}
- * @returns {Object|null} - closest collider or null
- */
 export function getClosestCollider(x, y, colliders) {
-    let closest = null;
-    let minDist = Infinity;
-
+    let closest = null, minDist = Infinity;
     for (const col of colliders) {
-        const dx = x - col.x;
-        const dy = y - col.y;
+        const dx = x - col.x, dy = y - col.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < minDist) {
-            minDist = dist;
-            closest = col;
-        }
+        if (dist < minDist) { minDist = dist; closest = col; }
     }
-
     return closest;
 }
 
-// Add this function to your collision.js or create a new debug.js file
 export function drawDebugColliders(world, colliders) {
-    // Remove existing debug graphics if any
     if (window._debugGraphics) {
         world.removeChild(window._debugGraphics);
         window._debugGraphics.destroy();
     }
-
-    const debugGraphics = new Graphics();
-
+    const g = new Graphics();
     colliders.forEach(col => {
         if (col.r !== undefined) {
-            // Draw circle outline
-            debugGraphics.circle(col.x, col.y, col.r)
-                .stroke({ width: 2, color: 0xff0000, alpha: 0.8 });
-
-            // Draw center point
-            debugGraphics.circle(col.x, col.y, 3)
-                .fill({ color: 0xff0000, alpha: 0.8 });
+            g.circle(col.x, col.y, col.r).stroke({ width: 2, color: 0xff0000, alpha: 0.8 });
+            g.circle(col.x, col.y, 3).fill({ color: 0xff0000, alpha: 0.8 });
         }
     });
+    world.addChild(g);
+    window._debugGraphics = g;
+    return g;
+}
 
-    world.addChild(debugGraphics);
-    window._debugGraphics = debugGraphics;
-    return debugGraphics;
+/**
+ * Creates a debug toggle bound to F2. Call once during setup.
+ */
+export function createDebugColliderToggle(world, colliders) {
+    let debugGraphics = null;
+
+    function toggle() {
+        if (debugGraphics) {
+            world.removeChild(debugGraphics);
+            debugGraphics = null;
+        } else {
+            debugGraphics = drawDebugColliders(world, colliders);
+        }
+    }
+
+    const handler = e => { if (e.key === 'F2') toggle(); };
+    window.addEventListener('keydown', handler);
+
+    return {
+        /** Call each tick only if active, to redraw when colliders change */
+        tickUpdate() {
+            if (debugGraphics) {
+                world.removeChild(debugGraphics);
+                debugGraphics = drawDebugColliders(world, colliders);
+            }
+        },
+        destroy() { window.removeEventListener('keydown', handler); }
+    };
 }

@@ -76,8 +76,8 @@ export const BIOME_COLORS = {
         glow: 0xff4400,
         magma: 0xff6600,
         obsidian: 0x1a0a0a,
-        texture: '/lava-ground.png',
-        props:['/testprop.png', '/testprop2.png', '/testprop3.png'],
+        texture: '/lava/lava-ground.png',
+        props:['/lava/lava-1.png', '/lava/lava-2.png', '/lava/lava-3.png', '/lava/lava-4.png'],
         tint: ''
     },
 };
@@ -95,7 +95,7 @@ export const PLAYERSTATS = {
 
 export const DIFFICULTY = {
     mobHp: 1,
-    mobSpeed: 0.25,
+    mobSpeed: 0.7,
 };
 
 export const ROOMS = [
@@ -106,7 +106,7 @@ export const ROOMS = [
         biome: 'lava',
         bossType: 'lava',
         size: 30,
-        propCount: 5,
+        propCount: 10,
     },
     {
         id: 2,

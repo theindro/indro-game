@@ -1,10 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
+import { XP_NEXT_MULTIPLIER, HP_PER_LEVEL } from './constants.js';
 
-/**
- * Creates the player visual container and returns refs to key graphics.
- * @param {import('pixi.js').Container} world
- * @returns {{ pCont, pGlow, pBody, pRune, pShadow }}
- */
 export function createPlayerEntity(world) {
     const pCont   = new Container();
     const pShadow = new Graphics();
@@ -27,4 +23,36 @@ export function createPlayerEntity(world) {
 
     world.addChild(pCont);
     return { pCont, pGlow, pBody, pRune, pShadow };
+}
+
+/**
+ * Creates an XP/levelling system bound to the player's mutable state object.
+ * @param {object} playerState  - { pXP, pLevel, pXPNext, pMaxHP, pHP, stats }
+ * @param {object} deps         - { burst, world, particles, levelupEl, shakeRef }
+ */
+export function createXPSystem(playerState, deps) {
+    return {
+        addXP(amt) {
+            const s = playerState;
+            s.pXP += amt;
+            if (s.pXP >= s.pXPNext) {
+                s.pLevel++;
+                s.pXP = 0;
+                s.pXPNext = Math.floor(s.pXPNext * XP_NEXT_MULTIPLIER);
+                s.pMaxHP += HP_PER_LEVEL;
+                s.pHP = s.pMaxHP;
+
+                s.stats.damage += 3;
+                if (s.pLevel % 2 === 0) s.stats.attackSpeed = Math.max(12, s.stats.attackSpeed - 3);
+                if (s.pLevel % 3 === 0) s.stats.projectiles += 1;
+                if (s.pLevel % 4 === 0) s.stats.moveSpeed += 0.05;
+
+                deps.burst(deps.world, deps.particles, s.px, s.py, 0xffd700, 25, 4);
+                deps.shakeRef.value = 6;
+
+                deps.levelupEl.style.opacity = '1';
+                setTimeout(() => { deps.levelupEl.style.opacity = '0'; }, 1400);
+            }
+        }
+    };
 }
