@@ -1,0 +1,349 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000
+}
+
+canvas {
+    display: block
+}
+
+#hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    font-family: 'Cinzel', serif;
+    z-index: 10
+}
+
+#hp-panel {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px
+}
+
+#hp-icon {
+    width: 26px;
+    height: 26px;
+    background: radial-gradient(circle at 40% 35%, #ff6b8a, #c0003c);
+    clip-path: polygon(50% 90%, 10% 45%, 30% 10%, 50% 30%, 70% 10%, 90% 45%);
+    filter: drop-shadow(0 0 6px #ff3366);
+    animation: heartbeat 1.2s ease-in-out infinite
+}
+
+@keyframes heartbeat {
+    0%, 100% {
+        transform: scale(1)
+    }
+    50% {
+        transform: scale(1.18)
+    }
+}
+
+#hp-track {
+    width: 180px;
+    height: 14px;
+    background: rgba(0, 0, 0, .6);
+    border-radius: 7px;
+    border: 1px solid rgba(255, 80, 100, .35);
+    overflow: hidden;
+    box-shadow: 0 0 12px rgba(255, 50, 80, .3) inset
+}
+
+#hp-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #c0003c, #ff6b8a);
+    border-radius: 7px;
+    transition: width .15s ease;
+    box-shadow: 0 0 8px #ff3366
+}
+
+#hp-label {
+    color: #ffb3c1;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px #ff3366;
+    margin-bottom: 3px
+}
+
+#xp-panel {
+    position: absolute;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px
+}
+
+#level-badge {
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffa500, 0 0 20px #ff6600
+}
+
+#xp-track {
+    width: 260px;
+    height: 8px;
+    background: rgba(0, 0, 0, .5);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 200, 0, .3);
+    overflow: hidden
+}
+
+#xp-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #b8860b, #ffd700, #ffe066);
+    border-radius: 4px;
+    transition: width .3s ease;
+    box-shadow: 0 0 8px #ffa500
+}
+
+#kills-panel {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    text-align: right
+}
+
+#kills-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(255, 255, 255, .4)
+}
+
+#kills-count {
+    font-size: 32px;
+    color: #fff;
+    text-shadow: 0 0 15px rgba(255, 200, 100, .6);
+    transition: transform .15s ease
+}
+
+#kills-count.bump {
+    transform: scale(1.4)
+}
+
+#biome-name {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(80, 255, 120, .5);
+    transition: color .6s, text-shadow .6s
+}
+
+#boss-panel {
+    position: absolute;
+    bottom: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px
+}
+
+#boss-panel.visible {
+    display: flex
+}
+
+#boss-name {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #ff4466;
+    text-shadow: 0 0 12px #ff0033;
+    text-transform: uppercase
+}
+
+#boss-track {
+    width: 340px;
+    height: 12px;
+    background: rgba(0, 0, 0, .7);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 50, 80, .4);
+    overflow: hidden
+}
+
+#boss-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #6b0000, #ff1654);
+    border-radius: 6px;
+    transition: width .2s ease;
+    box-shadow: 0 0 10px #ff0033
+}
+
+#crosshair {
+    position: absolute;
+    pointer-events: none;
+    width: 20px;
+    height: 20px;
+    transform: translate(-50%, -50%);
+    opacity: .75
+}
+
+#crosshair::before, #crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(255, 255, 255, .85);
+    border-radius: 1px
+}
+
+#crosshair::before {
+    width: 2px;
+    height: 100%;
+    left: 9px;
+    top: 0
+}
+
+#crosshair::after {
+    width: 100%;
+    height: 2px;
+    top: 9px;
+    left: 0
+}
+
+#hint {
+    position: absolute;
+    bottom: 60px;
+    right: 18px;
+    color: rgba(255, 255, 255, .22);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-align: right;
+    line-height: 1.9
+}
+
+#levelup {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 44px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #ffd700;
+    text-shadow: 0 0 30px #ffa500, 0 0 60px #ff6600;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s
+}
+
+#deathscreen.active {
+    opacity: 1;
+    pointer-events: all;
+    visibility: visible;
+}
+#deathscreen {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    transition: background 1.2s ease
+}
+
+#deathscreen.active {
+    background: rgba(0, 0, 0, .87);
+    pointer-events: all
+}
+
+#death-title {
+    font-size: 58px;
+    letter-spacing: 8px;
+    color: #c0003c;
+    text-shadow: 0 0 30px #ff003c;
+    opacity: 0;
+    transition: opacity 1.5s ease .5s
+}
+
+#death-sub {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: rgba(255, 255, 255, .45);
+    opacity: 0;
+    transition: opacity 1.5s ease 1s
+}
+
+#death-kills {
+    font-size: 17px;
+    letter-spacing: 3px;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffa500;
+    opacity: 0;
+    transition: opacity 1.5s ease 1.2s
+}
+
+#deathscreen.active #death-title, #deathscreen.active #death-sub, #deathscreen.active #death-kills {
+    opacity: 1
+}
+
+#restart-btn {
+    margin-top: 20px;
+    padding: 12px 36px;
+    background: transparent;
+    border: 1px solid rgba(255, 200, 0, .5);
+    color: #ffd700;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    pointer-events: all;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 1.5s ease 1.6s, background .3s, box-shadow .3s
+}
+
+#deathscreen.active #restart-btn {
+    opacity: 1
+}
+
+#restart-btn:hover {
+    background: rgba(255, 200, 0, .15);
+    box-shadow: 0 0 20px rgba(255, 200, 0, .3)
+}
+
+#boss-warning {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #ff1654;
+    text-shadow: 0 0 20px #ff0033;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s
+}

@@ -1,0 +1,75 @@
+export default function ArenaHUD() {
+    return (
+        <div id="hud">
+            {/* HP */}
+            <div id="hp-panel">
+                <div id="hp-icon"/>
+                <div>
+                    <div id="hp-label">100 / 100</div>
+                    <div id="hp-track">
+                        <div id="hp-fill"/>
+                    </div>
+                </div>
+            </div>
+
+            {/* KILLS */}
+            <div id="kills-panel">
+                <div id="kills-label">SLAIN</div>
+                <div id="kills-count">0</div>
+            </div>
+
+            {/* BIOME */}
+            <div id="biome-name">VERDANT FOREST</div>
+
+            {/* XP */}
+            <div id="xp-panel">
+                <div id="level-badge">Level 1</div>
+                <div id="xp-track">
+                    <div id="xp-fill"></div>
+                </div>
+            </div>
+
+            {/* BOSS */}
+            <div id="boss-panel">
+                <div id="boss-name">BOSS</div>
+                <div id="boss-track">
+                    <div id="boss-fill"></div>
+                </div>
+            </div>
+
+            {/* CROSSHAIR */}
+            <div id="crosshair"/>
+
+            {/* OTHER */}
+            <div id="levelup">Level Up!</div>
+            <div id="boss-warning">⚠ BOSS APPROACHES ⚠</div>
+
+            <div id="deathscreen">
+                <div id="death-title">YOU DIED</div>
+                <div id="death-sub">THE WORLD RECLAIMS ALL</div>
+                <div id="death-kills"/>
+                <button id="restart-btn" onClick={() => window.location.reload()}>
+                    Rise Again
+                </button>
+            </div>
+
+            <div id="pause-screen" style={{
+                display: 'none',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                background: 'rgba(0,0,0,0.7)',
+                color: 'white',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 32,
+                letterSpacing: 4,
+                zIndex: 1000
+            }}>
+                PAUSED
+            </div>
+        </div>
+    );
+}
