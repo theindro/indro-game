@@ -39,7 +39,7 @@ export const XP_PER_DROP_LOOT = 6;
 export const XP_NEXT_MULTIPLIER = 1.35;
 export const HP_PER_LEVEL = 25;
 
-// Dash
+export const HEART_COLOR = 0xff2255;
 
 // ── Particles
 export const PARTICLE_FRICTION = 0.9;
@@ -67,7 +67,7 @@ export const BIOME_COLORS = {
         base: 0x8ec8de,
         accent: 0xb8e4f4,
         texture: '/snow-ground.png',
-        props: [],
+        props:['/ice/ice-1.png'],
         tint: 0xcceeff
     },
     lava: {
@@ -87,10 +87,10 @@ export const PLAYERSTATS = {
     damage: 10,
     projectiles: 1,
     moveSpeed: 0.2,
-    dashSpeed: 500,
-    dashRange: 180,
-    dashDuration: 50,
-    dashCooldown: 60,
+    dashSpeed: 100,
+    dashRange: 150,
+    dashDuration: 60,
+    dashCooldown: 120,
 };
 
 export const DIFFICULTY = {

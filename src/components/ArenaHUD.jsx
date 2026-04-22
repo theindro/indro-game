@@ -12,6 +12,13 @@ export default function ArenaHUD() {
                 </div>
             </div>
 
+            <div id="gold">
+                <div id="gold-icon"/>
+                <div>
+                    <div id="gold-label">0</div>
+                </div>
+            </div>
+
             {/* KILLS */}
             <div id="kills-panel">
                 <div id="kills-label">SLAIN</div>

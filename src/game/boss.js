@@ -167,115 +167,112 @@ export function makeBossBody(type) {
 /* ── MAIN SPAWN ── */
 
 export function spawnBoss(world, type, x, y, scale = 1) {
-
     const { c, gl, body, hpBar } = makeBossBody(type);
-
-    c.x = x;
-    c.y = y;
+    c.x = x; c.y = y;
     c.scale.set(scale);
-
     world.addChild(c);
 
-    // 🔴 scaling
-    const maxHp = BOSS_HP * scale;
-    const speed = BOSS_SPEED * (1 / scale); // bigger = slower
+    const biome   = BIOME_COLORS[type] ?? {};
+    const glowCol = biome.glow ?? biome.accent ?? 0x00ccff;
+    const maxHp   = BOSS_HP * scale;
+    const speed   = BOSS_SPEED * (1 / scale);
 
     const boss = {
         c, gl, body, hpBar,
-        x, y,
-        type,
-        hp: maxHp,
-        maxHp,
+        x, y, type,
+        hp: maxHp, maxHp,
         speed,
         radius: BOSS_RADIUS * scale,
         shootTimer: 0,
         shootInterval: BOSS_SHOOT_INTERVAL,
+        waveTimer: 0,
+        waveInterval: 1000,
+        waves: [],
+        laserTimer: 0,
+        laserInterval: 800,   // frames between laser attacks
+        lasers: [],
         wobble: 0,
         dead: false,
 
-        update({ px, py, colliders, roomManager, enemyProjs }) {
-
+        update({ px, py, colliders, roomManager, enemyProjs, playerState, shakeRef }) {
             if (this.dead) return;
 
-            // wobble
+            // Wobble
             this.wobble += 0.04;
             this.c.scale.set(scale + Math.sin(this.wobble) * 0.03);
 
-            // move toward player
-            const dx = px - this.x;
-            const dy = py - this.y;
+            // Movement
+            const dx = px - this.x, dy = py - this.y;
             const dist = Math.hypot(dx, dy);
-
-            let nx = this.x;
-            let ny = this.y;
-
+            let nx = this.x, ny = this.y;
             if (dist > 0.01) {
                 nx += (dx / dist) * this.speed;
                 ny += (dy / dist) * this.speed;
             }
-
-            // clamp
-            let clamped = roomManager.clampToRoom(nx, ny, this.radius);
-
-            // collide with props
-            const resolved = resolveVsColliders(
-                clamped.x,
-                clamped.y,
-                this.radius,
-                colliders
-            );
-
+            const clamped  = roomManager.clampToRoom(nx, ny, this.radius);
+            const resolved = resolveVsColliders(clamped.x, clamped.y, this.radius, colliders);
             this.x = resolved.x;
             this.y = resolved.y;
-
             this.c.x = this.x;
             this.c.y = this.y;
 
-            // shooting
-            this.shootTimer++;
-
             const enraged = this.hp < this.maxHp * 0.4;
-            const interval = enraged
-                ? this.shootInterval * 0.6
-                : this.shootInterval;
 
-            if (this.shootTimer >= interval) {
+            // Projectile shoot
+            this.shootTimer++;
+            const shootInterval = enraged ? this.shootInterval * 0.6 : this.shootInterval;
+            if (this.shootTimer >= shootInterval) {
                 this.shootTimer = 0;
-
-                enemyProjs.push(
-                    createEnemyProj(
-                        world,
-                        this.x,
-                        this.y,
-                        px,
-                        py,
-                        this.type,
-                        enraged ? 40 : 14,
-                        5.2,
-                        10
-                    )
-                );
-
-                // spread when enraged
+                enemyProjs.push(createEnemyProj(world, this.x, this.y, px, py, this.type, enraged ? 40 : 14, 5.2, 10));
                 if (enraged) {
-                    [-0.4, 0.4].forEach(off => {
-                        enemyProjs.push(
-                            createEnemyProj(
-                                world,
-                                this.x,
-                                this.y,
-                                px,
-                                py,
-                                this.type,
-                                10,
-                                2.8,
-                                8,
-                                off
-                            )
-                        );
-                    });
+                    [-0.4, 0.4].forEach(off =>
+                        enemyProjs.push(createEnemyProj(world, this.x, this.y, px, py, this.type, 10, 2.8, 8, off))
+                    );
                 }
             }
+
+            // Wave attack
+            this.waveTimer++;
+            const waveInterval = enraged ? this.waveInterval * 0.6 : this.waveInterval;
+            if (this.waveTimer >= waveInterval) {
+                this.waveTimer = 0;
+                this.waves.push(createWave(world, this.x, this.y, glowCol));
+                if (enraged) {
+                    setTimeout(() => {
+                        if (!this.dead) this.waves.push(createWave(world, this.x, this.y, glowCol));
+                    }, 300);
+                }
+            }
+
+            // Laser attack — fire 1 random laser, enraged fires 3
+            this.laserTimer++;
+            const laserInterval = enraged ? this.laserInterval * 0.5 : this.laserInterval;
+            if (this.laserTimer >= laserInterval) {
+                this.laserTimer = 0;
+                const count = enraged ? 3 : 1;
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    setTimeout(() => {
+                        if (!this.dead) this.lasers.push(createLaser(world, this.x, this.y, angle, glowCol));
+                    }, i * 200);
+                }
+            }
+
+            // Tick waves
+            updateWaves(this.waves, world, px, py, (dmg) => {
+                if (playerState) {
+                    playerState.pHP -= dmg;
+                    if (shakeRef) shakeRef.value = Math.max(shakeRef.value, dmg * 0.3);
+                }
+            });
+
+            // Tick lasers
+            updateLasers(this.lasers, world, px, py, (dmg) => {
+                if (playerState) {
+                    playerState.pHP -= dmg;
+                    if (shakeRef) shakeRef.value = Math.max(shakeRef.value, 2);
+                }
+            });
 
             updateBossBar(this);
         }
@@ -299,4 +296,197 @@ export function updateBossBar(b) {
 
         b.hpBar.rect(-43, -53, 86 * p, 7).fill(col);
     }
+}
+
+// ── WAVE ATTACK ─────────────────────────────────────────────────────────────
+
+export function createWave(world, bossX, bossY, color) {
+    const g = new Graphics();
+    world.addChild(g);
+
+    return {
+        g,
+        x: bossX,
+        y: bossY,
+        radius: 40,
+        maxRadius: 320,
+        speed: 3.5,
+        dmg: 18,
+        color,
+        hit: false,      // has it already hit the player this expansion
+        dead: false,
+    };
+}
+
+export function updateWaves(waves, world, px, py, onHit) {
+    for (let i = waves.length - 1; i >= 0; i--) {
+        const w = waves[i];
+        if (w.dead) {
+            world.removeChild(w.g);
+            waves.splice(i, 1);
+            continue;
+        }
+
+        w.radius += w.speed;
+
+        // Redraw ring
+        w.g.clear();
+
+        const outerAlpha = 1 - (w.radius / w.maxRadius);
+
+        // Outer glow ring
+        w.g.circle(w.x, w.y, w.radius + 6)
+            .stroke({ color: w.color, alpha: outerAlpha * 0.3, width: 10 });
+
+        // Main ring
+        w.g.circle(w.x, w.y, w.radius)
+            .stroke({ color: w.color, alpha: outerAlpha * 0.9, width: 4 });
+
+        // Inner bright edge
+        w.g.circle(w.x, w.y, w.radius - 3)
+            .stroke({ color: 0xffffff, alpha: outerAlpha * 0.25, width: 2 });
+
+        // Hit detection — player is in the ring band
+        if (!w.hit) {
+            const dist = Math.hypot(px - w.x, py - w.y);
+            const bandWidth = 18;
+            if (Math.abs(dist - w.radius) < bandWidth) {
+                w.hit = true;
+                onHit(w.dmg);
+            }
+        }
+
+        if (w.radius >= w.maxRadius) {
+            world.removeChild(w.g);
+            waves.splice(i, 1);
+        }
+    }
+}
+
+// ── LASER ATTACK ─────────────────────────────────────────────────────────────
+
+export function createLaser(world, bossX, bossY, angle, color) {
+    const g = new Graphics();
+    world.addChild(g);
+
+    return {
+        g,
+        x: bossX,
+        y: bossY,
+        angle,
+        color,
+        length: 0,
+        maxLength: 900,
+        growSpeed: 28,     // units added per frame during grow
+        state: 'telegraphing', // telegraphing → growing → holding → fading
+        stateTimer: 0,
+        telegraphDuration: 50,  // frames of warning before firing
+        holdDuration: 30,       // frames laser stays at full length
+        width: 6,
+        dead: false,
+    };
+}
+
+export function updateLasers(lasers, world, px, py, onHit) {
+    for (let i = lasers.length - 1; i >= 0; i--) {
+        const l = lasers[i];
+        if (l.dead) {
+            world.removeChild(l.g);
+            lasers.splice(i, 1);
+            continue;
+        }
+
+        l.g.clear();
+        l.stateTimer++;
+
+        const ex = l.x + Math.cos(l.angle) * l.length;
+        const ey = l.y + Math.sin(l.angle) * l.length;
+
+        if (l.state === 'telegraphing') {
+            // Draw dashed warning line at full length
+            const dashLength = 18;
+            const gap = 12;
+            const total = l.maxLength;
+            let d = 0;
+            while (d < total) {
+                const startX = l.x + Math.cos(l.angle) * d;
+                const startY = l.y + Math.sin(l.angle) * d;
+                const endX   = l.x + Math.cos(l.angle) * Math.min(d + dashLength, total);
+                const endY   = l.y + Math.sin(l.angle) * Math.min(d + dashLength, total);
+                const alpha  = 0.15 + 0.15 * Math.sin(l.stateTimer * 0.3); // pulse
+                l.g.moveTo(startX, startY).lineTo(endX, endY)
+                    .stroke({ color: l.color, alpha, width: 3 });
+                d += dashLength + gap;
+            }
+
+            if (l.stateTimer >= l.telegraphDuration) {
+                l.state = 'growing';
+                l.stateTimer = 0;
+            }
+
+        } else if (l.state === 'growing') {
+            l.length = Math.min(l.length + l.growSpeed, l.maxLength);
+
+            // Outer glow
+            l.g.moveTo(l.x, l.y).lineTo(ex, ey)
+                .stroke({ color: l.color, alpha: 0.3, width: l.width + 10 });
+            // Core beam
+            l.g.moveTo(l.x, l.y).lineTo(ex, ey)
+                .stroke({ color: l.color, alpha: 0.9, width: l.width });
+            // Bright center
+            l.g.moveTo(l.x, l.y).lineTo(ex, ey)
+                .stroke({ color: 0xffffff, alpha: 0.5, width: l.width * 0.3 });
+
+            // Hit detection along beam
+            _checkLaserHit(l, px, py, onHit);
+
+            if (l.length >= l.maxLength) {
+                l.state = 'holding';
+                l.stateTimer = 0;
+            }
+
+        } else if (l.state === 'holding') {
+            // Outer glow
+            l.g.moveTo(l.x, l.y).lineTo(ex, ey)
+                .stroke({ color: l.color, alpha: 0.25, width: l.width + 10 });
+            // Core
+            l.g.moveTo(l.x, l.y).lineTo(ex, ey)
+                .stroke({ color: l.color, alpha: 0.85, width: l.width });
+            // Center
+            l.g.moveTo(l.x, l.y).lineTo(ex, ey)
+                .stroke({ color: 0xffffff, alpha: 0.45, width: l.width * 0.3 });
+
+            _checkLaserHit(l, px, py, onHit);
+
+            if (l.stateTimer >= l.holdDuration) {
+                l.state = 'fading';
+                l.stateTimer = 0;
+            }
+
+        } else if (l.state === 'fading') {
+            const progress = l.stateTimer / 20;
+            const alpha = Math.max(0, 1 - progress);
+            l.g.moveTo(l.x, l.y).lineTo(ex, ey)
+                .stroke({ color: l.color, alpha: alpha * 0.7, width: l.width });
+
+            if (alpha <= 0) l.dead = true;
+        }
+    }
+}
+
+// Point-to-segment distance check along the laser beam
+function _checkLaserHit(l, px, py, onHit) {
+    const ex = l.x + Math.cos(l.angle) * l.length;
+    const ey = l.y + Math.sin(l.angle) * l.length;
+
+    const abx = ex - l.x, aby = ey - l.y;
+    const apx = px - l.x, apy = py - l.y;
+    const ab2 = abx * abx + aby * aby;
+    const t   = ab2 > 0 ? Math.max(0, Math.min(1, (apx * abx + apy * aby) / ab2)) : 0;
+    const cx  = l.x + t * abx;
+    const cy  = l.y + t * aby;
+    const dist = Math.hypot(px - cx, py - cy);
+
+    const hitWidth = l.width + 10;
+    if (dist < hitWidth) onHit(0.8); // continuous damage per frame while inside
 }

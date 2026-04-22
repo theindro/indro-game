@@ -21,32 +21,34 @@ let _lastBiome = 'forest';
  * @param {object} state
  */
 export function updateHUD(els, state) {
-    const { hpFill, hpLabel, xpFill, levelBadge, biomeEl, bossFillEl } = els;
-    const { pHP, pMaxHP, pXP, pXPNext, pLevel, px, py, activeBoss } = state;
+    const { hpFill, hpLabel, xpFill, levelBadge, biomeEl, bossFillEl, goldEl } = els;
+    const { gold, pHP, pMaxHP, pXP, pXPNext, pLevel, activeBoss } = state;
 
-    const hpPct = Math.max(0, pHP / pMaxHP) * 100;
-    hpFill.style.width = hpPct + '%';
-    hpLabel.textContent = `${Math.max(0, Math.ceil(pHP))} / ${pMaxHP}`;
-    hpFill.style.background =
-        hpPct > 50 ? 'linear-gradient(90deg,#c0003c,#ff6b8a)'
-            : hpPct > 25 ? 'linear-gradient(90deg,#7b3a00,#ff8800)'
-                : 'linear-gradient(90deg,#6b0000,#ff2222)';
+    if (hpFill) hpFill.style.width = Math.max(0, pHP / pMaxHP) * 100 + '%';
+    if (hpLabel) hpLabel.textContent = `${Math.max(0, Math.ceil(pHP))} / ${pMaxHP}`;
 
-    xpFill.style.width = (pXP / pXPNext * 100) + '%';
-    levelBadge.textContent = `Level ${pLevel}`;
+    if (hpFill) {
+        const hpPct = Math.max(0, pHP / pMaxHP) * 100;
+        hpFill.style.background =
+            hpPct > 50 ? 'linear-gradient(90deg,#c0003c,#ff6b8a)'
+                : hpPct > 25 ? 'linear-gradient(90deg,#7b3a00,#ff8800)'
+                    : 'linear-gradient(90deg,#6b0000,#ff2222)';
+    }
 
-    // biome label
+    if (xpFill) xpFill.style.width = (pXP / pXPNext * 100) + '%';
+    if (levelBadge) levelBadge.textContent = `Level ${pLevel}`;
+    if (goldEl) goldEl.textContent = gold ?? 0;
+
     const cb = state?.currentRoom?.biome || '';
-    if (cb !== _lastBiome) {
+    if (cb && cb !== _lastBiome && biomeEl && BIOME_DISPLAY[cb]) {
         _lastBiome = cb;
         const { label, color } = BIOME_DISPLAY[cb];
-        biomeEl.textContent   = label;
-        biomeEl.style.color   = color;
+        biomeEl.textContent      = label;
+        biomeEl.style.color      = color;
         biomeEl.style.textShadow = `0 0 12px ${color}`;
     }
 
-    // boss hp bar
-    if (activeBoss && !activeBoss.dead) {
+    if (activeBoss && !activeBoss.dead && bossFillEl) {
         bossFillEl.style.width = (Math.max(0, activeBoss.hp) / activeBoss.maxHp * 100) + '%';
     }
 }

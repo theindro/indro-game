@@ -3,7 +3,7 @@ import { spawnDrops } from './drops.js';
 import { burst } from './particles.js';
 import { showFloat } from './floatText.js';
 import { hideBossPanel } from './hud.js';
-import { BOSS_RADIUS, XP_PER_MOB, XP_PER_BOSS, XP_PER_DROP_XP, XP_PER_DROP_LOOT } from './constants.js';
+import {BOSS_RADIUS, XP_PER_MOB, XP_PER_BOSS, HEART_COLOR, BIOME_COLORS} from './constants.js';
 
 /**
  * @param {object} ctx - shared references passed in once at setup
@@ -60,6 +60,7 @@ export function createCombatSystem(ctx) {
             let hit = false;
 
             // vs mobs
+// vs mobs
             for (let mi = mobs.length - 1; mi >= 0; mi--) {
                 const m = mobs[mi];
                 if (Math.hypot(m.x - a.c.x, m.y - a.c.y) >= 16) continue;
@@ -68,7 +69,6 @@ export function createCombatSystem(ctx) {
                 m.hp -= dmg;
                 burst(world, particles, m.x, m.y, 0xff4466, 7);
                 showFloat(floats, m.x, m.y - 20, `-${dmg}`, '#ff6b8a');
-                drops.push(...spawnDrops(world, m.x, m.y, 1));
                 world.removeChild(a.c);
                 arrows.splice(ai, 1);
                 hit = true;
@@ -79,9 +79,12 @@ export function createCombatSystem(ctx) {
                     shakeRef.value = Math.max(shakeRef.value, 6);
                     xp.addXP(XP_PER_MOB);
                     killsRef.value++;
-                    hudElements.killsEl.textContent = killsRef.value;
-                    hudElements.killsEl.classList.add('bump');
-                    setTimeout(() => hudElements.killsEl.classList.remove('bump'), 160);
+                    drops.push(...spawnDrops(world, m.x, m.y, 1));
+                    if (hudElements.killsEl) {
+                        hudElements.killsEl.textContent = killsRef.value;
+                        hudElements.killsEl.classList.add('bump');
+                        setTimeout(() => hudElements.killsEl.classList.remove('bump'), 160);
+                    }
                     world.removeChild(m.c);
                     mobs.splice(mi, 1);
                 }
@@ -90,7 +93,6 @@ export function createCombatSystem(ctx) {
 
             if (hit) continue;
 
-            // vs bosses
             for (let bi = bosses.length - 1; bi >= 0; bi--) {
                 const b = bosses[bi];
                 if (b.dead) continue;
@@ -98,29 +100,29 @@ export function createCombatSystem(ctx) {
 
                 const dmg = 18 + Math.floor(Math.random() * 10);
                 b.hp -= dmg;
-                burst(world, particles, b.x, b.y, b.type === 'desert' ? 0xff8800 : 0x00ccff, 10, 3.5);
-                showFloat(floats, b.x, b.y - 60, `-${dmg}`, b.type === 'desert' ? '#ff8800' : '#00eeff');
+                const biomeCol = BIOME_COLORS[b.type]?.glow ?? 0x00ccff;
+                burst(world, particles, b.x, b.y, biomeCol, 10, 3.5);
+                showFloat(floats, b.x, b.y - 60, `-${dmg}`, '#ffffff');
                 world.removeChild(a.c);
                 arrows.splice(ai, 1);
                 hit = true;
 
                 if (b.hp <= 0) {
                     b.dead = true;
-                    burst(world, particles, b.x, b.y, b.type === 'desert' ? 0xffa500 : 0x00eeff, 50, 6);
+                    burst(world, particles, b.x, b.y, biomeCol, 50, 6);
                     burst(world, particles, b.x, b.y, 0xffd700, 30, 5);
                     shakeRef.value = 18;
                     drops.push(...spawnDrops(world, b.x, b.y, 10));
                     xp.addXP(XP_PER_BOSS);
                     killsRef.value += 5;
-                    hudElements.killsEl.textContent = killsRef.value;
+                    if (hudElements.killsEl) hudElements.killsEl.textContent = killsRef.value;
                     world.removeChild(b.c);
                     showFloat(floats, b.x, b.y - 90, 'BOSS DEFEATED!', '#ffd700');
                     bossActiveRef.value = null;
                     hideBossPanel(hudElements);
                 }
                 break;
-            }
-        }
+            }        }
     }
 
     // ─────────────────────────────
@@ -177,11 +179,12 @@ export function createCombatSystem(ctx) {
 
             if (ddist < 22) {
                 if (d.type === 'hp') {
-                    playerState.pHP = Math.min(playerState.pMaxHP, playerState.pHP + 10);
-                    burst(world, particles, d.c.x, d.c.y, 0xff3366, 6, 2);
-                    showFloat(floats, d.c.x, d.c.y, '+10 HP', '#ff3366');
-                } else {
-                    xp.addXP(d.type === 'xp' ? XP_PER_DROP_XP : XP_PER_DROP_LOOT);
+                    playerState.pHP = Math.min(playerState.pMaxHP, playerState.pHP + 20);
+                    burst(world, particles, d.c.x, d.c.y, HEART_COLOR, 6, 2);
+                    showFloat(floats, d.c.x, d.c.y, '+20 HP', '#ff2255');
+                } else if (d.type === 'gold') {
+                    playerState.gold = (playerState.gold ?? 0) + 1;
+                    showFloat(floats, d.c.x, d.c.y, '+1', '#ffd700');
                 }
                 world.removeChild(d.c);
                 drops.splice(di, 1);

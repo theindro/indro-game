@@ -50,6 +50,7 @@ export async function createGame(hudElements) {
     const playerState = {
         pXP: 0, pLevel: 1, pXPNext: 100,
         pHP: 100, pMaxHP: 100,
+        gold: 0,
         get px() { return px; },
         get py() { return py; },
         stats: { ...PLAYERSTATS },
@@ -248,7 +249,7 @@ export async function createGame(hudElements) {
         updateMobBounceAnimation(mobs);
 
         for (const b of bosses) {
-            b.update({ px, py, colliders, roomManager, enemyProjs });
+            b.update({ px, py, colliders, roomManager, enemyProjs, playerState, shakeRef });
         }
 
         // Enemy projectiles
@@ -313,6 +314,7 @@ export async function createGame(hudElements) {
             pHP: playerState.pHP, pMaxHP: playerState.pMaxHP,
             pXP: playerState.pXP, pXPNext: playerState.pXPNext,
             pLevel: playerState.pLevel,
+            gold: playerState.gold,   // 👈 add this
             px, py, activeBoss: bossActiveRef.value,
             currentRoom: roomManager.currentRoom
         });

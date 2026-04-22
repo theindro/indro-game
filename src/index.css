@@ -347,3 +347,33 @@ canvas {
     pointer-events: none;
     transition: opacity .3s
 }
+
+#gold {
+    margin-top: 60px;
+    margin-left: 12px;
+    width: 200px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 10px;
+    padding: 6px 14px 6px 10px;
+    backdrop-filter: blur(6px);
+}
+
+#gold-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffe566, #ffd700 60%, #b8860b);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.6), inset 0 1px 2px rgba(255,255,255,0.3);
+    flex-shrink: 0;
+}
+
+#gold-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}

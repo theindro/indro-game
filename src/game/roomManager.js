@@ -136,7 +136,7 @@ export class RoomManager {
                     break;
                 }
             }
-            const b = spawnBoss(this.world, room.bossType || 'desert', bx, by);
+            const b = spawnBoss(this.world, room.bossType || 'desert', bx, by, 1);
             bosses.push(b);
             showBossPanel(hudElements, b);
         }

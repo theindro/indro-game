@@ -15,11 +15,12 @@ export function useGame() {
             hpLabel:    document.getElementById('hp-label'),
             xpFill:     document.getElementById('xp-fill'),
             levelBadge: document.getElementById('level-badge'),
-            killsEl:    document.getElementById('kills-count'),
-            biomeEl:    document.getElementById('biome-name'),
-            bossPanelEl:document.getElementById('boss-panel'),
-            bossNameEl: document.getElementById('boss-name'),
-            bossFillEl: document.getElementById('boss-fill'),
+            killsEl:    document.getElementById('kills'),
+            biomeEl:    document.getElementById('biome-label'),
+            bossPanelEl: document.getElementById('boss-panel'),
+            bossNameEl:  document.getElementById('boss-name'),
+            bossFillEl:  document.getElementById('boss-fill'),
+            goldEl:     document.getElementById('gold-label'),   // 👈 add this
         };
 
         let cancelled = false;
