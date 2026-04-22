@@ -116,7 +116,7 @@ export async function createGame(hudElements) {
         loadingRoom = true;
         roomManager.loadRoom(index, roomData => {
             px = roomData.spawnX;
-            py = roomData.spawnY;
+            py = 0;
             pCont.x = px;
             pCont.y = py;
             world.addChild(pCont);
@@ -291,7 +291,7 @@ export async function createGame(hudElements) {
             const halfScreenW = app.screen.width  / 2 / scale;
             const halfScreenH = app.screen.height / 2 / scale;
 
-            const camPadding = 140; // world units beyond the edge allowed
+            const camPadding = 0; // world units beyond the edge allowed
 
             camX = Math.max(bounds.minX + halfScreenW - camPadding, Math.min(bounds.maxX - halfScreenW + camPadding, camX));
             camY = Math.max(bounds.minY + halfScreenH - camPadding, Math.min(bounds.maxY - halfScreenH + camPadding, camY));
