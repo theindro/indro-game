@@ -56,6 +56,11 @@ export function updateHUD(els, state) {
 /** Call when a boss is first spawned or changes. */
 export function showBossPanel(els, boss) {
     els.bossPanelEl.classList.add('visible');
+    els.bossWarningEl.classList.add('visible');
+
+    setTimeout(() => {
+        els.bossWarningEl.classList.remove('visible');
+    }, 2000)
 
     const BOSSNAMES = {
         desert: 'SAND COLOSSUS',
@@ -63,6 +68,7 @@ export function showBossPanel(els, boss) {
         forest: 'NATURE BOI',
         lava: 'DOOM',
     }
+
     els.bossNameEl.textContent = BOSSNAMES[boss.type];
 }
 

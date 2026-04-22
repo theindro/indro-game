@@ -1,12 +1,13 @@
-import { Graphics } from 'pixi.js';
-import { buildGround } from './ground.js';
-import { scatterProps } from './props.js';
-import { ROOMS, MOB_RADIUS, BOSS_RADIUS } from './constants.js';
-import { spawnMob, updateMobBar, updateMobBounceAnimation } from './mob.js';
-import { spawnBoss } from './boss.js';
-import { spawnDrops } from './drops.js';
-import { resolveVsColliders } from './collision.js';
-import { showBossPanel, hideBossPanel } from './hud.js';
+import {Graphics} from 'pixi.js';
+import {buildGround} from './ground.js';
+import {scatterProps} from './props.js';
+import {ROOMS, MOB_RADIUS, BOSS_RADIUS} from './constants.js';
+import {spawnMob, updateMobBar, updateMobBounceAnimation} from './mob.js';
+import {spawnBoss} from './boss.js';
+import {spawnDrops} from './drops.js';
+import {resolveVsColliders} from './collision.js';
+import {showBossPanel, hideBossPanel} from './hud.js';
+import {audioManager} from "./audio.js";
 
 export class RoomManager {
     constructor(world, colliders) {
@@ -28,13 +29,13 @@ export class RoomManager {
 
     getRoomBounds(room) {
         const half = (room.size || 20) * 32;
-        return { half, minX: -half, maxX: half, minY: -half, maxY: half };
+        return {half, minX: -half, maxX: half, minY: -half, maxY: half};
     }
 
     clearRoomAssets() {
         if (this.roomAssets.groundLayer) {
             this.world.removeChild(this.roomAssets.groundLayer);
-            this.roomAssets.groundLayer.destroy({ children: true });
+            this.roomAssets.groundLayer.destroy({children: true});
             this.roomAssets.groundLayer = null;
         }
         for (const edge of this.roomAssets.edges) {
@@ -45,7 +46,7 @@ export class RoomManager {
 
         for (const prop of this.roomAssets.props) {
             this.world.removeChild(prop.container);
-            prop.container.destroy({ children: true });
+            prop.container.destroy({children: true});
         }
         this.roomAssets.props.length = 0;
 
@@ -64,10 +65,10 @@ export class RoomManager {
         const thickness = 8;
 
         const walls = [
-            { x: 0,     y: -half, w: half * 2, h: thickness },
-            { x: 0,     y:  half, w: half * 2, h: thickness },
-            { x: -half, y: 0,     w: thickness, h: half * 2 },
-            { x:  half, y: 0,     w: thickness, h: half * 2 }
+            {x: 0, y: -half, w: half * 2, h: thickness},
+            {x: 0, y: half, w: half * 2, h: thickness},
+            {x: -half, y: 0, w: thickness, h: half * 2},
+            {x: half, y: 0, w: thickness, h: half * 2}
         ];
 
         for (const w of walls) {
@@ -76,14 +77,14 @@ export class RoomManager {
             g.alpha = 0;
             this.world.addChild(g);
 
-            this.boundaries.push({ x: w.x, y: w.y, w: w.w, h: w.h, graphics: g });
-            this.colliders.push({ x: w.x - w.w / 2, y: w.y - w.h / 2, w: w.w, h: w.h });
+            this.boundaries.push({x: w.x, y: w.y, w: w.w, h: w.h, graphics: g});
+            this.colliders.push({x: w.x - w.w / 2, y: w.y - w.h / 2, w: w.w, h: w.h});
         }
 
         const border = new Graphics();
         border
             .rect(-half, -half, half * 2, half * 2)
-            .stroke({ width: 4, color: 0xffffff, alpha: 0.15 })
+            .stroke({width: 4, color: 0xffffff, alpha: 0.15})
             .fill(0x000000, 0.05);
         this.world.addChild(border);
         this.roomAssets.edges.push(border);
@@ -96,9 +97,11 @@ export class RoomManager {
     // ─────────────────────────────
 
     clearEntities(entities) {
-        const { mobs, bosses, arrows, enemyProjs, drops } = entities;
+        const {mobs, bosses, arrows, enemyProjs, drops} = entities;
         const clearArray = arr => {
-            arr.forEach(item => { if (item.c) this.world.removeChild(item.c); });
+            arr.forEach(item => {
+                if (item.c) this.world.removeChild(item.c);
+            });
             arr.length = 0;
         };
         clearArray(mobs);
@@ -110,9 +113,10 @@ export class RoomManager {
 
     spawnRoomEntities(room, bounds, entities, hudElements) {
         this.clearEntities(entities);
-        const { mobs, bosses } = entities;
+        const {mobs, bosses} = entities;
         const half = bounds.half;
         const biome = room.biome;
+
 
         for (let i = 0; i < room.mobs; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -132,12 +136,16 @@ export class RoomManager {
                 by = Math.sin(angle) * radius;
                 const resolved = resolveVsColliders(bx, by, BOSS_RADIUS, this.colliders);
                 if (Math.abs(resolved.x - bx) < 0.1 && Math.abs(resolved.y - by) < 0.1) {
-                    bx = resolved.x; by = resolved.y;
+                    bx = resolved.x;
+                    by = resolved.y;
                     break;
                 }
             }
+
             const b = spawnBoss(this.world, room.bossType || 'desert', bx, by, 1);
+
             bosses.push(b);
+
             showBossPanel(hudElements, b);
         }
 
@@ -146,7 +154,7 @@ export class RoomManager {
     }
 
     checkRoomClear(entities, onClear) {
-        const { mobs, bosses } = entities;
+        const {mobs, bosses} = entities;
         const noMobs = mobs.length === 0;
         const noBosses = bosses.length === 0 || bosses.every(b => b.dead === true);
         if (noMobs && noBosses) onClear();
@@ -161,6 +169,12 @@ export class RoomManager {
         this.clearRoomAssets();
         this.currentRoomIndex = index;
         this.currentRoom = ROOMS[index];
+
+        // 🔴 PLAY MUSIC HERE
+        if (this.currentRoom.music) {
+            console.log('here');
+            audioManager.play(this.currentRoom.music);
+        }
 
         const bounds = this.getRoomBounds(this.currentRoom);
         const ground = await buildGround(this.world, this.currentRoom);
@@ -199,7 +213,7 @@ export class RoomManager {
 
     clampToRoom(x, y, r = 0) {
         const b = this.getCurrentBounds();
-        if (!b) return { x, y };
+        if (!b) return {x, y};
         return {
             x: Math.max(b.minX + r, Math.min(b.maxX - r, x)),
             y: Math.max(b.minY + r, Math.min(b.maxY - r, y))

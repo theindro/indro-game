@@ -20,8 +20,8 @@ export function showFloat(floats, wx, wy, msg, color = '#ff6b8a') {
     d.style.cssText = [
         'position:fixed',
         'pointer-events:none',
-        'font-family:Cinzel,serif',
-        'font-size:13px',
+        'font-family:Nunito',
+        'font-size:16px',
         `color:${color}`,
         `text-shadow:0 0 8px ${color}`,
         'transform:translate(-50%,-50%)',
@@ -29,7 +29,7 @@ export function showFloat(floats, wx, wy, msg, color = '#ff6b8a') {
     ].join(';');
     d.textContent = msg;
     document.body.appendChild(d);
-    floats.push({ el: d, wx, wy, vy: -1.3, life: 44 });
+    floats.push({ el: d, wx, wy, vy: -1.3, life: 200 });
 }
 
 /**

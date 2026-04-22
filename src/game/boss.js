@@ -223,7 +223,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             const shootInterval = enraged ? this.shootInterval * 0.6 : this.shootInterval;
             if (this.shootTimer >= shootInterval) {
                 this.shootTimer = 0;
-                enemyProjs.push(createEnemyProj(world, this.x, this.y, px, py, this.type, enraged ? 40 : 14, 5.2, 10));
+                enemyProjs.push(createEnemyProj(world, this.x, this.y, px, py, this.type, enraged ? 40 : 14, 4.2, 20));
                 if (enraged) {
                     [-0.4, 0.4].forEach(off =>
                         enemyProjs.push(createEnemyProj(world, this.x, this.y, px, py, this.type, 10, 2.8, 8, off))
@@ -252,6 +252,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                 const count = enraged ? 3 : 1;
                 for (let i = 0; i < count; i++) {
                     const angle = Math.random() * Math.PI * 2;
+
                     setTimeout(() => {
                         if (!this.dead) this.lasers.push(createLaser(world, this.x, this.y, angle, glowCol));
                     }, i * 200);
@@ -380,7 +381,7 @@ export function createLaser(world, bossX, bossY, angle, color) {
         growSpeed: 28,     // units added per frame during grow
         state: 'telegraphing', // telegraphing → growing → holding → fading
         stateTimer: 0,
-        telegraphDuration: 50,  // frames of warning before firing
+        telegraphDuration: 200,  // frames of warning before firing
         holdDuration: 30,       // frames laser stays at full length
         width: 6,
         dead: false,

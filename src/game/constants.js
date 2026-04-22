@@ -107,6 +107,7 @@ export const ROOMS = [
         bossType: 'lava',
         size: 30,
         propCount: 10,
+        music: '/sounds/bg-music.wav' // 👈 ADD THIS
     },
     {
         id: 2,
@@ -116,6 +117,7 @@ export const ROOMS = [
         bossType: 'ice',
         size: 30,
         propCount: 6,
+        music: '/sounds/bg-music.wav' // 👈 ADD THIS
     },
     {
         id: 3,

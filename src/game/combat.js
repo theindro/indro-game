@@ -4,6 +4,7 @@ import { burst } from './particles.js';
 import { showFloat } from './floatText.js';
 import { hideBossPanel } from './hud.js';
 import {BOSS_RADIUS, XP_PER_MOB, XP_PER_BOSS, HEART_COLOR, BIOME_COLORS} from './constants.js';
+import {audioManager} from "./audio.js";
 
 /**
  * @param {object} ctx - shared references passed in once at setup
@@ -60,7 +61,6 @@ export function createCombatSystem(ctx) {
             let hit = false;
 
             // vs mobs
-// vs mobs
             for (let mi = mobs.length - 1; mi >= 0; mi--) {
                 const m = mobs[mi];
                 if (Math.hypot(m.x - a.c.x, m.y - a.c.y) >= 16) continue;
@@ -68,10 +68,12 @@ export function createCombatSystem(ctx) {
                 const dmg = stats.damage + Math.floor(Math.random() * 6);
                 m.hp -= dmg;
                 burst(world, particles, m.x, m.y, 0xff4466, 7);
-                showFloat(floats, m.x, m.y - 20, `-${dmg}`, '#ff6b8a');
+                showFloat(floats, m.x, m.y - 20, `-${dmg}`, '#fff');
                 world.removeChild(a.c);
                 arrows.splice(ai, 1);
                 hit = true;
+
+                audioManager.playSFX('/sounds/hit-splat.ogg', 0.1);
 
                 if (m.hp <= 0) {
                     burst(world, particles, m.x, m.y, 0xffd700, 14, 4);
@@ -106,6 +108,8 @@ export function createCombatSystem(ctx) {
                 world.removeChild(a.c);
                 arrows.splice(ai, 1);
                 hit = true;
+
+                audioManager.playSFX('/sounds/hit-splat.ogg', 0.1);
 
                 if (b.hp <= 0) {
                     b.dead = true;
@@ -147,7 +151,7 @@ export function createCombatSystem(ctx) {
                 pBody.tint = 0xff0000;
                 setTimeout(() => { pBody.tint = 0xffffff; }, 100);
                 burst(world, particles, px, py, ep.type === 'ice' ? 0x00ccff : 0xff6600, 8, 2);
-                showFloat(floats, px, py - 30, `-${ep.dmg}`, '#ffaa00');
+                showFloat(floats, px, py - 30, `-${ep.dmg}`, 'red');
                 world.removeChild(ep.c);
                 enemyProjs.splice(ei, 1);
             }

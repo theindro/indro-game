@@ -1,6 +1,6 @@
 import { Application, Container } from 'pixi.js';
 import { RoomManager } from './roomManager.js';
-import { createPlayerEntity, createXPSystem } from './player.js';
+import {createPlayerEntity, createXPSystem, updatePlayerHPBar} from './player.js';
 import { updateMobBar, updateMobBounceAnimation } from './mob.js';
 import { createEnemyProj } from './projectile.js';
 import {burst, emitEmber, emitSmoke, tickParticles} from './particles.js';
@@ -43,7 +43,7 @@ export async function createGame(hudElements) {
     const roomManager = new RoomManager(world, colliders);
 
     // Player
-    const { pCont, pGlow, pBody } = createPlayerEntity(world);
+    const { pCont, pGlow, pBody, hpBar } = createPlayerEntity(world);
     let px = 0, py = 0;
     let pBobT = 0;
 
@@ -308,6 +308,9 @@ export async function createGame(hudElements) {
 
         // Debug tracking
         debug.tickUpdate();
+
+        // Update player hp bar
+        updatePlayerHPBar(hpBar, playerState.pHP, playerState.pMaxHP);
 
         // HUD
         updateHUD(hudElements, {

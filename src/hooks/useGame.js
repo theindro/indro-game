@@ -18,6 +18,7 @@ export function useGame() {
             killsEl:    document.getElementById('kills'),
             biomeEl:    document.getElementById('biome-label'),
             bossPanelEl: document.getElementById('boss-panel'),
+            bossWarningEl: document.getElementById('boss-warning'),
             bossNameEl:  document.getElementById('boss-name'),
             bossFillEl:  document.getElementById('boss-fill'),
             goldEl:     document.getElementById('gold-label'),   // 👈 add this

@@ -155,7 +155,7 @@ canvas {
 
 #boss-panel {
     position: absolute;
-    bottom: 58px;
+    top: 58px;
     left: 50%;
     transform: translateX(-50%);
     display: none;
@@ -177,8 +177,8 @@ canvas {
 }
 
 #boss-track {
-    width: 340px;
-    height: 12px;
+    width: 600px;
+    height: 16px;
     background: rgba(0, 0, 0, .7);
     border-radius: 6px;
     border: 1px solid rgba(255, 50, 80, .4);
@@ -346,6 +346,11 @@ canvas {
     opacity: 0;
     pointer-events: none;
     transition: opacity .3s
+}
+
+#boss-warning.visible {
+    display: flex;
+    opacity: 1;
 }
 
 #gold {

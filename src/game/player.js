@@ -3,6 +3,7 @@ import { XP_NEXT_MULTIPLIER, HP_PER_LEVEL } from './constants.js';
 
 export function createPlayerEntity(world) {
     const pCont   = new Container();
+
     const pShadow = new Graphics();
     pShadow.ellipse(0, 15, 13, 5).fill({ color: 0, alpha: 0.28 });
     pCont.addChild(pShadow);
@@ -21,8 +22,36 @@ export function createPlayerEntity(world) {
         .fill({ color: 0xe0aaff, alpha: 0.7 });
     pCont.addChild(pRune);
 
+    // 🔴 HP BAR BACKGROUND
+    const hpBg = new Graphics();
+    hpBg.rect(-20, -32, 40, 6).fill({ color: 0x000000, alpha: 0.7 });
+    pCont.addChild(hpBg);
+
+    // 🔴 HP BAR FILL
+    const hpBar = new Graphics();
+    hpBar.rect(-19, -31, 38, 4).fill(0x44ff88);
+    pCont.addChild(hpBar);
+
     world.addChild(pCont);
-    return { pCont, pGlow, pBody, pRune, pShadow };
+
+    return { pCont, pGlow, pBody, pRune, pShadow, hpBar };
+}
+
+export function updatePlayerHPBar(hpBar, hp, maxHp) {
+    const pct = Math.max(0, hp / maxHp);
+
+    hpBar.clear();
+
+    if (pct > 0) {
+        const color =
+            pct > 0.5 ? 0x44ff88 :
+                pct > 0.25 ? 0xffaa00 :
+                    0xff2222;
+
+        hpBar
+            .rect(-19, -31, 38 * pct, 4)
+            .fill(color);
+    }
 }
 
 /**
