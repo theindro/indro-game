@@ -34,6 +34,7 @@ export function useGame() {
             }
         });
 
+
         return () => {
             cancelled = true;
             destroyRef.current?.();

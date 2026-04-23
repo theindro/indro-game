@@ -7,6 +7,7 @@ import {
 } from './constants.js';
 import { createEnemyProj } from './projectile.js';
 import { resolveVsColliders } from './collision.js';
+import {useGameStore} from "../stores/gameStore.js";
 
 export function makeBossBody(type) {
     const c = new Container();
@@ -319,8 +320,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             // Update all ground attacks
             this.groundAttacks.update(px, py, (damage) => {
                 if (playerState) {
-                    playerState.pHP -= damage;
-                    if (shakeRef) shakeRef.value = Math.max(shakeRef.value, damage * 0.5);
+                    useGameStore.getState().damagePlayer(damage, 'boss ground attack');
                 }
             });
 

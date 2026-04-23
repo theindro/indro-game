@@ -37,23 +37,6 @@ export function createPlayerEntity(world) {
     return { pCont, pGlow, pBody, pRune, pShadow, hpBar };
 }
 
-export function updatePlayerHPBar(hpBar, hp, maxHp) {
-    const pct = Math.max(0, hp / maxHp);
-
-    hpBar.clear();
-
-    if (pct > 0) {
-        const color =
-            pct > 0.5 ? 0x44ff88 :
-                pct > 0.25 ? 0xffaa00 :
-                    0xff2222;
-
-        hpBar
-            .rect(-19, -31, 38 * pct, 4)
-            .fill(color);
-    }
-}
-
 /**
  * Creates an XP/levelling system bound to the player's mutable state object.
  * @param {object} playerState  - { pXP, pLevel, pXPNext, pMaxHP, pHP, stats }
@@ -66,10 +49,10 @@ export function createXPSystem(playerState, deps) {
             s.pXP += amt;
             if (s.pXP >= s.pXPNext) {
                 s.pLevel++;
-                s.pXP = 0;
-                s.pXPNext = Math.floor(s.pXPNext * XP_NEXT_MULTIPLIER);
-                s.pMaxHP += HP_PER_LEVEL;
-                s.pHP = s.pMaxHP;
+                s.xp = 0;
+                s.xpNext = Math.floor(s.pXPNext * XP_NEXT_MULTIPLIER);
+                s.maxHp += HP_PER_LEVEL;
+                s.hp = s.pMaxHP;
 
                 s.stats.damage += 3;
                 if (s.pLevel % 2 === 0) s.stats.attackSpeed = Math.max(12, s.stats.attackSpeed - 3);

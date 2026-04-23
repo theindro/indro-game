@@ -18,7 +18,7 @@ export const MOB_SPAWN_RADIUS_MAX = 500;
 
 // ── Boss
 export const BOSS_RADIUS = 36;
-export const BOSS_HP = 700;
+export const BOSS_HP = 2500;
 export const BOSS_SPEED = 0.48;
 export const BOSS_SHOOT_INTERVAL = 250;
 export const BOSS_KILL_THRESHOLD = 5;
@@ -82,20 +82,10 @@ export const BIOME_COLORS = {
     },
 };
 
-export const PLAYERSTATS = {
-    attackSpeed: 50,
-    damage: 10,
-    projectiles: 1,
-    moveSpeed: 0.2,
-    dashSpeed: 100,
-    dashRange: 150,
-    dashDuration: 60,
-    dashCooldown: 120,
-};
-
 export const DIFFICULTY = {
     mobHp: 1,
     mobSpeed: 0.7,
+    attackCooldown: 0.2,
 };
 
 export const ROOMS = [

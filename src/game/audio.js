@@ -21,8 +21,6 @@ class AudioManager {
 
         this.fadeIn(audio);
 
-        console.log(audio);
-
         this.current = audio;
         this.currentPath = path;
     }

@@ -172,7 +172,6 @@ export class RoomManager {
 
         // 🔴 PLAY MUSIC HERE
         if (this.currentRoom.music) {
-            console.log('here');
             audioManager.play(this.currentRoom.music);
         }
 

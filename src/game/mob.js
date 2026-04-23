@@ -1,6 +1,9 @@
-import {Container, Graphics} from 'pixi.js';
-import {getBiome} from './biome.js';
-import {MOB_HP, MOB_SAFE_RADIUS, DIFFICULTY, BIOME_COLORS} from './constants.js';
+import { Container, Graphics } from 'pixi.js';
+import { getBiome } from './biome.js';
+import { MOB_HP, MOB_SAFE_RADIUS, DIFFICULTY, BIOME_COLORS, MOB_RADIUS, ICE_MOB_SHOOT_INTERVAL_BASE, GS } from './constants.js';
+import { resolveVsColliders } from "./collision.js";
+import { createEnemyProj } from "./projectile.js";
+import {useGameStore} from "../stores/gameStore.js";
 
 /* ── visual factory ── */
 
@@ -12,7 +15,6 @@ export function makeMobBody(biome, size = 13) {
     sh.ellipse(0, size + 1, size, 4).fill({ color: 0, alpha: 0.22 });
     c.addChild(sh);
 
-    // Use biome glow color, fall back to accent, then a default
     const glCol = biomeData.glow ?? biomeData.accent ?? 0xff1654;
     const gl = new Graphics();
     gl.circle(0, 0, size + 7).fill({ color: glCol, alpha: 0.15 });
@@ -26,12 +28,10 @@ export function makeMobBody(biome, size = 13) {
     body.circle(0, 0, size).fill(baseCol);
     body.circle(-4, -4, 5).fill({ color: shineCol, alpha: 0.38 });
 
-    // Biome-specific extra details
     if (biome === 'ice') {
         body.moveTo(-5, -size - 3).lineTo(-2, -size + 5).lineTo(-8, -size + 5).closePath().fill(shineCol);
         body.moveTo(5,  -size - 3).lineTo(8,  -size + 5).lineTo(2,  -size + 5).closePath().fill(shineCol);
     } else if (biome === 'lava') {
-        // Lava crack detail using obsidian/magma colors
         const magma = biomeData.magma ?? 0xff6600;
         body.moveTo(-size + 2, 2).lineTo(-size + 8, -2).lineTo(-size + 6, 6).closePath()
             .fill({ color: magma, alpha: 0.7 });
@@ -62,9 +62,8 @@ export function makeMobBody(biome, size = 13) {
     return { c, body, gl, hpBar };
 }
 
-/* ── hp bar updater ── */
-
 export function updateMobBar(m, size = 13) {
+    if (!m || !m.hpBar) return;
     const pct = Math.max(0, m.hp / m.maxHp);
     m.hpBar.clear();
     if (pct > 0) {
@@ -73,14 +72,144 @@ export function updateMobBar(m, size = 13) {
     }
 }
 
-/* ── spawn helper with bounce animation ── */
+/* ── CREATE MOB CONTROLLER (defined before spawn functions) ── */
 
-/**
- * Creates and returns a mob state object, also adding its visual to `world`.
- */
+export function createMobController(mob) {
+    let shootTimer = 0;
+
+    return {
+        mob,
+
+        update(ctx) {
+            if (!mob || !mob.c) return;
+
+            const {
+                px,
+                py,
+                colliders,
+                roomManager,
+                enemyProjs,
+                playerState,
+                shakeRef,
+                mobs,
+                world
+            } = ctx;
+
+            const m = this.mob;
+
+            // ── movement ──
+            const dx = px - m.x;
+            const dy = py - m.y;
+            const dist = Math.hypot(dx, dy);
+
+            let mx = 0;
+            let my = 0;
+
+            if (dist > 0.01) {
+                mx = dx / dist;
+                my = dy / dist;
+            }
+
+            // collider separation
+            const SEP_RADIUS = 100;
+            const SEP_FORCE = 2.2;
+
+            if (colliders) {
+                for (const col of colliders) {
+                    const cdx = m.x - col.x;
+                    const cdy = m.y - col.y;
+                    const cd = Math.hypot(cdx, cdy);
+                    const minD = MOB_RADIUS + (col.r || 0) + SEP_RADIUS;
+                    if (cd < minD && cd > 0.001) {
+                        const strength = (1 - cd / minD) * SEP_FORCE;
+                        mx += (cdx / cd) * strength;
+                        my += (cdy / cd) * strength;
+                    }
+                }
+            }
+
+            // mob separation
+            if (mobs) {
+                for (const o of mobs) {
+                    if (o === m) continue;
+                    const odx = m.x - o.x;
+                    const ody = m.y - o.y;
+                    const od = Math.hypot(odx, ody);
+                    const minO = MOB_RADIUS * 2 + 4;
+                    if (od < minO && od > 0.001) {
+                        const strength = (1 - od / minO) * 1.2;
+                        mx += (odx / od) * strength;
+                        my += (ody / od) * strength;
+                    }
+                }
+            }
+
+            const len = Math.hypot(mx, my);
+            if (len > 0.001) {
+                mx = (mx / len) * m.speed * GS;
+                my = (my / len) * m.speed * GS;
+            }
+
+            let nx = m.x + mx;
+            let ny = m.y + my;
+
+            if (roomManager) {
+                const clamped = roomManager.clampToRoom(nx, ny, MOB_RADIUS);
+                const resolved = resolveVsColliders(
+                    clamped.x,
+                    clamped.y,
+                    MOB_RADIUS,
+                    colliders || []
+                );
+                m.x = resolved.x;
+                m.y = resolved.y;
+            } else {
+                m.x = nx;
+                m.y = ny;
+            }
+
+            m.c.x = m.x;
+            m.c.y = m.y;
+
+            // contact damage
+            if (dist < 26 && playerState) {
+                if (m.attackCooldown <= 0) {
+                    useGameStore.getState().damagePlayer(2, 'mob atk');
+                    m.attackCooldown = 60; // 60fps → 12 ticks ≈ 5 hits/sec
+                }
+            }
+
+            // reduce cooldown every frame
+            if (m.attackCooldown > 0) {
+                m.attackCooldown--;
+            }
+
+            // shooting
+            shootTimer++;
+            if (
+                m.biome === 'ice' &&
+                dist > 90 &&
+                dist < 380 &&
+                shootTimer > ICE_MOB_SHOOT_INTERVAL_BASE &&
+                world &&
+                enemyProjs
+            ) {
+                shootTimer = 0;
+                enemyProjs.push(
+                    createEnemyProj(world, m.x, m.y, px, py, 'ice', 5, 2.5, 6)
+                );
+            }
+
+            updateMobBar(m, 13);
+        }
+    };
+}
+
+/* ── spawn helper with bounce animation AND controller attached ── */
+
 export function spawnMob(world, x, y, biome = null) {
     const finalBiome = biome || getBiome(x, y) || 'forest';
-    const {c, body, gl, hpBar} = makeMobBody(biome, 13);
+    const { c, body, gl, hpBar } = makeMobBody(finalBiome, 13);
 
     c.x = x;
     c.y = y;
@@ -89,12 +218,7 @@ export function spawnMob(world, x, y, biome = null) {
     const baseHp = MOB_HP * DIFFICULTY.mobHp;
     const baseSpeed = 0.78 * DIFFICULTY.mobSpeed;
 
-    // 🔴 ADD BOUNCE ANIMATION PROPERTIES
-    const bounceSpeed = 0.08 + Math.random() * 0.04; // Random bounce speed
-    let bounceTime = Math.random() * Math.PI * 2; // Random starting phase
-    let originalY = y; // Store original Y position
-
-    return {
+    const mob = {
         c,
         body,
         gl,
@@ -107,75 +231,60 @@ export function spawnMob(world, x, y, biome = null) {
         hitFlash: 0,
         biome: finalBiome,
         shootTimer: 0,
-        // 🔴 BOUNCE ANIMATION PROPERTIES
-        bounceSpeed,
-        bounceTime,
-        originalY,
-        bounceAmplitude: 2 + Math.random() * 2, // Random bounce height (2-4 pixels)
-        scalePulse: 0, // For hit/attack pulses
+        bounceSpeed: 0.08 + Math.random() * 0.04,
+        bounceTime: Math.random() * Math.PI * 2,
+        originalY: y,
+        bounceAmplitude: 2 + Math.random() * 2,
+        scalePulse: 0,
+        attackCooldown: 1,
     };
+
+    // 🔴 CRITICAL FIX: Attach the controller to the mob
+    mob.controller = createMobController(mob);
+
+    return mob;
 }
 
-/* ── bounce animation update function ── */
-
-/**
- * Update mob bounce animation - call this in your game loop
- * @param {Array} mobs - Array of mob objects
- * @param {number} deltaTime - Time delta (optional, default 1)
- */
 export function updateMobBounceAnimation(mobs, deltaTime = 1) {
     for (const mob of mobs) {
-        // Update bounce time
+        if (!mob || !mob.c) continue;
+
         mob.bounceTime += mob.bounceSpeed * deltaTime;
-
-        // Calculate bounce offset using sine wave
         const bounceOffset = Math.sin(mob.bounceTime) * mob.bounceAmplitude;
-
-        // Apply bounce to Y position (relative to original Y)
         mob.c.y = mob.y + bounceOffset;
 
-        // 🔴 ADD SQUASH AND STRETCH EFFECT
         const squashScale = 1 + Math.abs(Math.sin(mob.bounceTime)) * 0.08;
         const stretchScale = 1 - Math.abs(Math.sin(mob.bounceTime)) * 0.05;
 
-        // Apply squash/stretch based on bounce phase
         if (Math.sin(mob.bounceTime) > 0) {
-            // Going up - stretch vertically
             mob.c.scale.y = stretchScale;
             mob.c.scale.x = 1 + (1 - stretchScale) * 0.5;
         } else {
-            // Going down - squash vertically
             mob.c.scale.y = squashScale;
             mob.c.scale.x = 1 - (squashScale - 1) * 0.5;
         }
 
-        // Apply hit flash if active
         if (mob.hitFlash > 0) {
             mob.hitFlash -= 0.05 * deltaTime;
             const flashIntensity = Math.min(1, mob.hitFlash);
-            mob.body.tint = 0xffffff;
-            mob.body.alpha = 0.5 + flashIntensity * 0.5;
-        } else if (mob.body.tint !== 0xffffff) {
+            if (mob.body) {
+                mob.body.tint = 0xffffff;
+                mob.body.alpha = 0.5 + flashIntensity * 0.5;
+            }
+        } else if (mob.body && mob.body.tint !== 0xffffff) {
             mob.body.tint = 0xffffff;
             mob.body.alpha = 1;
         }
     }
 }
 
-/* ── enhanced spawnMob with bounce on spawn ── */
-
-/**
- * Creates a mob with a spawn bounce effect
- */
 export function spawnMobWithBounce(world, x, y, biome = null) {
     const mob = spawnMob(world, x, y, biome);
 
-    // Add spawn bounce effect
-    mob.bounceAmplitude = 8; // Larger bounce on spawn
+    mob.bounceAmplitude = 8;
     mob.bounceSpeed = 0.15;
-    mob.bounceTime = -Math.PI / 2; // Start at bottom of bounce
+    mob.bounceTime = -Math.PI / 2;
 
-    // Reset after first bounce
     setTimeout(() => {
         if (mob.bounceAmplitude > 4) {
             mob.bounceAmplitude = 2 + Math.random() * 2;
@@ -185,21 +294,16 @@ export function spawnMobWithBounce(world, x, y, biome = null) {
     return mob;
 }
 
-/* ── initial scatter ── */
-
-/**
- * Spawn the starting wave of mobs.
- */
 export function spawnInitialMobs(world, count) {
     const result = [];
     for (let i = 0; i < count; i++) {
         let mx, my, t = 0;
         do {
-            mx = Math.random() * 1800 - 900;
-            my = Math.random() * 1800 - 900;
+            mx = (Math.random() - 0.5) * 1800;
+            my = (Math.random() - 0.5) * 1800;
             t++;
         } while (t < 20 && Math.sqrt(mx * mx + my * my) < MOB_SAFE_RADIUS);
-        result.push(spawnMobWithBounce(world, mx, my)); // Use bounce version
+        result.push(spawnMobWithBounce(world, mx, my));
     }
     return result;
 }

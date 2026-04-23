@@ -5,6 +5,7 @@ import { showFloat } from './floatText.js';
 import { hideBossPanel } from './hud.js';
 import {BOSS_RADIUS, XP_PER_MOB, XP_PER_BOSS, HEART_COLOR, BIOME_COLORS} from './constants.js';
 import {audioManager} from "./audio.js";
+import {useGameStore} from "../stores/gameStore.js";
 
 /**
  * @param {object} ctx - shared references passed in once at setup
@@ -146,13 +147,10 @@ export function createCombatSystem(ctx) {
             }
 
             if (Math.hypot(px - ep.c.x, py - ep.c.y) < 16) {
-                playerState.pHP -= ep.dmg;
-                shakeRef.value = Math.max(shakeRef.value, ep.dmg * 0.25);
-                pBody.tint = 0xff0000;
-                setTimeout(() => { pBody.tint = 0xffffff; }, 100);
-                burst(world, particles, px, py, ep.type === 'ice' ? 0x00ccff : 0xff6600, 8, 2);
-                showFloat(floats, px, py - 30, `-${ep.dmg}`, 'red');
+                useGameStore.getState().damagePlayer(ep.dmg, 'boss proj attack')
+
                 world.removeChild(ep.c);
+
                 enemyProjs.splice(ei, 1);
             }
         }
@@ -183,8 +181,10 @@ export function createCombatSystem(ctx) {
 
             if (ddist < 22) {
                 if (d.type === 'hp') {
-                    playerState.pHP = Math.min(playerState.pMaxHP, playerState.pHP + 20);
+                    useGameStore.getState().healPlayer(20, 'collect heart');
+
                     burst(world, particles, d.c.x, d.c.y, HEART_COLOR, 6, 2);
+
                     showFloat(floats, d.c.x, d.c.y, '+20 HP', '#ff2255');
                 } else if (d.type === 'gold') {
                     playerState.gold = (playerState.gold ?? 0) + 1;
