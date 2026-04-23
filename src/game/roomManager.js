@@ -7,6 +7,7 @@ import {showBossPanel} from './hud.js';
 import {audioManager} from "./audio.js";
 import {spawnMob} from "./controllers/createMobController.js";
 import {spawnBoss} from "./controllers/createBossController.js";
+import {useGameStore} from "../stores/gameStore.js";
 
 export class RoomManager {
     constructor(world, colliders) {
@@ -129,16 +130,53 @@ export class RoomManager {
         this.bossType = room.bossType || 'desert';
         this.bossSpawnThreshold = 5;
 
-        // Spawn normal mobs
-        for (let i = 0; i < room.mobs; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const radius = Math.random() * (half - 100);
-            let x = Math.cos(angle) * radius;
-            let y = Math.sin(angle) * radius;
-            const resolved = resolveVsColliders(x, y, MOB_RADIUS, this.colliders);
-            mobs.push(spawnMob(this.world, resolved.x, resolved.y, biome));
-        }
+        const playerSafeRadius = 200; // Minimum distance from player
+        const player = useGameStore.getState().player;
 
+        // Spawn normal mobs with player avoidance
+        for (let i = 0; i < room.mobs; i++) {
+            let x, y;
+            let attempts = 0;
+            let validPosition = false;
+
+            // Try up to 30 times to find a position away from player
+            while (!validPosition && attempts < 30) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * (half - 100);
+                x = Math.cos(angle) * radius;
+                y = Math.sin(angle) * radius;
+
+                // Check distance from player
+                const distFromPlayer = Math.hypot(x - player.x, y - player.y);
+
+                // Resolve against colliders
+                const resolved = resolveVsColliders(x, y, MOB_RADIUS, this.colliders);
+
+                // Check if position is valid (not too close to player AND not colliding)
+                if (distFromPlayer >= playerSafeRadius &&
+                    Math.abs(resolved.x - x) < 0.1 &&
+                    Math.abs(resolved.y - y) < 0.1) {
+                    x = resolved.x;
+                    y = resolved.y;
+                    validPosition = true;
+                }
+
+                attempts++;
+            }
+
+            // If we couldn't find a perfect spot, use the last resolved position
+            if (!validPosition) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * (half - 100);
+                x = Math.cos(angle) * radius;
+                y = Math.sin(angle) * radius;
+                const resolved = resolveVsColliders(x, y, MOB_RADIUS, this.colliders);
+                x = resolved.x;
+                y = resolved.y;
+            }
+
+            mobs.push(spawnMob(this.world, x, y, biome));
+        }
         // Don't spawn boss immediately
         return null;
     }

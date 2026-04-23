@@ -115,7 +115,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                     this.groundAttacks.addAttack(px, py, {
                         shape: 'circle',
                         radius: 200,
-                        warningDuration: 350,
+                        warningDuration: enraged ? 200 : 350,
                         damage: 20,
                         color: glowCol
                         // No anchor - stays at position where player was
@@ -131,6 +131,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                 this.groundAttackTimer = 0;
 
                 // TEST 1: Simple ground attack at player's position
+                /*
                 this.groundAttacks.addAttack(this.x, this.y, {
                     shape: 'pizza',
                     radius: 500,
@@ -145,7 +146,6 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                     anchorOffsetY: 0
                 });
 
-                /*
                 // EXAMPLE 2: Line beam that follows boss
                 this.groundAttacks.addAttack(this.x, this.y, {
                     shape: 'line',
@@ -174,6 +174,26 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                     });
                 }
                  */
+                // Stagger each slice with increasing delay
+                for (let i = 0; i < 4; i++) {
+                    const angle = (i / 4) * Math.PI * 2;
+                    const delay = i * 500; // 0ms, 500ms, 1000ms, 1500ms
+
+                    setTimeout(() => {
+                        console.log('boss attack', angle, 'delay:', delay)
+                        this.groundAttacks.addAttack(this.x, this.y, {
+                            shape: 'pizza',
+                            radius: 700,
+                            angle: angle,
+                            arcAngle: Math.PI / 2,
+                            warningDuration: enraged ? 200 : 350,
+                            damage: 50,
+                            color: glowCol,
+                            anchor: false,
+                            trackPlayer: false
+                        });
+                    }, delay);
+                }
             }
 
             // Update all ground attacks
