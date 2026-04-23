@@ -135,7 +135,7 @@ export async function createGame(hudElements) {
     app.ticker.add(() => {
         // Get fresh state every frame
         const store = useGameStore.getState();
-        const { gameState, player: playerState } = store;
+        const {gameState, player: playerState} = store;
 
         if (gameState.paused || gameState.dead) return;
 
@@ -287,7 +287,7 @@ export async function createGame(hudElements) {
             pXP: playerState.pXP, pXPNext: playerState.pXPNext,
             pLevel: playerState.pLevel,
             gold: playerState.gold,   // 👈 add this
-            px, py, activeBoss: bossActiveRef.value,
+            px, py, activeBoss: bossActiveRef.value,  boss: bosses.find(b => !b.dead),
             currentRoom: roomManager.currentRoom
         });
 
@@ -303,11 +303,13 @@ export async function createGame(hudElements) {
 
         // Room clear
         if (!loadingRoom) {
-            roomManager.checkRoomClear(entities, () => {
-                const next = roomManager.currentRoomIndex + 1;
-
-                if (next < ROOMS.length) loadRoom(next);
-            });
+            roomManager.checkRoomClear(entities, (nextRoomIndex) => {
+                const next = nextRoomIndex || roomManager.currentRoomIndex + 1;
+                if (next < ROOMS.length) {
+                    // Add a simple delay before loading next room
+                    loadRoom(next);
+                }
+            }, hudElements);
         }
     });
 

@@ -24,6 +24,7 @@ export class RoomManager {
         };
 
         this.boundaries = [];
+        this.bossSpawnTriggered = false;
     }
 
     getRoomBounds(room) {
@@ -116,7 +117,19 @@ export class RoomManager {
         const half = bounds.half;
         const biome = room.biome;
 
+        // Store how many mobs should trigger boss
+        this.bossSpawnTriggered = false;
+        this.mobsToSpawn = room.mobs;
+        this.bossType = room.bossType || 'desert';
+        this.bossSpawnThreshold = 5; // Spawn boss when 5 mobs left
 
+        // 🔴 RESET boss spawn flags for new room
+        this.bossSpawnTriggered = false;
+        this.mobsToSpawn = room.mobs;
+        this.bossType = room.bossType || 'desert';
+        this.bossSpawnThreshold = 5;
+
+        // Spawn normal mobs
         for (let i = 0; i < room.mobs; i++) {
             const angle = Math.random() * Math.PI * 2;
             const radius = Math.random() * (half - 100);
@@ -126,7 +139,31 @@ export class RoomManager {
             mobs.push(spawnMob(this.world, resolved.x, resolved.y, biome));
         }
 
-        for (let i = 0; i < room.bosses; i++) {
+        // Don't spawn boss immediately
+        return null;
+    }
+
+
+// Add this method to check and spawn boss
+// Add this method to check and spawn boss
+    checkAndSpawnBoss(entities, hudElements) {
+        // Don't spawn if already triggered or if room has no boss
+        if (this.bossSpawnTriggered) return false;
+        if (!this.bossType) return false; // No boss configured for this room
+
+        const {mobs, bosses} = entities;
+
+        // Don't spawn if boss already exists
+        if (bosses.length > 0) return false;
+
+        // Check if boss should spawn
+        if (mobs.length <= this.bossSpawnThreshold) {
+            this.bossSpawnTriggered = true;
+
+            const bounds = this.getCurrentBounds();
+            const half = bounds.half;
+
+            // Find safe position for boss
             let bx = 0, by = 0;
             for (let j = 0; j < 50; j++) {
                 const angle = Math.random() * Math.PI * 2;
@@ -141,23 +178,34 @@ export class RoomManager {
                 }
             }
 
-            const b = spawnBoss(this.world, room.bossType || 'desert', bx, by, 1);
-
+            const b = spawnBoss(this.world, this.bossType, bx, by, 1);
             bosses.push(b);
-
             showBossPanel(hudElements, b);
+
+            // Play boss spawn sound/effect
+            if (audioManager.playSFX) {
+                audioManager.playSFX('/sounds/boss-spawn.ogg', 0.5);
+            }
+
+            return true;
         }
 
-        // Return the last boss as the active one (or null)
-        return bosses.length > 0 ? bosses[bosses.length - 1] : null;
+        return false;
     }
 
-    checkRoomClear(entities, onClear) {
+    // Update your checkRoomClear method:
+    checkRoomClear(entities, onClear, hudElements) {
         const {mobs, bosses} = entities;
+
+        // Try to spawn boss if conditions met
+        this.checkAndSpawnBoss(entities, hudElements);
+
         const noMobs = mobs.length === 0;
         const noBosses = bosses.length === 0 || bosses.every(b => b.dead === true);
-        
-        if (noMobs && noBosses) onClear();
+
+        if (noMobs && noBosses) {
+            onClear();
+        }
     }
 
     // ─────────────────────────────
@@ -169,6 +217,13 @@ export class RoomManager {
         this.clearRoomAssets();
         this.currentRoomIndex = index;
         this.currentRoom = ROOMS[index];
+
+        // 🔴 RESET boss spawn flags for new room
+        this.bossSpawnTriggered = false;
+        this.mobsToSpawn = null;
+        this.bossType = null;
+        this.bossSpawnThreshold = 5;
+
 
         // 🔴 PLAY MUSIC HERE
         if (this.currentRoom.music) {

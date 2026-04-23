@@ -16,40 +16,57 @@ let _lastBiome = 'forest';
  */
 
 /**
- * Refresh all HUD elements.
+ * Refresh all HUD els.
  * @param {HUDElements} els
  * @param {object} state
  */
 export function updateHUD(els, state) {
-    const { hpFill, hpLabel, xpFill, levelBadge, biomeEl, bossFillEl, goldEl } = els;
-    const { gold, hp, maxHp, pXP, pXPNext, pLevel, activeBoss } = state;
+    const { hpFill, hpLabel, xpFill, levelBadge, biomeEl, bossFillEl, goldEl, bossNameEl, bossHpLabel } = els;
+    const { gold, hp, maxHp, pXP, pXPNext, pLevel, activeBoss, boss } = state;
 
-    if (hpFill) hpFill.style.width = Math.max(0, hp / maxHp) * 100 + '%';
-    if (hpLabel) hpLabel.textContent = `${Math.max(0, Math.ceil(hp))} / ${maxHp}`;
+    // Player HP - use the boss variable that's passed
+    const playerHp = hp;
+    const playerMaxHp = maxHp;
 
     if (hpFill) {
-        const hpPct = Math.max(0, hp / maxHp) * 100;
+        const hpPct = Math.max(0, playerHp / playerMaxHp) * 100;
+        hpFill.style.width = hpPct + '%';
+
+        // Change color based on HP percentage
         hpFill.style.background =
             hpPct > 50 ? 'linear-gradient(90deg,#c0003c,#ff6b8a)'
                 : hpPct > 25 ? 'linear-gradient(90deg,#7b3a00,#ff8800)'
                     : 'linear-gradient(90deg,#6b0000,#ff2222)';
     }
 
+    if (hpLabel) hpLabel.textContent = `${Math.max(0, Math.ceil(playerHp))} / ${playerMaxHp}`;
+
+    // XP and Level
     if (xpFill) xpFill.style.width = (pXP / pXPNext * 100) + '%';
     if (levelBadge) levelBadge.textContent = `Level ${pLevel}`;
     if (goldEl) goldEl.textContent = gold ?? 0;
 
+    // Biome
     const cb = state?.currentRoom?.biome || '';
     if (cb && cb !== _lastBiome && biomeEl && BIOME_DISPLAY[cb]) {
         _lastBiome = cb;
         const { label, color } = BIOME_DISPLAY[cb];
-        biomeEl.textContent      = label;
-        biomeEl.style.color      = color;
+        biomeEl.textContent = label;
+        biomeEl.style.color = color;
         biomeEl.style.textShadow = `0 0 12px ${color}`;
     }
 
-    if (activeBoss && !activeBoss.dead && bossFillEl) {
-        bossFillEl.style.width = (Math.max(0, activeBoss.hp) / activeBoss.maxHp * 100) + '%';
+    // BOSS HP - use the boss object (not activeBoss)
+    const currentBoss = boss || activeBoss;
+    if (currentBoss && !currentBoss.dead && bossFillEl) {
+        const bossHpPercent = (Math.max(0, currentBoss.hp) / currentBoss.maxHp) * 100;
+        bossFillEl.style.width = bossHpPercent + '%';
+
+        if (bossHpLabel) {
+            bossHpLabel.textContent = `${Math.floor(currentBoss.hp)}/${currentBoss.maxHp}`;
+        }
+    } else if (bossFillEl) {
+        bossFillEl.style.width = '0%';
     }
 }
 
