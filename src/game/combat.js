@@ -1,51 +1,100 @@
-import { createArrow, createEnemyProj } from './projectile.js';
-import { spawnDrops } from './drops.js';
-import { burst } from './particles.js';
-import { showFloat } from './floatText.js';
-import { hideBossPanel } from './hud.js';
-import {BOSS_RADIUS, XP_PER_MOB, XP_PER_BOSS, HEART_COLOR, BIOME_COLORS} from './constants.js';
+import {createArrow, createEnemyProj} from './projectile.js';
+import {spawnDrops} from './drops.js';
+import {burst} from './particles.js';
+import {showFloat} from './floatText.js';
+import {hideBossPanel} from './hud.js';
+import {BOSS_RADIUS, HEART_COLOR, BIOME_COLORS} from './constants.js';
 import {audioManager} from "./audio.js";
 import {useGameStore} from "../stores/gameStore.js";
+import { Graphics } from 'pixi.js';
 
 /**
  * @param {object} ctx - shared references passed in once at setup
- * @param {import('pixi.js').Container} ctx.world
- * @param {object} ctx.entities        - { mobs, bosses, arrows, enemyProjs, drops }
- * @param {object} ctx.particles
- * @param {object} ctx.floats
- * @param {object} ctx.playerState     - { pHP, pMaxHP, stats, ... }
- * @param {object} ctx.shakeRef        - { value }
- * @param {object} ctx.hudElements
- * @param {object} ctx.killsRef        - { value }
- * @param {object} ctx.bossActiveRef   - { value }
- * @param {object} ctx.xp              - { addXP }
- * @param {object} ctx.roomManager
  */
 export function createCombatSystem(ctx) {
     const {
         world, entities, particles, floats,
-        playerState, shakeRef, hudElements,
+        shakeRef, hudElements,
         killsRef, bossActiveRef, xp, roomManager
     } = ctx;
 
-    const { mobs, bosses, arrows, enemyProjs, drops } = entities;
+    const {mobs, bosses, arrows, enemyProjs, drops} = entities;
 
     // ─────────────────────────────
-    // Shooting
+    // Helper: Find nearest mob NOT already hit
+    // ─────────────────────────────
+    function findNearestUnhitMob(fromX, fromY, hitMobsSet, maxRange = 350) {
+        let nearest = null;
+        let nearestDist = maxRange;
+
+        for (const mob of mobs) {
+            // CRITICAL: Skip if already hit in this chain
+            if (hitMobsSet.has(mob)) continue;
+
+            const dx = mob.x - fromX;
+            const dy = mob.y - fromY;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearest = mob;
+            }
+        }
+
+        return nearest;
+    }
+
+    // ─────────────────────────────
+    // Helper: Create chain effect
+    // ─────────────────────────────
+    function createChainEffect(fromX, fromY, toX, toY) {
+        const line = new Graphics();
+        line.moveTo(0, 0);
+        line.lineTo(toX - fromX, toY - fromY);
+        line.stroke({ color: "white", width: 3, alpha: 0.8 });
+        line.position.set(fromX, fromY);
+        world.addChild(line);
+
+        // Fade and remove
+        let alpha = 1;
+        const interval = setInterval(() => {
+            alpha -= 0.1;
+            line.alpha = alpha;
+            if (alpha <= 0) {
+                clearInterval(interval);
+                world.removeChild(line);
+            }
+        }, 50);
+    }
+
+    // ─────────────────────────────
+    // Shooting with chain stats
     // ─────────────────────────────
     function tryShoot(px, py, tx, ty) {
-        const { stats } = playerState;
+        const stats = useGameStore.getState().player.stats;
+
         for (let i = 0; i < stats.projectiles; i++) {
             const spread = (i - (stats.projectiles - 1) / 2) * 0.12;
-            arrows.push(createArrow(world, px, py, tx, ty, spread));
+
+            // Add chain properties from player stats
+            const chainData = {
+                chainRemaining: stats.chainEnabled ? stats.chainCount : 0,
+                chainHitMobs: new Set(),  // This Set tracks ALL mobs hit in this chain
+                damage: stats.damage,
+                chainRange: stats.chainRange,
+                chainDamageMultiplier: stats.chainDamage
+            };
+
+            arrows.push(createArrow(world, px, py, tx, ty, spread, chainData));
         }
     }
 
     // ─────────────────────────────
-    // Arrows
+    // Arrows with chain logic
     // ─────────────────────────────
     function updateArrows(px, py) {
-        const { stats } = playerState;
+        const stats = useGameStore.getState().player.stats;
+        const store = useGameStore.getState();
 
         for (let ai = arrows.length - 1; ai >= 0; ai--) {
             const a = arrows[ai];
@@ -66,21 +115,95 @@ export function createCombatSystem(ctx) {
                 const m = mobs[mi];
                 if (Math.hypot(m.x - a.c.x, m.y - a.c.y) >= 16) continue;
 
-                const dmg = stats.damage + Math.floor(Math.random() * 6);
-                m.hp -= dmg;
-                burst(world, particles, m.x, m.y, 0xff4466, 7);
-                showFloat(floats, m.x, m.y - 20, `-${dmg}`, '#fff');
+                if (a.chainHitMobs && a.chainHitMobs.has(m)) {
+                    continue;
+                }
+
+                // Calculate base damage
+                let baseDmg = a.damage > 0 ? a.damage : (stats.damage + Math.floor(Math.random() * 6));
+
+                // Apply crit if this is not a chain arrow (or allow chain arrows to also crit)
+                let finalDamage = baseDmg;
+                let isCrit = false;
+
+                if (!a.isChainArrow) {
+                    const critResult = store.calculateCritDamage(baseDmg);
+                    finalDamage = critResult.damage;
+                    isCrit = critResult.isCrit;
+                } else {
+                    // Chain arrows use chain damage multiplier
+                    finalDamage = Math.floor(baseDmg * (a.chainDamageMultiplier || stats.chainDamage));
+                }
+
+                m.hp -= finalDamage;
+
+                // Visual effects based on crit
+                const hitColor = isCrit ? 0xffaa00 : 0xff4466;
+                const particleCount = isCrit ? 12 : 7;
+                burst(world, particles, m.x, m.y, hitColor, particleCount);
+
+                // Show damage text with crit indicator
+                const damageText = isCrit ? `-${finalDamage} CRIT!` : `-${finalDamage}`;
+                const textColor = isCrit ? '#ffaa00' : '#fff';
+                showFloat(floats, m.x, m.y - 20, damageText, textColor);
+
+                // Play sound (maybe different for crits)
+                audioManager.playSFX('/sounds/hit-splat.ogg', 0.3);
+                if (isCrit) {
+                    audioManager.playSFX('/sounds/crit.ogg', 0.4); // Optional crit sound
+                }
+
+                if (a.chainHitMobs) {
+                    a.chainHitMobs.add(m);
+                }
+
+                // Chain logic
+                if (a.chainRemaining > 0 && stats.chainEnabled) {
+                    const nextMob = findNearestUnhitMob(
+                        m.x, m.y,
+                        a.chainHitMobs,
+                        a.chainRange || stats.chainRange
+                    );
+
+                    if (nextMob) {
+                        createChainEffect(m.x, m.y, nextMob.x, nextMob.y);
+
+                        if (audioManager.playChainSound) {
+                            audioManager.playChainSound(0.25);
+                        } else {
+                            audioManager.playSFX('/sounds/chain.ogg', 0.25);
+                        }
+
+                        const chainData = {
+                            chainRemaining: a.chainRemaining - 1,
+                            chainHitMobs: a.chainHitMobs,
+                            damage: finalDamage,
+                            chainRange: a.chainRange || stats.chainRange,
+                            chainDamageMultiplier: stats.chainDamage,
+                            isChainArrow: true
+                        };
+
+                        const chainArrow = createArrow(
+                            world,
+                            m.x, m.y,
+                            nextMob.x, nextMob.y,
+                            0,
+                            chainData
+                        );
+
+                        arrows.push(chainArrow);
+                    }
+                }
+
                 world.removeChild(a.c);
                 arrows.splice(ai, 1);
                 hit = true;
-
-                audioManager.playSFX('/sounds/hit-splat.ogg', 0.1);
 
                 if (m.hp <= 0) {
                     burst(world, particles, m.x, m.y, 0xffd700, 14, 4);
                     burst(world, particles, m.x, m.y, 0xff4466, 8, 3);
                     shakeRef.value = Math.max(shakeRef.value, 6);
-                    xp.addXP(XP_PER_MOB);
+
                     killsRef.value++;
                     drops.push(...spawnDrops(world, m.x, m.y, 1));
                     if (hudElements.killsEl) {
@@ -96,21 +219,34 @@ export function createCombatSystem(ctx) {
 
             if (hit) continue;
 
+            // vs bosses (with crit support)
             for (let bi = bosses.length - 1; bi >= 0; bi--) {
                 const b = bosses[bi];
                 if (b.dead) continue;
                 if (Math.hypot(b.x - a.c.x, b.y - a.c.y) >= BOSS_RADIUS) continue;
 
-                const dmg = 18 + Math.floor(Math.random() * 10);
-                b.hp -= dmg;
+                let baseDmg = 18 + Math.floor(Math.random() * 10);
+                const critResult = store.calculateCritDamage(baseDmg);
+                const finalDamage = critResult.damage;
+                const isCrit = critResult.isCrit;
+
+                b.hp -= finalDamage;
                 const biomeCol = BIOME_COLORS[b.type]?.glow ?? 0x00ccff;
-                burst(world, particles, b.x, b.y, biomeCol, 10, 3.5);
-                showFloat(floats, b.x, b.y - 60, `-${dmg}`, '#ffffff');
+                const hitColor = isCrit ? 0xffaa00 : biomeCol;
+                burst(world, particles, b.x, b.y, hitColor, isCrit ? 15 : 10, 3.5);
+
+                const damageText = isCrit ? `-${finalDamage} CRIT!` : `-${finalDamage}`;
+                const textColor = isCrit ? '#ffaa00' : '#ffffff';
+                showFloat(floats, b.x, b.y - 60, damageText, textColor);
+
                 world.removeChild(a.c);
                 arrows.splice(ai, 1);
                 hit = true;
 
-                audioManager.playSFX('/sounds/hit-splat.ogg', 0.1);
+                audioManager.playSFX('/sounds/hit-splat.ogg', 0.3);
+                if (isCrit) {
+                    audioManager.playSFX('/sounds/crit.ogg', 0.4);
+                }
 
                 if (b.hp <= 0) {
                     b.dead = true;
@@ -118,7 +254,6 @@ export function createCombatSystem(ctx) {
                     burst(world, particles, b.x, b.y, 0xffd700, 30, 5);
                     shakeRef.value = 18;
                     drops.push(...spawnDrops(world, b.x, b.y, 10));
-                    xp.addXP(XP_PER_BOSS);
                     killsRef.value += 5;
                     if (hudElements.killsEl) hudElements.killsEl.textContent = killsRef.value;
                     world.removeChild(b.c);
@@ -127,7 +262,8 @@ export function createCombatSystem(ctx) {
                     hideBossPanel(hudElements);
                 }
                 break;
-            }        }
+            }
+        }
     }
 
     // ─────────────────────────────
@@ -147,10 +283,8 @@ export function createCombatSystem(ctx) {
             }
 
             if (Math.hypot(px - ep.c.x, py - ep.c.y) < 16) {
-                useGameStore.getState().damagePlayer(ep.dmg, 'boss proj attack')
-
+                useGameStore.getState().damagePlayer(ep.dmg, 'boss proj attack');
                 world.removeChild(ep.c);
-
                 enemyProjs.splice(ei, 1);
             }
         }
@@ -181,13 +315,12 @@ export function createCombatSystem(ctx) {
 
             if (ddist < 22) {
                 if (d.type === 'hp') {
-                    useGameStore.getState().healPlayer(20, 'collect heart');
-
+                    useGameStore.getState().healPlayer(20);
                     burst(world, particles, d.c.x, d.c.y, HEART_COLOR, 6, 2);
-
                     showFloat(floats, d.c.x, d.c.y, '+20 HP', '#ff2255');
                 } else if (d.type === 'gold') {
-                    playerState.gold = (playerState.gold ?? 0) + 1;
+                    const store = useGameStore.getState();
+                    store.player.gold = (store.player.gold ?? 0) + 1;
                     showFloat(floats, d.c.x, d.c.y, '+1', '#ffd700');
                 }
                 world.removeChild(d.c);
@@ -196,5 +329,5 @@ export function createCombatSystem(ctx) {
         }
     }
 
-    return { tryShoot, updateArrows, updateEnemyProjs, updateDrops };
+    return {tryShoot, updateArrows, updateEnemyProjs, updateDrops};
 }

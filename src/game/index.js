@@ -1,6 +1,6 @@
 import {Application, Container} from 'pixi.js';
 import {RoomManager} from './roomManager.js';
-import {createPlayerEntity, createXPSystem,} from './player.js';
+import {createPlayerEntity,} from './entities/createPlayerEntity.js';
 import {burst, emitEmber, emitSmoke, tickParticles} from './particles.js';
 import {tickFloats} from './floatText.js';
 import {createInputManager} from './input.js';
@@ -14,6 +14,7 @@ import {
 import {createDashAbility} from './abilities/dash.js';
 import {createPlayerController} from "./controllers/createPlayerController.js";
 import {useGameStore} from '../stores/gameStore.js';
+import {createDevTool} from "./devtool.js";
 
 export async function createGame(hudElements) {
     const $ = id => document.getElementById(id);
@@ -34,6 +35,8 @@ export async function createGame(hudElements) {
     world.scale.set(1.25);
     app.stage.addChild(world);
     app.stage.roundPixels = true;
+
+    createDevTool(useGameStore);
 
     const colliders = [];
     const roomManager = new RoomManager(world, colliders);
@@ -62,9 +65,6 @@ export async function createGame(hudElements) {
     let px = 0, py = 0;
     let pBobT = 0;
 
-    const xp = createXPSystem(playerState, {
-        burst, world, particles, levelupEl, shakeRef
-    });
 
     // Camera
     let camX = 0, camY = 0;
@@ -74,8 +74,6 @@ export async function createGame(hudElements) {
 
     // Stats shorthand
     const stats = playerState.stats;
-
-    let shootCooldown = 5;
 
     // Debug
     const debug = createDebugColliderToggle(world, colliders);
@@ -89,7 +87,7 @@ export async function createGame(hudElements) {
     const combat = createCombatSystem({
         world, entities, particles, floats,
         playerState, shakeRef, hudElements,
-        killsRef, bossActiveRef, xp, roomManager
+        killsRef, bossActiveRef, roomManager
     });
 
     // Pause/crosshair - use store
@@ -132,30 +130,42 @@ export async function createGame(hudElements) {
     }
 
     let saveTimer = 0;
+    let shootCooldown = 0;
 
-    // Main loop
     app.ticker.add(() => {
-        const { gameState, player: playerState } = useGameStore.getState();
+        // Get fresh state every frame
+        const store = useGameStore.getState();
+        const { gameState, player: playerState } = store;
 
         if (gameState.paused || gameState.dead) return;
 
-        // Update player position
+        // Get current stats
+        const currentStats = playerState.stats;
+
+        // Update player position in store (every 60 frames)
         saveTimer++;
         if (saveTimer >= 60) {
-            useGameStore.getState().updatePlayerPosition(px, py);
+            store.updatePlayerPosition(px, py);
             saveTimer = 0;
         }
 
         pBobT += 0.055;
-        shootCooldown--;
+
+        // Update shoot cooldown
+        if (shootCooldown > 0) {
+            shootCooldown--;
+        }
 
         // Shooting
         if (input.mouseDown && shootCooldown <= 0) {
             const scale = world.scale.x;
             const tx = (input.mouseX - world.x) / scale;
             const ty = (input.mouseY - world.y) / scale;
+
             combat.tryShoot(px, py, tx, ty);
-            shootCooldown = stats.attackSpeed;
+
+            // Use current attack speed
+            shootCooldown = currentStats.attackSpeed;
         }
 
         // Player movement
@@ -273,7 +283,7 @@ export async function createGame(hudElements) {
 
         // HUD
         updateHUD(hudElements, {
-            hp: playerState.hp, pMaxHP: playerState.pMaxHP,
+            hp: playerState.hp, maxHp: playerState.maxHp,
             pXP: playerState.pXP, pXPNext: playerState.pXPNext,
             pLevel: playerState.pLevel,
             gold: playerState.gold,   // 👈 add this
@@ -295,6 +305,7 @@ export async function createGame(hudElements) {
         if (!loadingRoom) {
             roomManager.checkRoomClear(entities, () => {
                 const next = roomManager.currentRoomIndex + 1;
+
                 if (next < ROOMS.length) loadRoom(next);
             });
         }

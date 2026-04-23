@@ -22,13 +22,13 @@ let _lastBiome = 'forest';
  */
 export function updateHUD(els, state) {
     const { hpFill, hpLabel, xpFill, levelBadge, biomeEl, bossFillEl, goldEl } = els;
-    const { gold, hp, pMaxHP, pXP, pXPNext, pLevel, activeBoss } = state;
+    const { gold, hp, maxHp, pXP, pXPNext, pLevel, activeBoss } = state;
 
-    if (hpFill) hpFill.style.width = Math.max(0, hp / pMaxHP) * 100 + '%';
-    if (hpLabel) hpLabel.textContent = `${Math.max(0, Math.ceil(hp))} / ${pMaxHP}`;
+    if (hpFill) hpFill.style.width = Math.max(0, hp / maxHp) * 100 + '%';
+    if (hpLabel) hpLabel.textContent = `${Math.max(0, Math.ceil(hp))} / ${maxHp}`;
 
     if (hpFill) {
-        const hpPct = Math.max(0, hp / pMaxHP) * 100;
+        const hpPct = Math.max(0, hp / maxHp) * 100;
         hpFill.style.background =
             hpPct > 50 ? 'linear-gradient(90deg,#c0003c,#ff6b8a)'
                 : hpPct > 25 ? 'linear-gradient(90deg,#7b3a00,#ff8800)'

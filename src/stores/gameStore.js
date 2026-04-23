@@ -35,6 +35,14 @@ export const useGameStore = create((set, get) => ({
             dashRange: 150,
             dashDuration: 60,
             dashCooldown: 120,
+            // Chain stats
+            chainEnabled: true,      // Enable/disable chain mechanic
+            chainCount: 2,           // How many times it bounces
+            chainRange: 350,         // How far to search for next target
+            chainDamage: 0.5,        // Damage multiplier (1.0 = full damage, 0.8 = 80% damage)
+            // Crit stats
+            critChance: 5,      // 0 = 0%, 100 = 100%
+            critDamage: 100,    // 100 = 100% (double damage), 150 = 150% (2.5x damage)
         }
     },
 
@@ -71,6 +79,24 @@ export const useGameStore = create((set, get) => ({
     updatePlayerPosition: (x, y) => set(state => ({
         player: {...state.player, x, y}
     })),
+
+    // ===== Helper: Calculate crit damage =====
+    calculateCritDamage: (baseDamage) => {
+        const state = get();
+        const { critChance, critDamage } = state.player.stats;
+
+        // Roll for crit
+        const isCrit = Math.random() * 100 < critChance;
+
+        if (isCrit) {
+            // critDamage: 100 = 100% extra (double), 150 = 150% extra (2.5x)
+            const multiplier = 1 + (critDamage / 100);
+            const finalDamage = Math.floor(baseDamage * multiplier);
+            return { damage: finalDamage, isCrit: true };
+        }
+
+        return { damage: baseDamage, isCrit: false };
+    },
 
     damagePlayer: (amount, source = 'unknown') => set(state => {
         const newHp = Math.max(0, state.player.hp - amount);

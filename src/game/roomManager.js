@@ -2,12 +2,11 @@ import {Graphics} from 'pixi.js';
 import {buildGround} from './ground.js';
 import {scatterProps} from './props.js';
 import {ROOMS, MOB_RADIUS, BOSS_RADIUS} from './constants.js';
-import {spawnMob, updateMobBar, updateMobBounceAnimation} from './mob.js';
-import {spawnBoss} from './boss.js';
-import {spawnDrops} from './drops.js';
 import {resolveVsColliders} from './collision.js';
-import {showBossPanel, hideBossPanel} from './hud.js';
+import {showBossPanel} from './hud.js';
 import {audioManager} from "./audio.js";
+import {spawnMob} from "./controllers/createMobController.js";
+import {spawnBoss} from "./controllers/createBossController.js";
 
 export class RoomManager {
     constructor(world, colliders) {
@@ -157,6 +156,7 @@ export class RoomManager {
         const {mobs, bosses} = entities;
         const noMobs = mobs.length === 0;
         const noBosses = bosses.length === 0 || bosses.every(b => b.dead === true);
+        
         if (noMobs && noBosses) onClear();
     }
 

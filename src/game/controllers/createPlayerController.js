@@ -31,8 +31,6 @@ export function createPlayerController({hpBar, pBody, shakeRef, world, particles
         const playerX = player.x;
         const playerY = player.y;
 
-        console.log(playerX, playerY);
-
         // Flash red
         if (pBody) {
             pBody.tint = 0xff3333;

@@ -6,7 +6,7 @@ import { ARROW_SPEED, GS } from './constants.js';
 /**
  * Creates a player arrow flying toward (tx, ty) from (px, py).
  */
-export function createArrow(world, px, py, tx, ty, angleOffset = 0) {
+export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = null) {
     const c = new Container();
     c.x = px;
     c.y = py;
@@ -14,7 +14,7 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0) {
     const dx = tx - px;
     const dy = ty - py;
 
-    const d = Math.sqrt(dx * dx + dy * dy) || 1; // prevent divide by 0
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
 
     const spd = ARROW_SPEED * GS;
 
@@ -40,25 +40,18 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0) {
         c,
         vx: Math.cos(angle) * spd,
         vy: Math.sin(angle) * spd,
-        life: 140
+        life: 140,
+        // Chain properties
+        chainRemaining: chainData?.chainRemaining ?? 0,
+        chainHitMobs: chainData?.chainHitMobs ?? new Set(),
+        damage: chainData?.damage ?? 0
     };
 }
-
 
 /* ── enemy projectile ── */
 
 /**
  * Creates an enemy orb fired toward the player position (px, py).
- * @param {import('pixi.js').Container} world
- * @param {number} ex  - emitter x
- * @param {number} ey  - emitter y
- * @param {number} px  - player x (target)
- * @param {number} py  - player y (target)
- * @param {'desert'|'ice'} type
- * @param {number} dmg
- * @param {number} [spd=2.8]
- * @param {number} [size=9]
- * @param {number} [angleOffset=0]  - extra angle offset (radians) for spread shots
  */
 export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 2.8, size = 9, angleOffset = 0) {
     const c = new Container();
@@ -71,11 +64,9 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 2.8, siz
         forest: 0x44ff66,
     };
 
-
     const dx = px - ex, dy = py - ey;
     const d  = Math.sqrt(dx * dx + dy * dy);
     const col = GLOW[type];
-
 
     const gl = new Graphics();
     gl.circle(0, 0, size + 7).fill({ color: col, alpha: 0.22 });
