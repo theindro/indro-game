@@ -2,24 +2,50 @@ class AudioManager {
     constructor() {
         this.current = null;
         this.currentPath = null;
-
-        // cache for sounds (important for performance)
         this.sounds = new Map();
-
-        // Track when each sound was last played
         this.lastPlayed = new Map();
-
-        // Cooldown for each sound (in milliseconds)
         this.cooldowns = new Map();
+        this.isMuted = false;  // Add this line
+        this.musicVolume = 0.3; // Store original volume
     }
 
-    // Set cooldown for specific sound
-    setCooldown(path, ms = 500) {
-        this.cooldowns.set(path, ms);
+    // Add these methods to AudioManager
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+
+        if (this.current) {
+            this.current.volume = this.isMuted ? 0 : this.musicVolume;
+        }
+
+        return this.isMuted;
     }
 
+    setMuted(muted) {
+        this.isMuted = muted;
+
+        if (this.current) {
+            this.current.volume = this.isMuted ? 0 : this.musicVolume;
+        }
+    }
+
+    isMusicMuted() {
+        return this.isMuted;
+    }
+
+    // Modify the existing play method to respect mute
     play(path) {
-        if (this.currentPath === path) return;
+        if (this.currentPath === path && this.current) return;
+
+        // Don't play if muted
+        if (this.isMuted) {
+            // Store the path but don't play audio
+            this.currentPath = path;
+            if (this.current) {
+                this.fadeOut(this.current);
+                this.current = null;
+            }
+            return;
+        }
 
         if (this.current) {
             this.fadeOut(this.current);
@@ -27,7 +53,7 @@ class AudioManager {
 
         const audio = new Audio(path);
         audio.loop = true;
-        audio.volume = 0.3;
+        audio.volume = this.musicVolume;
         audio.play();
 
         this.fadeIn(audio);
@@ -35,6 +61,20 @@ class AudioManager {
         this.current = audio;
         this.currentPath = path;
     }
+
+    // Add method to update music volume
+    setMusicVolume(volume) {
+        this.musicVolume = Math.max(0, Math.min(1, volume));
+        if (this.current && !this.isMuted) {
+            this.current.volume = this.musicVolume;
+        }
+    }
+
+    // Set cooldown for specific sound
+    setCooldown(path, ms = 500) {
+        this.cooldowns.set(path, ms);
+    }
+
 
     // 🔊 NEW: play one-shot sound with cooldown
     playSFX(path, volume = 0.6) {

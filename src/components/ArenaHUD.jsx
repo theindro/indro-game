@@ -60,22 +60,18 @@ export default function ArenaHUD() {
                 </button>
             </div>
 
-            <div id="pause-screen" style={{
-                display: 'none',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                background: 'rgba(0,0,0,0.7)',
-                color: 'white',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 32,
-                letterSpacing: 4,
-                zIndex: 1000
-            }}>
-                PAUSED
+            <div id="pause-screen">
+                    <div className="pause-content">
+                        <h2>PAUSED</h2>
+
+                        <button id="mute-music-btn" className="pause-btn">
+                            🔈 Mute Music
+                        </button>
+
+                        <button id="resume-btn" className="pause-btn">
+                            Resume Game
+                        </button>
+                    </div>
             </div>
         </div>
     );

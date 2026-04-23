@@ -15,6 +15,8 @@ import {createDashAbility} from './abilities/dash.js';
 import {createPlayerController} from "./controllers/createPlayerController.js";
 import {useGameStore} from '../stores/gameStore.js';
 import {createDevTool} from "./devtool.js";
+import {WeatherSystem} from "./WeatherSystem.js";
+import {audioManager} from "./audio.js";
 
 export async function createGame(hudElements) {
     const $ = id => document.getElementById(id);
@@ -35,6 +37,13 @@ export async function createGame(hudElements) {
     world.scale.set(1.25);
     app.stage.addChild(world);
     app.stage.roundPixels = true;
+
+// In createGame, after creating weather system:
+    const weatherSystem = new WeatherSystem(world, app);
+
+// IMPORTANT: Move weather container to the top of the display list
+    world.addChild(weatherSystem.container); // Ensure it's added
+    world.setChildIndex(weatherSystem.container, world.children.length - 1); // Move to top
 
     createDevTool(useGameStore);
 
@@ -111,6 +120,15 @@ export async function createGame(hudElements) {
         crosshairEl.style.top = e.clientY + 'px';
     });
 
+    const biomeWeatherMap = {
+        //'desert': { type: 'sandstorm', intensity: 0.7, speed: 1.2 },
+        'lava': { type: 'embers', intensity: 0.8, speed: 0.8 },
+        //'ice': { type: 'snow', intensity: 0.6, speed: 0.5 },
+        'forest': { type: 'rain', intensity: 0.4, speed: 1.0 },
+        //'swamp': { type: 'fog', intensity: 0.5, speed: 0.3 },
+        //'void': { type: 'smoke', intensity: 0.9, speed: 0.7 }
+    };
+
     // Room loading
     let loadingRoom = false;
 
@@ -125,6 +143,24 @@ export async function createGame(hudElements) {
             bossActiveRef.value = roomManager.spawnRoomEntities(
                 roomData.room, roomData.bounds, entities, hudElements
             );
+
+            // Set weather based on biome with speed
+            const biome = roomData.room.biome;
+            const weather = biomeWeatherMap[biome];
+
+            if (weather) {
+                // Pass type, intensity, AND speed
+                weatherSystem.setWeather(weather.type, weather.intensity, weather.speed);
+            } else {
+                weatherSystem.clear();
+            }
+
+            // CRITICAL FIX: Move weather container to the top after room loads
+            if (weatherSystem.container) {
+                world.addChild(weatherSystem.container);
+                world.setChildIndex(weatherSystem.container, world.children.length - 1);
+            }
+
             loadingRoom = false;
         });
     }
@@ -132,7 +168,32 @@ export async function createGame(hudElements) {
     let saveTimer = 0;
     let shootCooldown = 0;
 
-    app.ticker.add(() => {
+    // Set up mute button functionality
+    const muteBtn = document.getElementById('mute-music-btn');
+    if (muteBtn) {
+        muteBtn.addEventListener('click', () => {
+            const isMuted = audioManager.toggleMute();
+
+            // If unmuting and there's a current room, restart the music
+            if (!isMuted && roomManager.currentRoom?.music) {
+                audioManager.play(roomManager.currentRoom.music);
+            }
+        });
+    }
+
+
+    // Set up resume button
+    const resumeBtn = document.getElementById('resume-btn');
+    if (resumeBtn) {
+        resumeBtn.addEventListener('click', () => {
+            useGameStore.getState().togglePause();
+            document.body.style.cursor = 'none';
+            const pauseEl = document.getElementById('pause-screen');
+            if (pauseEl) pauseEl.style.display = 'none';
+        });
+    }
+
+    app.ticker.add((ticker) => {
         // Get fresh state every frame
         const store = useGameStore.getState();
         const {gameState, player: playerState} = store;
@@ -280,6 +341,12 @@ export async function createGame(hudElements) {
 
         // Debug tracking
         debug.tickUpdate();
+
+        const deltaTime = ticker.deltaTime; // Get actual delta time
+
+        if (weatherSystem.currentWeather && bounds) {
+            weatherSystem.update(deltaTime, camX, camY, bounds);
+        }
 
         // HUD
         updateHUD(hudElements, {
