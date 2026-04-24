@@ -1,7 +1,7 @@
 // components/LoadingScreen.jsx
 import { useEffect, useState } from 'react';
 import { Modal, Progress, Typography, Space } from 'antd';
-import { assetManager } from '../../src/game/utils/assetManager';
+import { assetManager } from '../game/utils/assetManager';
 
 const { Title, Text } = Typography;
 
