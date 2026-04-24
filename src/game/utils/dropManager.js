@@ -1,7 +1,7 @@
 // game/dropManager.js
 import { Container, Sprite, Graphics } from 'pixi.js';
 import { ItemDatabase, DropTables } from '../items.js';
-import { assetManager } from './AssetManager.js';
+import { assetManager } from './assetManager.js';
 
 export class DropManager {
     constructor(world) {
