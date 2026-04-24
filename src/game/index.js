@@ -1,10 +1,9 @@
 import {Application, Container} from 'pixi.js';
 import {RoomManager} from './roomManager.js';
 import {createPlayerEntity,} from './entities/createPlayerEntity.js';
-import {burst, emitEmber, emitSmoke, tickParticles} from './particles.js';
+import {emitEmber, emitSmoke, tickParticles} from './particles.js';
 import {tickFloats} from './floatText.js';
 import {createInputManager} from './input.js';
-import {updateHUD} from './hud.js';
 import {resolveVsColliders, createDebugColliderToggle} from './collision.js';
 import {createCombatSystem} from './combat.js';
 import {
@@ -16,12 +15,8 @@ import {createPlayerController} from "./controllers/createPlayerController.js";
 import {useGameStore} from '../stores/gameStore.js';
 import {createDevTool} from "./devtool.js";
 import {WeatherSystem} from "./WeatherSystem.js";
-import {audioManager} from "./audio.js";
 
-export async function createGame(hudElements) {
-    const $ = id => document.getElementById(id);
-    const crosshairEl = $('crosshair');
-    const levelupEl = $('levelup');
+export async function createGame() {
     const app = new Application();
     await app.init({
         background: 'BLACK',
@@ -38,10 +33,10 @@ export async function createGame(hudElements) {
     app.stage.addChild(world);
     app.stage.roundPixels = true;
 
-// In createGame, after creating weather system:
+    // In createGame, after creating weather system:
     const weatherSystem = new WeatherSystem(world, app);
 
-// IMPORTANT: Move weather container to the top of the display list
+    // IMPORTANT: Move weather container to the top of the display list
     world.addChild(weatherSystem.container); // Ensure it's added
     world.setChildIndex(weatherSystem.container, world.children.length - 1); // Move to top
 
@@ -95,29 +90,30 @@ export async function createGame(hudElements) {
 
     const combat = createCombatSystem({
         world, entities, particles, floats,
-        playerState, shakeRef, hudElements,
+        playerState, shakeRef,
         killsRef, bossActiveRef, roomManager
     });
 
     // Pause/crosshair - use store
     window.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
-            console.log(e.key);
             useGameStore.getState().togglePause();
 
             const currentState = useGameStore.getState().gameState;
-            console.log(currentState);
-            document.body.style.cursor = currentState.paused ? 'default' : 'none';
 
-            const pauseEl = document.getElementById('pause-screen');
-            if (pauseEl) pauseEl.style.display = currentState.paused ? 'flex' : 'none';
+            document.body.style.cursor = currentState.paused ? 'default' : 'none';
         }
+
         if (e.code === 'Space') dash.tryDash(px, py, stats);
     });
 
+// Safely update crosshair if element exists
     app.canvas.addEventListener('mousemove', e => {
-        crosshairEl.style.left = e.clientX + 'px';
-        crosshairEl.style.top = e.clientY + 'px';
+        const crosshairEl = document.getElementById('crosshair');
+        if (crosshairEl) {
+            crosshairEl.style.left = e.clientX + 'px';
+            crosshairEl.style.top = e.clientY + 'px';
+        }
     });
 
     const biomeWeatherMap = {
@@ -141,7 +137,7 @@ export async function createGame(hudElements) {
             pCont.y = py;
             world.addChild(pCont);
             bossActiveRef.value = roomManager.spawnRoomEntities(
-                roomData.room, roomData.bounds, entities, hudElements
+                roomData.room, roomData.bounds, entities
             );
 
             // Set weather based on biome with speed
@@ -167,31 +163,6 @@ export async function createGame(hudElements) {
 
     let saveTimer = 0;
     let shootCooldown = 0;
-
-    // Set up mute button functionality
-    const muteBtn = document.getElementById('mute-music-btn');
-    if (muteBtn) {
-        muteBtn.addEventListener('click', () => {
-            const isMuted = audioManager.toggleMute();
-
-            // If unmuting and there's a current room, restart the music
-            if (!isMuted && roomManager.currentRoom?.music) {
-                audioManager.play(roomManager.currentRoom.music);
-            }
-        });
-    }
-
-
-    // Set up resume button
-    const resumeBtn = document.getElementById('resume-btn');
-    if (resumeBtn) {
-        resumeBtn.addEventListener('click', () => {
-            useGameStore.getState().togglePause();
-            document.body.style.cursor = 'none';
-            const pauseEl = document.getElementById('pause-screen');
-            if (pauseEl) pauseEl.style.display = 'none';
-        });
-    }
 
     app.ticker.add((ticker) => {
         // Get fresh state every frame
@@ -238,7 +209,7 @@ export async function createGame(hudElements) {
             nx += dashState.vx;
             ny += dashState.vy;
         } else {
-            const spd = PLAYER_SPEED * GS * stats.moveSpeed;
+            const spd = PLAYER_SPEED * GS * currentStats.moveSpeed;
             if (input.isDown('w')) {
                 ny -= spd;
                 moving = true;
@@ -349,14 +320,6 @@ export async function createGame(hudElements) {
         }
 
         // HUD
-        updateHUD(hudElements, {
-            hp: playerState.hp, maxHp: playerState.maxHp,
-            pXP: playerState.pXP, pXPNext: playerState.pXPNext,
-            pLevel: playerState.pLevel,
-            gold: playerState.gold,   // 👈 add this
-            px, py, activeBoss: bossActiveRef.value,  boss: bosses.find(b => !b.dead),
-            currentRoom: roomManager.currentRoom
-        });
 
         // Death
         if (playerState.hp <= 0 && !gameState.dead) {
@@ -376,7 +339,7 @@ export async function createGame(hudElements) {
                     // Add a simple delay before loading next room
                     loadRoom(next);
                 }
-            }, hudElements);
+            });
         }
     });
 

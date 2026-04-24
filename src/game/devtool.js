@@ -44,7 +44,7 @@ export function createDevTool(gameStore) {
             <div style="margin-bottom: 10px;">
                 <strong>PLAYER</strong><br>
                 HP: <input type="number" id="dev-hp" value="${state.player.hp}" step="10" style="width:80px;"> / ${state.player.maxHp}<br>
-                Gold: <input type="number" id="dev-gold" value="${state.player.gold}" step="100" style="width:80px;"><br>
+                Gold: <input type="number" id="dev-gold" value="${state.inventory.gold}" step="100" style="width:80px;"><br>
                 XP: <input type="number" id="dev-xp" value="${state.player.xp}" step="50" style="width:80px;"><br>
                 Level: ${state.player.pLevel}
             </div>

@@ -77,7 +77,7 @@ export const BIOME_COLORS = {
         magma: 0xff6600,
         obsidian: 0x1a0a0a,
         texture: '/lava/lava-ground.png',
-        props:['/lava/lava-1.png', '/lava/lava-2.png', '/lava/lava-3.png', '/lava/lava-4.png'],
+        props:['/lava/lava-1.png', '/lava/lava-2.png', '/lava/lava-3.png', '/lava/lava-4.png', '/lava/lava-5.png'],
         tint: ''
     },
 };

@@ -1,7 +1,7 @@
 import {useGameStore} from "../../stores/gameStore.js";
 import {burst} from "../particles.js";
 import {showFloat} from "../floatText.js";
-import {audioManager} from "../audio.js";
+import {audioManager} from "../utils/audioManager.js";
 
 export function createPlayerController({hpBar, pBody, shakeRef, world, particles, floats}) {
     let hitTimeout = null;

@@ -3,8 +3,7 @@ import {buildGround} from './ground.js';
 import {scatterProps} from './props.js';
 import {ROOMS, MOB_RADIUS, BOSS_RADIUS} from './constants.js';
 import {resolveVsColliders} from './collision.js';
-import {showBossPanel} from './hud.js';
-import {audioManager} from "./audio.js";
+import {audioManager} from "./utils/audioManager.js";
 import {spawnMob} from "./controllers/createMobController.js";
 import {spawnBoss} from "./controllers/createBossController.js";
 import {useGameStore} from "../stores/gameStore.js";
@@ -184,7 +183,7 @@ export class RoomManager {
 
 // Add this method to check and spawn boss
 // Add this method to check and spawn boss
-    checkAndSpawnBoss(entities, hudElements) {
+    checkAndSpawnBoss(entities) {
         // Don't spawn if already triggered or if room has no boss
         if (this.bossSpawnTriggered) return false;
         if (!this.bossType) return false; // No boss configured for this room
@@ -218,7 +217,6 @@ export class RoomManager {
 
             const b = spawnBoss(this.world, this.bossType, bx, by, 1);
             bosses.push(b);
-            showBossPanel(hudElements, b);
 
             // Play boss spawn sound/effect
             if (audioManager.playSFX) {
@@ -232,11 +230,11 @@ export class RoomManager {
     }
 
     // Update your checkRoomClear method:
-    checkRoomClear(entities, onClear, hudElements) {
+    checkRoomClear(entities, onClear) {
         const {mobs, bosses} = entities;
 
         // Try to spawn boss if conditions met
-        this.checkAndSpawnBoss(entities, hudElements);
+        this.checkAndSpawnBoss(entities);
 
         const noMobs = mobs.length === 0;
         const noBosses = bosses.length === 0 || bosses.every(b => b.dead === true);
