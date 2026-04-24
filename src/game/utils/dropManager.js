@@ -39,6 +39,13 @@ export class DropManager {
         return drops;
     }
 
+    // Create shadow under the drop
+    createShadow() {
+        const pShadow = new Graphics();
+        pShadow.ellipse(5, 30, 13, 5).fill({ color: 0, alpha: 0.28 });
+        return pShadow;
+    }
+
     createDropVisual(x, y, drop) {
         const container = new Container();
         container.x = x;
@@ -55,8 +62,8 @@ export class DropManager {
             } else {
                 // Fallback graphics
                 const graphics = new Graphics();
-                graphics.circle(0, 0, 8).fill({ color: 0xffcc44 });
-                graphics.circle(0, 0, 5).fill({ color: 0xffaa00 });
+                graphics.circle(0, 0, 4).fill({ color: 0xffcc44 });
+                graphics.circle(0, 0, 2).fill({ color: 0xffaa00 });
                 container.addChild(graphics);
             }
         }
@@ -69,6 +76,10 @@ export class DropManager {
             container.addChild(graphics);
         }
         else if (drop.type === 'item' && drop.item) {
+            // Add shadow under the drop
+            const shadow = this.createShadow();
+            container.addChild(shadow);
+
             // Item drop visual - use textureId directly
             const texture = assetManager.getTexture(drop.item.textureId);
 
@@ -77,8 +88,8 @@ export class DropManager {
 
             if (texture) {
                 const sprite = new Sprite(texture);
-                sprite.anchor.set(0.5);
-                sprite.scale.set(0.2);
+                sprite.anchor.set(0.1);
+                sprite.scale.set(0.1);
                 container.addChild(sprite);
                 console.log(`✓ Created sprite for ${drop.item.name}`);
             } else {

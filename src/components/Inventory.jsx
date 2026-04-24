@@ -72,7 +72,7 @@ export default function Inventory() {
                     width: '100%',
                     aspectRatio: '1 / 1',
                     background: item ? `${item?.rarity?.color}1a` : 'rgba(0,0,0,0.3)',
-                    border: `2px solid ${item ? item?.rarity?.color : '#333'}`,
+                    border: `1px solid ${item ? item?.rarity?.color : '#333'}`,
                     borderRadius: 8,
                     display: 'flex',
                     flexDirection: 'column',
@@ -103,7 +103,7 @@ export default function Inventory() {
                     <Tooltip title={
                         <div>
                             <div><strong>{item.name}</strong></div>
-                            <div style={{fontSize: 11, color: '#aaa'}}>{item.description}</div>
+                            <div style={{fontSize: 11}}>{item.description}</div>
                             {item.stats?.damage && <div>⚔️ +{item.stats.damage} DMG</div>}
                             {item.stats?.armor && <div>🛡️ +{item.stats.armor} ARM</div>}
                             {item.stats?.attackSpeed && <div>⚡ +{item.stats.attackSpeed} ASPD</div>}
@@ -205,20 +205,6 @@ export default function Inventory() {
                 }}
                 closeIcon={<CloseOutlined style={{color: '#ffaa44'}}/>}
             >
-                {/* Character Info */}
-                <div style={{
-                    textAlign: 'center',
-                    marginBottom: 16,
-                    padding: 8,
-                    background: 'rgba(0,0,0,0.3)',
-                    borderRadius: 8,
-                }}>
-                    <UserOutlined style={{fontSize: 32, color: '#ffaa44'}}/>
-                    <Title level={5} style={{color: '#ffaa44', margin: '4px 0 0 0'}}>
-                        Lvl {player?.pLevel || 1} Adventurer
-                    </Title>
-                </div>
-
                 {/* Equipment Grid */}
                 <Title level={5} style={{color: '#ffaa44', marginBottom: 8}}>
                     ⚔️ Equipment
@@ -261,10 +247,11 @@ export default function Inventory() {
                                 size="small"
                                 style={{
                                     background: item ? `${item?.rarity?.color}1a` : 'rgba(0,0,0,0.3)',
-                                    border: `2px solid ${item ? item?.rarity?.color : '#333'}`,
+                                    border: `1px solid ${item ? item?.rarity?.color : '#333'}`,
                                     cursor: item ? 'pointer' : 'default',
                                     transition: 'all 0.2s',
                                     position: 'relative',
+                                    height: 120
                                 }}
                                 bodyStyle={{padding: '8px 4px', textAlign: 'center'}}
                                 onClick={() => item && handleEquipItem(index)}
