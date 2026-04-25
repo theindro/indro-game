@@ -338,8 +338,6 @@ export class OpenWorldManager {
 
         // 🔥 CHECK FOR CHUNK CHANGE 🔥
         if (centerChunkX !== this.lastPlayerChunk.x || centerChunkZ !== this.lastPlayerChunk.z) {
-            console.log(`🔄 CHUNK CHANGE: (${this.lastPlayerChunk.x},${this.lastPlayerChunk.z}) → (${centerChunkX},${centerChunkZ})`);
-
             // Get the new biome
             const newBiome = this.getBiomeAtChunk(centerChunkX, centerChunkZ);
             const oldBiome = this.lastPlayerChunk.biome;
@@ -352,8 +350,6 @@ export class OpenWorldManager {
             const mobCount = entitiesInChunk?.mobs?.length || 0;
 
             // Get prop count in new chunk
-
-            console.log(this.propManager);
             const propsInChunk = this.propManager?.chunkColliders?.get(chunkKey) || [];
             const propCount = propsInChunk.length;
 
@@ -367,7 +363,7 @@ export class OpenWorldManager {
             const weather = weatherConfig[newBiome] || { type: '☀️ Clear', intensity: 0, color: '#ffffff' };
 
             // Optional: More compact single-line log
-            console.log(`📊 [CHUNK ${centerChunkX},${centerChunkZ}] Biome: ${newBiome} | Mobs: ${mobCount} | Props: ${propCount} | Weather: ${weather.type}`);
+            console.log(`📊 [CHUNK ${centerChunkX},${centerChunkZ}] Biome: ${newBiome} | Mobs: ${mobCount} | Weather: ${weather.type}`);
 
             // 🔥 TRIGGER THE CALLBACK HERE 🔥
             if (this.onChunkChangeCallback) {
@@ -486,8 +482,6 @@ export class OpenWorldManager {
         if (this.loadedChunks.has(key)) {
             return;
         }
-
-        console.log(`🆕 Loading chunk ${key}`);
 
         const chunk = await this.generateChunk(chunkX, chunkZ);
 

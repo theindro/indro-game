@@ -74,8 +74,6 @@ export class PropManager {
     async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize) {
         const key = `${chunkX},${chunkZ}`;
 
-        console.log(`🌲 Generating props for chunk ${key}, biome: ${biome}`);
-
         // Check if already generated
         if (this.activeChunks.has(key)) {
             console.log(`Props already exist for chunk ${key}`);
@@ -106,15 +104,11 @@ export class PropManager {
             }
         }
 
-        console.log(`Prop pool size: ${propPool.length}`);
-
         const placed = [];
         const colliders = [];
 
         const baseSeed = this.hash(chunkX, chunkZ);
         const targetCount = Math.floor((biomeConfig.density || 0.5) * 25);
-
-        console.log(`Target prop count: ${targetCount}`);
 
         let actualCount = 0;
 
@@ -185,8 +179,8 @@ export class PropManager {
                 shadow.anchor.set(0.5, 0.6);
                 shadow.scale.set(scale, -scale);
                 shadow.tint = 0x000000;
-                shadow.alpha = 0.2;
-                shadow.x = x - 10;
+                shadow.alpha = 0.15;
+                shadow.x = x - 5;
                 shadow.y = z + (propVisual.height * scale * 0.5);
                 shadowContainer.addChild(shadow);
             }
@@ -216,12 +210,9 @@ export class PropManager {
             actualCount++;
         }
 
-        console.log(`✅ Generated ${actualCount} props for chunk ${key}`);
-
         // Add to layers
         if (this.propLayer) {
             this.propLayer.addChild(container);
-            console.log(`Added container to propLayer. Total children: ${this.propLayer.children.length}`);
         } else {
             console.error("❌ propLayer is null!");
         }
@@ -234,8 +225,6 @@ export class PropManager {
 
         this.activeChunks.set(key, result);
         this.chunkColliders.set(key, colliders);
-
-        console.log(`Chunk ${key} now has ${colliders.length} prop colliders`);
 
         return result;
     }
