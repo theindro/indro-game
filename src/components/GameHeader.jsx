@@ -20,8 +20,7 @@ export default function GameHeader() {
     const hpPercent = ((player?.hp || 0) / (player?.maxHp || 100)) * 100;
     const xpPercent = ((player?.pXP || 0) / (player?.pXPNext || 100)) * 100;
 
-    return null;
-
+    return;
     return (
         <div style={{
             background: 'rgba(26, 26, 46, 0.95)',

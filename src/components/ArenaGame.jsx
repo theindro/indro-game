@@ -10,6 +10,7 @@ import PauseScreen from './PauseScreen.jsx';
 import { cartoonTheme } from '../styles/cartoonTheme';
 import '../styles/global.css';
 import DeathScreen from "./DeathScreen.jsx";
+import PlayerStatsBar from "./PlayerStatsBar.jsx";
 
 export default function ArenaGame() {
     const [collapsed, setCollapsed] = useState(false);
@@ -39,6 +40,8 @@ export default function ArenaGame() {
                 </div>
             </div>
             */}
+
+            <PlayerStatsBar />
 
             <Inventory />
             <Shop />

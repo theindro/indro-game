@@ -63,8 +63,8 @@ export class DropManager {
             } else {
                 // Fallback graphics
                 const graphics = new Graphics();
-                graphics.circle(0, 0, 4).fill({ color: 0xffcc44 });
-                graphics.circle(0, 0, 2).fill({ color: 0xffaa00 });
+                graphics.circle(0, 0, 6).fill({ color: 0xffcc44 });
+                graphics.circle(0, 0, 4).fill({ color: 0xffaa00 });
                 container.addChild(graphics);
             }
         }
@@ -90,7 +90,7 @@ export class DropManager {
             if (texture) {
                 const sprite = new Sprite(texture);
                 sprite.anchor.set(0.1);
-                sprite.scale.set(0.1);
+                sprite.scale.set(0.15);
                 container.addChild(sprite);
                 console.log(`✓ Created sprite for ${drop.item.name}`);
             } else {

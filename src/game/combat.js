@@ -1,5 +1,5 @@
 import {createArrow} from './projectile.js';
-import {burst} from './particles.js';
+import {burst, emitEmber, emitSmoke} from './particles.js';
 import {showFloat} from './floatText.js';
 import {BOSS_RADIUS, HEART_COLOR, BIOME_COLORS} from './constants.js';
 import {audioManager} from "./utils/audioManager.js";
@@ -414,5 +414,270 @@ export function createCombatSystem(ctx) {
             }
         }
     }
-    return {tryShoot, updateArrows, updateEnemyProjs, updateDrops};
+
+    // ─────────────────────────────
+    // ABILITY 1: Arrow Barrage
+    // ─────────────────────────────
+    function useArrowBarrage(px, py, targetX, targetY) {
+        const store = useGameStore.getState();
+        const stats = store.player.stats;
+        const ability = store.abilities.ability1;
+
+        const now = performance.now();
+
+        // ✅ Check cooldown using time
+        if (now < ability.cooldownEnd) {
+            console.log(`⏱️ Arrow Barrage on cooldown!`, ability.cooldownEnd);
+            return false;
+        }
+
+        // Find nearest enemy
+        let nearestEnemy = findNearestTarget(px, py);
+
+        // Use the ability (sets cooldown)
+        store.useAbility(1, now);
+
+        // Calculate arrow parameters
+        const arrowCount = ability.arrowCount + Math.floor(ability.level / 2);
+        const spread = ability.arrowSpread - (ability.level * 0.02);
+        const damageMult = ability.damageMultiplier + (ability.level * 0.05);
+
+        console.log(`💥 Arrow Barrage! ${arrowCount} arrows at ${nearestEnemy.type}!`);
+
+        // Visual effect at player position
+        burst(world, particles, px, py, 0x88aaff, 20, 3);
+
+        // Calculate angle to target
+        const angleToTarget = Math.atan2(targetY - py, targetX - px);
+
+        // Create barrage of arrows
+        for (let i = 0; i < arrowCount; i++) {
+            const spreadOffset = (i - (arrowCount - 1) / 2) * spread;
+            const randomOffset = (Math.random() - 0.5) * 0.1;
+            const angle = angleToTarget + spreadOffset + randomOffset;
+
+            const speed = 6;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+
+            const chainData = {
+                chainRemaining: 0,
+                chainHitMobs: new Set(),
+                damage: stats.damage * damageMult,
+                isBarrageArrow: true
+            };
+
+            // Random offset for start position
+            const startX = px + (Math.random() - 0.5) * 20;
+            const startY = py + (Math.random() - 0.5) * 20;
+
+            const arrow = createArrow(world, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData);
+            arrow.vx = vx;
+            arrow.vy = vy;
+            arrow.life = 120;
+
+            arrows.push(arrow);
+        }
+
+
+        return true;
+    }
+
+
+    // ─────────────────────────────
+    // ABILITY 2: Chain Lightning
+    // ─────────────────────────────
+    function useChainLightning(px, py, targetX, targetY) {
+        const store = useGameStore.getState();
+        const stats = store.player.stats;
+        const ability = store.abilities.ability2;
+
+        const now = performance.now();
+
+        // Check cooldown
+        if (now < ability.cooldownEnd) {
+            console.log(`⏱️ Chain Lightning on cooldown!`);
+            return false;
+        }
+
+        // Find initial target
+        let currentTarget = findNearestTarget(px, py);
+
+        if (!currentTarget) {
+            console.log("❌ No enemies nearby for Chain Lightning!");
+            return false;
+        }
+
+        // Use the ability (sets cooldown)
+        store.useAbility(2, now);
+
+        const bounces = ability.stats.bounces + Math.floor(ability.level / 2);
+        const damageMult = ability.stats.damageMultiplier + (ability.level * 0.03);
+        const bounceRange = ability.stats.bounceRange;
+
+        console.log(`⚡ Chain Lightning! ${bounces} bounces starting at ${currentTarget.type}!`);
+
+        // Visual effect - lightning charge at player
+        burst(world, particles, px, py, 0x44aaff, 15, 3);
+
+        // Track hit enemies to prevent double-hitting
+        const hitEnemies = new Set();
+        let bounceCount = 0;
+        let lastPosition = { x: currentTarget.x, y: currentTarget.y };
+        let lastTarget = currentTarget.target;
+
+        // Function to apply damage and find next target
+        function chainBounce(target, bounceNumber) {
+            if (bounceNumber > bounces) return;
+            if (!target || target.hp <= 0) return;
+            if (hitEnemies.has(target)) return;
+
+            // Mark as hit
+            hitEnemies.add(target);
+
+            // Calculate damage
+            const baseDamage = stats.damage * damageMult;
+            const finalDamage = Math.floor(baseDamage);
+
+            // Apply damage
+            target.hp -= finalDamage;
+
+            // Create lightning visual effect between last position and target
+            createLightningEffect(lastPosition.x, lastPosition.y, target.x, target.y, bounceNumber);
+
+            // Show damage text
+            showFloat(floats, target.x, target.y - 30, `⚡ ${finalDamage}`, '#44aaff');
+
+            // Electric burst effect on hit
+            burst(world, particles, target.x, target.y, 0x44aaff, 8, 2);
+
+            // Play sound
+            audioManager.playSFX('/sounds/lightning.ogg', 0.4);
+
+            // Screen shake on first hit
+            if (bounceNumber === 1) {
+                shakeRef.value = Math.max(shakeRef.value, 5);
+            }
+
+            // Update last position
+            lastPosition = { x: target.x, y: target.y };
+            lastTarget = target;
+
+            // Find next target
+            setTimeout(() => {
+                let nextTarget = null;
+                let closestDist = bounceRange;
+
+                // Check mobs
+                for (const mob of mobs) {
+                    if (mob.hp <= 0) continue;
+                    if (hitEnemies.has(mob)) continue;
+                    const dist = Math.hypot(mob.x - target.x, mob.y - target.y);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        nextTarget = mob;
+                    }
+                }
+
+                // Check bosses
+                for (const boss of bosses) {
+                    if (boss.dead) continue;
+                    if (hitEnemies.has(boss)) continue;
+                    const dist = Math.hypot(boss.x - target.x, boss.y - target.y);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        nextTarget = boss;
+                    }
+                }
+
+                if (nextTarget && bounceNumber < bounces) {
+                    chainBounce(nextTarget, bounceNumber + 1);
+                } else {
+                    // Final burst effect
+                    burst(world, particles, target.x, target.y, 0x88ccff, 15, 2);
+                    console.log(`⚡ Chain Lightning finished after ${bounceNumber} bounces!`);
+                }
+            }, 150); // Delay between bounces for dramatic effect
+        }
+
+        // Start the chain
+        chainBounce(currentTarget.target, 1);
+
+        return true;
+    }
+
+    function findNearestTarget(px, py) {
+        let nearestEnemy = null;
+        let nearestDist = Infinity;
+
+        // Check mobs
+        for (const mob of mobs) {
+            if (mob.hp <= 0) continue;
+            const dist = Math.hypot(mob.x - px, mob.y - py);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestEnemy = { type: 'mob', target: mob, x: mob.x, y: mob.y };
+            }
+        }
+
+        // Check bosses
+        for (const boss of bosses) {
+            if (boss.dead) continue;
+            const dist = Math.hypot(boss.x - px, boss.y - py);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestEnemy = { type: 'boss', target: boss, x: boss.x, y: boss.y };
+            }
+        }
+
+        if (!nearestEnemy) {
+            console.log("❌ No enemies nearby for Arrow Barrage!");
+            return false;
+        }
+
+        return nearestEnemy;
+    }
+
+    // Helper function to create lightning visual effect
+    function createLightningEffect(fromX, fromY, toX, toY, bounceNumber) {
+        const lightning = new Graphics();
+
+        // Calculate control point for curved lightning
+        const midX = (fromX + toX) / 2;
+        const midY = (fromY + toY) / 2;
+
+        // Add random offset to make lightning zigzag
+        const offset = 30 + bounceNumber * 5;
+        const cp1X = midX + (Math.random() - 0.5) * offset;
+        const cp1Y = midY + (Math.random() - 0.5) * offset - 20;
+        const cp2X = midX + (Math.random() - 0.5) * offset;
+        const cp2Y = midY + (Math.random() - 0.5) * offset + 20;
+
+        // Draw curved lightning
+        lightning.moveTo(fromX, fromY);
+        lightning.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, toX, toY);
+        lightning.stroke({ color: 0x44aaff, width: 3, alpha: 0.9 });
+
+        // Add outer glow
+        lightning.moveTo(fromX, fromY);
+        lightning.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, toX, toY);
+        lightning.stroke({ color: 0x88ccff, width: 6, alpha: 0.3 });
+
+        world.addChild(lightning);
+
+        // Fade and remove
+        let alpha = 1;
+        const interval = setInterval(() => {
+            alpha -= 0.1;
+            lightning.alpha = alpha;
+            if (alpha <= 0) {
+                clearInterval(interval);
+                world.removeChild(lightning);
+                lightning.destroy();
+            }
+        }, 50);
+    }
+
+    return {tryShoot, updateArrows, updateEnemyProjs, updateDrops, useArrowBarrage, useChainLightning};
 }
+

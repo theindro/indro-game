@@ -27,7 +27,7 @@ export const useGameStore = create((set, get) => ({
         y: 0,
         stats: {
             attackSpeed: 100,
-            damage: 10,
+            damage: 5,
             projectiles: 1,
             moveSpeed: 0.4,
             dashSpeed: 100,
@@ -96,6 +96,86 @@ export const useGameStore = create((set, get) => ({
         isMuted: false,
         musicVolume: 0.3,
         sfxVolume: 0.2,
+    },
+
+    abilities: {
+        // Ability 1 (Q/1)
+        ability1: {
+            name: 'Arrow Barrage',
+            icon: '🏹',
+            cooldownEnd: 0,
+            maxCooldown: 500, // 3 seconds at 60fps
+            level: 1,
+            description: 'Shoots 10 arrows in cone front of player',
+            arrowCount: 10,
+            arrowSpread: 0.15,
+            damageMultiplier: 20
+        },
+        // Ability 2 (W/2)
+        ability2: {
+            name: 'Chain Lightning',
+            icon: '⚡',
+            cooldownEnd: 0,
+            maxCooldown: 500, // ~8.3 seconds at 60fps
+            level: 1,
+            description: 'Shoots a lightning arrow that jumps between 8 enemies',
+            stats: {
+                bounces: 8,
+                damageMultiplier: 0.85,
+                bounceRange: 250,
+            }
+        },
+        // Ability 3 (E/3)
+        ability3: {
+            name: 'Empower',
+            icon: '⚡',
+            cooldownEnd: 0,
+            maxCooldown: 500, // 5 seconds at 60fps
+            level: 1,
+            description: 'Temporarily increase damage and defense'
+        },
+        // Ability 4 (R/4)
+        ability4: {
+            name: 'Ragnarok',
+            icon: '🔥',
+            cooldownEnd: 0,
+            maxCooldown: 500, // 5 seconds at 60fps
+            level: 1,
+            description: 'Ultimate: Massive damage to all enemies'
+        },
+    },
+
+    // Ability Actions
+    useAbility: (abilityNumber, currentTime) => {
+        const state = get();
+        const abilityKey = `ability${abilityNumber}`;
+        const ability = state.abilities[abilityKey];
+
+        if (currentTime < ability.cooldownEnd) return false;
+
+        set(state => ({
+            abilities: {
+                ...state.abilities,
+                [abilityKey]: {
+                    ...ability,
+                    cooldownEnd: currentTime + ability.maxCooldown
+                }
+            }
+        }));
+
+        return true;
+    },
+    getAbilityCooldownPercent: (abilityNumber, now = performance.now()) => {
+        const ability = get().abilities[`ability${abilityNumber}`];
+
+        if (!ability?.cooldownEnd) return 100;
+
+        const total = ability.maxCooldown;
+        const remaining = ability.cooldownEnd - now;
+
+        if (remaining <= 0) return 100;
+
+        return (1 - remaining / total) * 100;
     },
 
     // Audio Actions - ONLY update the store, don't call audioManager
@@ -255,7 +335,7 @@ export const useGameStore = create((set, get) => ({
                 maxHp: newMaxHp,
                 hp: Math.min(state.player.hp, newMaxHp), // Don't exceed new max
                 stats: {
-                    damage: 10 + bonusDamage,
+                    damage: 5 + bonusDamage,
                     attackSpeed: 100 + bonusAttackSpeed,
                     moveSpeed: 0.4 + bonusMoveSpeed,
                     critChance: 5 + bonusCritChance,

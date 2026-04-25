@@ -52,6 +52,9 @@ export async function createGame() {
 
     const playerState = useGameStore.getState().player;
 
+    let mouseWorld = { x: 0, y: 0 };
+
+
     // Player
     const {pCont, pGlow, pBody, hpBar} = createPlayerEntity(world);
 
@@ -200,6 +203,29 @@ export async function createGame() {
         }
     });
 
+    // Abilities
+    window.addEventListener('keydown', (e) => {
+        const store = useGameStore.getState();
+        const key = e.key;
+
+        switch(key) {
+            case '1':
+                combat.useArrowBarrage(px, py, mouseWorld.x, mouseWorld.y);
+                break;
+            case '2':
+                combat.useChainLightning(px, py, mouseWorld.x, mouseWorld.y);
+                break;
+            case '3':
+                store.useAbility(3, Date.now());
+                console.log('Ability 3 used!');
+                break;
+            case '4':
+                store.useAbility(4, Date.now());
+                console.log('Ability 4 used!');
+                break;
+        }
+    });
+
     px = 0;
     py = 0;
     pCont.x = px;
@@ -299,7 +325,6 @@ export async function createGame() {
             });
         }
 
-
         // Enemy projectiles
         combat.updateArrows(px, py);
         combat.updateEnemyProjs(px, py, pBody);
@@ -348,10 +373,10 @@ export async function createGame() {
         minimap.playerRef.y = py;
 
         // Get mouse position in world coordinates
-        const mouseWorldX = (input.mouseX - world.x) / world.scale.x;
-        const mouseWorldY = (input.mouseY - world.y) / world.scale.x;
+        mouseWorld.x = (input.mouseX - world.x) / world.scale.x;
+        mouseWorld.y = (input.mouseY - world.y) / world.scale.x;
 
-        let angleToMouse = Math.atan2(mouseWorldY - py, mouseWorldX - px);
+        let angleToMouse = Math.atan2(mouseWorld.y - py, mouseWorld.x - px);
         angleToMouse += Math.PI / 2; // Add 90 degrees
 
         minimap.playerRef.rotation = angleToMouse;
