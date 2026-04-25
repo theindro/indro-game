@@ -328,11 +328,6 @@ export class OpenWorldManager {
         return Math.max(1, Math.min(25, base + variation));
     }
 
-    // Add this method to your OpenWorldManager class
-    setChunkChangeCallback(callback) {
-        this.onChunkChangeCallback = callback;
-    }
-
     async update(playerX, playerZ) {
         if (!this.initialized) return;
 
@@ -431,13 +426,13 @@ export class OpenWorldManager {
         const chunk = this.loadedChunks.get(key);
         if (!chunk) return;
 
-        // 1. HIDE ground graphics (don't destroy)
+        // 1. remove ground
         this.groundLayer.removeChild(chunk);
 
-        // 3. HIDE props and remove colliders (managed by PropManager)
+        // 3. remove props
         this.propManager.unloadChunkProps(key);
 
-        // 4. HIDE mobs
+        // 4. remove mobs and antities
         const entities = this.spawnedEntities.get(key);
 
         if (entities) {
@@ -454,27 +449,6 @@ export class OpenWorldManager {
         }
 
         this.loadedChunks.delete(key);
-    }
-
-    getActiveColliders() {
-        const now = Date.now();
-
-        if (!this._activeCollidersCache || now - this._cacheTime > 500) {
-
-            this._activeCollidersCache = [];
-
-            for (const key of this.loadedChunks.keys()) {
-                const list = this.propManager.chunkColliders?.get(key);
-
-                if (list && list.length) {
-                    this._activeCollidersCache.push(...list);
-                }
-            }
-
-            this._cacheTime = now;
-        }
-
-        return this._activeCollidersCache;
     }
 
     async loadChunk(chunkX, chunkZ, playerX, playerZ) {

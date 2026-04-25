@@ -60,7 +60,7 @@ export class AudioManager {
 
         const now = Date.now();
         const lastTime = this.lastPlayed.get(path) || 0;
-        const cooldown = this.cooldowns.get(path) || 500;
+        const cooldown = this.cooldowns.get(path) || 200;
 
         if (now - lastTime < cooldown) return;
 

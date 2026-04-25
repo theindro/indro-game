@@ -312,9 +312,6 @@ export function createCombatSystem(ctx) {
     // ─────────────────────────────
     // Enemy projectiles
     // ─────────────────────────────
-// ─────────────────────────────
-// Enemy projectiles with prop collision
-// ─────────────────────────────
     function updateEnemyProjs(px, py, pBody) {
         for (let ei = enemyProjs.length - 1; ei >= 0; ei--) {
             const ep = enemyProjs[ei];
