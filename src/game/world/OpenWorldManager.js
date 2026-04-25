@@ -70,16 +70,19 @@ export class OpenWorldManager {
 
         // Create ground layer and prop layer
         this.groundLayer = new Container();
+        this.shadowLayer = new Container();
         this.debugLayer = new Container();
         this.entityLayer = new Container();
         this.propLayer = new Container();
 
         // Set prop layer for PropManager
         this.propManager.setPropLayer(this.propLayer);
+        this.propManager.setShadowLayer(this.shadowLayer); // Add this
 
         this.world.addChild(this.groundLayer);
-        this.world.addChild(this.debugLayer); // Add after propLayer
+        this.world.addChild(this.debugLayer);
         this.world.addChild(this.entityLayer);
+        this.world.addChild(this.shadowLayer);
         this.world.addChild(this.propLayer);
 
     }

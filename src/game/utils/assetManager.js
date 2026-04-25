@@ -39,6 +39,9 @@ class AssetManager {
             { file: '/gameprops/bush-1.png', id: 'bush1', type: 'bush' },
             { file: '/gameprops/bush-2.png', id: 'bush2', type: 'bush' },
             { file: '/gameprops/bush-3.png', id: 'bush3', type: 'bush' },
+            { file: '/gameprops/tree1.png', id: 'tree1', type: 'tree' },
+            { file: '/gameprops/tree2.png', id: 'tree2', type: 'tree' },
+            { file: '/gameprops/tree3.png', id: 'tree3', type: 'tree' },
         ];
 
         const loadPromises = [];

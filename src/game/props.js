@@ -29,6 +29,11 @@ export class PropManager {
         this.worldSeed = worldSeed;
         this.spawnedProps = new Map();
         this.propLayer = null;
+        this.shadowLayer = null; // Add shadow layer reference
+    }
+
+    setShadowLayer(layer) {
+        this.shadowLayer = layer;
     }
 
     setPropLayer(layer) {
@@ -106,20 +111,29 @@ export class PropManager {
             const baseScale = scaleRange.min + Math.random() * (scaleRange.max - scaleRange.min);
             sprite.scale.set(baseScale);
 
-            // Add shadow
+            // Create shadow on SHADOW LAYER instead
             const shadow = new Sprite(texture);
             shadow.anchor.set(0.5, 0.6);
-
-            // 🔥 mirror vertically (this is the key)
             shadow.scale.set(baseScale, -baseScale);
-
+            shadow.skew.set(-0.2, 0);
             shadow.tint = 0x000000;
-            shadow.alpha = 0.4;
+            shadow.alpha = 0.2;
+            shadow.y = sprite.height * baseScale * 0.5;
+            shadow.x = -10;
 
-            // move it below the sprite (ground)
-            shadow.y = sprite.height * baseScale * 0.5; // tweak if needed
+            // Add shadow to shadowLayer (NOT the prop container)
+            if (this.shadowLayer) {
+                // Position shadow at same world coordinates
+                const shadowContainer = new Container();
+                shadowContainer.x = x;
+                shadowContainer.y = z;
+                shadowContainer.addChild(shadow);
+                this.shadowLayer.addChild(shadowContainer);
 
-            container.addChild(shadow);
+                // Store reference for cleanup
+                shadow.userData = { parentProp: propType.name, x, z };
+            }
+
             container.addChild(sprite);
 
             if (this.propLayer) {
@@ -264,6 +278,14 @@ export class PropManager {
             }
 
             console.log(`Spawned ${spawned}/${targetCount} ${biome} props in chunk ${chunkX},${chunkZ} after ${attempts} attempts`);
+
+            // Add props to layer in REVERSE order (first spawned will be on top)
+            for (let i = props.length - 1; i >= 0; i--) {
+                const prop = props[i];
+                if (prop.container && !prop.container.parent) {
+                    this.propLayer.addChild(prop.container);
+                }
+            }
 
             this.spawnedProps.set(key, props);
 

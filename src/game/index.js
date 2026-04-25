@@ -78,6 +78,7 @@ export async function createGame() {
     const perfMonitor = new PerformanceMonitor();
 
     const openWorld = new OpenWorldManager(world, colliders, app.renderer);
+
     openWorld.setEntitiesList(entities); // Add this line
 
     const hud = new WorldHud(app);
@@ -182,11 +183,11 @@ export async function createGame() {
                     return;
                 }
 
-                // Spawn a lava boss for testing (you can use 'desert', 'ice', 'forest', 'lava')
-                const boss = spawnBoss(world, 'lava', bossX, bossY, 1);
+                // Spawn a lava boss on entityLayer instead of world
+                const boss = spawnBoss(openWorld.entityLayer, 'lava', bossX, bossY, 1);
                 bosses.push(boss);
 
-                console.log(`🔥 Boss spawned at (${bossX}, ${bossY})`);
+                console.log(`🔥 Boss spawned at (${bossX}, ${bossY}) on entityLayer`);
 
                 // Optional: Add screen shake effect
                 shakeRef.value = 10;

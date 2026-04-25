@@ -96,10 +96,10 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             const shootInterval = enraged ? this.shootInterval * 0.6 : this.shootInterval;
             if (this.shootTimer >= shootInterval) {
                 this.shootTimer = 0;
-                enemyProjs.push(createEnemyProj(world, this.x, this.y, px, py, this.type, enraged ? 40 : 14, 4.2, 20));
+                enemyProjs.push(createEnemyProj(openWorld.entityLayer, this.x, this.y, px, py, this.type, enraged ? 40 : 14, 4.2, 20));
                 if (enraged) {
                     [-0.4, 0.4].forEach(off =>
-                        enemyProjs.push(createEnemyProj(world, this.x, this.y, px, py, this.type, 10, 2.8, 8, off))
+                        enemyProjs.push(createEnemyProj(openWorld.entityLayer, this.x, this.y, px, py, this.type, 10, 2.8, 8, off))
                     );
                 }
             }

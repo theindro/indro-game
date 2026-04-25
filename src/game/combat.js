@@ -307,8 +307,13 @@ export function createCombatSystem(ctx) {
             ep.c.y += ep.vy;
             ep.life--;
 
+            // Check life and world bounds
             if (ep.life <= 0 || !openWorld.isInsideWorld(ep.c.x, ep.c.y)) {
-                world.removeChild(ep.c);
+                // Remove from its parent (entityLayer)
+                if (ep.c.parent) {
+                    ep.c.parent.removeChild(ep.c);
+                }
+                ep.c.destroy();
                 enemyProjs.splice(ei, 1);
                 continue;
             }
@@ -325,7 +330,10 @@ export function createCombatSystem(ctx) {
                         if (dist < (collider.r || 10) + projRadius) {
                             // Projectile hit a prop - create impact effect and remove projectile
                             burst(world, particles, ep.c.x, ep.c.y, 0xff6666, 6, 2);
-                            world.removeChild(ep.c);
+                            // Remove from its parent
+                            if (ep.c.parent) {
+                                ep.c.parent.removeChild(ep.c);
+                            }
                             enemyProjs.splice(ei, 1);
                             hitProp = true;
                             break;
@@ -338,7 +346,10 @@ export function createCombatSystem(ctx) {
             // Check collision with player
             if (Math.hypot(px - ep.c.x, py - ep.c.y) < 16) {
                 useGameStore.getState().damagePlayer(ep.dmg, 'enemy projectile');
-                world.removeChild(ep.c);
+                // Remove from its parent
+                if (ep.c.parent) {
+                    ep.c.parent.removeChild(ep.c);
+                }
                 enemyProjs.splice(ei, 1);
             }
         }

@@ -23,13 +23,13 @@ export const PROP_TYPES = {
     },
     TREE: {
         name: 'tree',
-        variants: ['tree'],
-        collision: true,
+        variants: ['tree1', 'tree2', 'tree3'],
+        collision: false,
         collisionType: 'auto',
         minDistance: 80,
         margin: 0.8,
         damageOnTouch: 0,
-        scaleRange: { min: 0.6, max: 1.0 }
+        scaleRange: { min: 0.9, max: 1.0 }
     },
     BUSH: {
         name: 'bush',
@@ -69,8 +69,9 @@ export const BIOME_PROP_CONFIG = {
     forest: {
         density: 2,  // Move density here (root level)
         props: [
-            { type: 'STONE', weight: 70 },
-            { type: 'BUSH', weight: 100 },
+            { type: 'STONE', weight: 10 },
+            { type: 'TREE', weight: 30 },
+            { type: 'BUSH', weight: 40 },
         ]
     },
     desert: {
