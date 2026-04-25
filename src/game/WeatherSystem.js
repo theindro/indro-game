@@ -91,25 +91,33 @@ class EmberEffect {
         this.container.addChild(this.graphics);
 
         this.particles = [];
-        this.particleCount = Math.floor(150 * intensity);
+        // Use higher intensity for better coverage
+        this.particleCount = Math.floor(300 * intensity);
 
         this.createParticles();
+
+        // Store screen dimensions for resize handling
+        this.screenWidth = app.screen.width;
+        this.screenHeight = app.screen.height;
     }
 
     createParticles() {
-        const colors = [0xff4400, 0xff6600, 0xff8800, 0xffaa00];
+        const colors = [0xff4400, 0xff6600, 0xff8800, 0xffaa00, 0xff3300];
 
         for (let i = 0; i < this.particleCount; i++) {
             this.particles.push({
-                x: Math.random() * this.app.screen.width,
-                y: Math.random() * this.app.screen.height,
-                vx: (Math.random() - 0.5) * 1.5 * this.speed,
-                vy: (-1 - Math.random()) * this.speed,
-                size: 1 + Math.random(),
-                alpha: 0.6 + Math.random() * 0.4,
+                // Spread across ENTIRE screen width and height
+                x: Math.random() * this.screenWidth,
+                y: Math.random() * this.screenHeight, // KEY FIX: Random Y across full screen
+                vx: (Math.random() - 0.5) * 1.2 * this.speed,
+                vy: (-0.5 - Math.random() * 1.5) * this.speed,
+                size: 2 + Math.random() * 4,
+                alpha: 0.4 + Math.random() * 0.6,
                 color: colors[Math.floor(Math.random() * colors.length)],
-                life: 1,
-                fade: 0.01 + Math.random() * 0.02
+                wobble: Math.random() * Math.PI * 2,
+                wobbleSpeed: 0.02 + Math.random() * 0.04,
+                life: 0.5 + Math.random() * 0.5,
+                fade: 0.003 + Math.random() * 0.007
             });
         }
     }
@@ -117,37 +125,64 @@ class EmberEffect {
     update(deltaTime) {
         this.graphics.clear();
 
+        // Update screen dimensions in case of resize
+        if (this.screenWidth !== this.app.screen.width || this.screenHeight !== this.app.screen.height) {
+            this.screenWidth = this.app.screen.width;
+            this.screenHeight = this.app.screen.height;
+        }
+
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
 
-            p.x += p.vx * deltaTime;
+            // Update position
+            p.wobble += p.wobbleSpeed * deltaTime;
+            p.x += (p.vx + Math.sin(p.wobble) * 0.3) * deltaTime;
             p.y += p.vy * deltaTime;
             p.life -= p.fade * deltaTime;
 
-            p.alpha = p.life * 0.8;
+            // Flicker effect
+            const flicker = 0.6 + Math.sin(Date.now() * 0.008 * p.size) * 0.4;
+            p.alpha = Math.min(0.8, p.life * flicker);
 
-            if (p.life <= 0 || p.y < 0) {
-                this.particles.splice(i, 1);
+            // Reset particle when it goes off screen OR dies
+            if (p.life <= 0 || p.y < -50 || p.y > this.screenHeight + 50 ||
+                p.x < -50 || p.x > this.screenWidth + 50) {
 
-                this.particles.push({
-                    x: Math.random() * this.app.screen.width,
-                    y: this.app.screen.height,
-                    vx: (Math.random() - 0.5) * 2 * this.speed,
-                    vy: (-1 - Math.random() * 2) * this.speed,
-                    size: 1 + Math.random(),
-                    alpha: 0.6,
+                // Respawn at random position across FULL screen
+                this.particles[i] = {
+                    x: Math.random() * this.screenWidth,
+                    y: Math.random() * this.screenHeight, // KEY FIX: Respawn anywhere
+                    vx: (Math.random() - 0.5) * 1.2 * this.speed,
+                    vy: (-0.5 - Math.random() * 1.5) * this.speed,
+                    size: 1 + Math.random() ,
+                    alpha: 0.4,
                     color: p.color,
-                    life: 1,
-                    fade: 0.01 + Math.random() * 0.02
-                });
-
+                    wobble: Math.random() * Math.PI * 2,
+                    wobbleSpeed: 0.02 + Math.random() * 0.04,
+                    life: 0.5 + Math.random() * 0.5,
+                    fade: 0.003 + Math.random() * 0.007
+                };
                 continue;
             }
 
-            // DRAW (screen space)
+            // Draw ember
             this.graphics.circle(p.x, p.y, p.size)
                 .fill({ color: p.color, alpha: p.alpha });
+
+            // Inner glow
+            this.graphics.circle(p.x, p.y, p.size * 0.6)
+                .fill({ color: 0xffaa66, alpha: p.alpha * 0.7 });
+
+            // Trail effect (optional)
+            if (p.vy < 0) {
+                this.graphics.circle(p.x - p.vx * 2, p.y - p.vy * 2, p.size * 0.5)
+                    .fill({ color: p.color, alpha: p.alpha * 0.3 });
+            }
         }
+
+        // Add ambient glow overlay for lava biome
+        this.graphics.rect(0, 0, this.screenWidth, this.screenHeight)
+            .fill({ color: 0xff3300, alpha: 0.03 });
     }
 
     destroy() {

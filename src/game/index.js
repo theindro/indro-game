@@ -18,6 +18,7 @@ import {OpenWorldManager} from "./world/OpenWorldManager.js";
 import { PerformanceMonitor } from './PerformanceMonitor.js';
 import {spawnBoss} from "./controllers/createBossController.js";
 import {WorldHud} from "./world/WorldHud.js";
+import {Minimap} from "./world/minimap.js";
 
 export async function createGame() {
     const app = new Application();
@@ -161,30 +162,8 @@ export async function createGame() {
         }
     });
 
-    // Track actual frame rendering
-    let frameTimes = [];
-    let lastFrameTime = performance.now();
-
-    function measureFrameTime() {
-        const now = performance.now();
-        const frameTime = now - lastFrameTime;
-        frameTimes.push(frameTime);
-
-        if (frameTimes.length > 60) {
-            const avg = frameTimes.reduce((a,b) => a+b, 0) / frameTimes.length;
-            const variance = frameTimes.map(t => Math.abs(t - avg));
-            const maxJitter = Math.max(...variance);
-
-            if (maxJitter > 5) {
-                console.log(`⚠️ Frame jitter detected: ${maxJitter.toFixed(2)}ms variance`);
-                console.log(`   Frame times: ${frameTimes.slice(0, 10).map(t => t.toFixed(1)).join(', ')}...`);
-            }
-
-            frameTimes = [];
-        }
-
-        lastFrameTime = now;
-    }
+    // Create minimap
+    const minimap = new Minimap(app, openWorld, { x: px, y: py, rotation: 0 }, entities);
 
     // 🔴 TEST BOSS SPAWN - Press 'B' key to spawn a boss nearby
     window.addEventListener('keydown', (e) => {
@@ -385,9 +364,21 @@ export async function createGame() {
             weatherSystem.update(deltaTime, camX, camY, bounds);
         }
 
-        // HUD
-        //measureFrameTime();
+// Update player position for minimap first
+        minimap.playerRef.x = px;
+        minimap.playerRef.y = py;
 
+// Get mouse position in world coordinates
+        const mouseWorldX = (input.mouseX - world.x) / world.scale.x;
+        const mouseWorldY = (input.mouseY - world.y) / world.scale.x;
+
+        let angleToMouse = Math.atan2(mouseWorldY - py, mouseWorldX - px);
+        angleToMouse += Math.PI / 2; // Add 90 degrees
+
+        minimap.playerRef.rotation = angleToMouse;
+
+        minimap.update();
+        
         // Death
         if (playerState.hp <= 0 && !gameState.dead) {
             useGameStore.getState().setDead(true);
