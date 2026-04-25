@@ -179,10 +179,24 @@ export class PropManager {
     async spawnPropsInChunk(chunkX, chunkZ, biome, chunkSize, tileSize, debugMode = false) {
         const key = `${chunkX},${chunkZ}`;
 
+        // If props already exist for this chunk, just make them visible again
         if (this.spawnedProps.has(key)) {
-            console.warn(`⚠️ Chunk ${key} already has props! Skipping duplicate spawn.`);
-            return;
+            console.log(`🔄 Showing existing props for chunk ${key}`);
+            const existingProps = this.spawnedProps.get(key);
+            for (const prop of existingProps) {
+                prop.container.visible = true;
+                // Re-add colliders if they were removed
+                if (prop.colliders && prop.colliders.length) {
+                    for (const collider of prop.colliders) {
+                        if (!this.colliders.includes(collider)) {
+                            this.colliders.push(collider);
+                        }
+                    }
+                }
+            }
+            return; // IMPORTANT: Return after showing existing props
         }
+
 
         if (this.loadingChunks?.has(key)) {
             console.warn(`⚠️ Chunk ${key} is already loading! Skipping.`);
