@@ -184,7 +184,7 @@ class EmberEffect {
 
         // Add ambient glow overlay for lava biome
         this.graphics.rect(0, 0, this.screenWidth, this.screenHeight)
-            .fill({ color: 0xff3300, alpha: 0.03 });
+            .fill({ color: "#262626", alpha: 0.5 });
     }
 
     destroy() {
@@ -351,6 +351,9 @@ class SandstormEffect {
             this.graphics.circle(p.x, p.y, p.size)
                 .fill({ color: 0xccaa77, alpha: p.alpha });
         }
+
+        this.graphics.rect(0, 0, this.app.screen.width, this.app.screen.height)
+            .fill({ color: '#461f06', alpha: 0.2 });
     }
 
     destroy() {

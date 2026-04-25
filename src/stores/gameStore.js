@@ -95,7 +95,7 @@ export const useGameStore = create((set, get) => ({
     audio: {
         isMuted: false,
         musicVolume: 0.3,
-        sfxVolume: 0.5,
+        sfxVolume: 0.2,
     },
 
     // Audio Actions - ONLY update the store, don't call audioManager

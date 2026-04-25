@@ -23,10 +23,10 @@ export class OpenWorldManager {
         };
         this.entitiesList = null;
         this.initialized = false;
-        this.worldSeed = Math.random() * 5021;
+        this.worldSeed = 5021;
 
         this.config = {
-            biomeScale: 0.003,
+            biomeScale: 0.006,
             debugChunks: false,
             poi: {
                 spawnChance: 0.12,
