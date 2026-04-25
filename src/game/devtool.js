@@ -250,22 +250,6 @@ export function createDevTool(gameStore) {
             };
         }
 
-        const killBtn = document.getElementById('dev-kill');
-        if (killBtn) {
-            killBtn.onclick = () => {
-                const state = gameStore.getState();
-                if (state.roomManager) {
-                    const room = state.roomManager.currentRoom;
-                    if (room && room.mobs) {
-                        room.mobs.forEach(mob => {
-                            if (mob.c) state.world.removeChild(mob.c);
-                        });
-                        room.mobs.length = 0;
-                    }
-                }
-            };
-        }
-
         const levelBtn = document.getElementById('dev-level');
         if (levelBtn) {
             levelBtn.onclick = () => {

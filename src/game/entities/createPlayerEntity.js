@@ -31,7 +31,5 @@ export function createPlayerEntity(world) {
     hpBar.rect(-19, -31, 38, 4).fill(0x44ff88);
     pCont.addChild(hpBar);
 
-    world.addChild(pCont);
-
     return { pCont, pGlow, pBody, pRune, pShadow, hpBar };
 }

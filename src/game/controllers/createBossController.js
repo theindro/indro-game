@@ -49,7 +49,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         lastPlayerY: y,
         groundAttacks, // Store reference
 
-        update({ px, py, colliders, roomManager, enemyProjs, playerState, shakeRef, deltaTime = 1 }) {
+        update({ px, py, colliders, openWorld, enemyProjs, playerState, shakeRef, deltaTime = 1 }) {
             if (this.dead) return;
 
             // Store delta time for animations
@@ -82,7 +82,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                 nx += (dx / dist) * this.speed;
                 ny += (dy / dist) * this.speed;
             }
-            const clamped  = roomManager.clampToRoom(nx, ny, this.radius);
+            const clamped  = openWorld.clampToWorld(nx, ny, this.radius);
             const resolved = resolveVsColliders(clamped.x, clamped.y, this.radius, colliders);
             this.x = resolved.x;
             this.y = resolved.y;

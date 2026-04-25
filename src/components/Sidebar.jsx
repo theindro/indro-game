@@ -21,8 +21,6 @@ export default function Sidebar({ collapsed, onCollapse }) {
     const hpPercent = (player?.hp / player?.maxHp) * 100;
     const xpPercent = (player?.xp / player?.XPnext) * 100;
 
-    console.log(player);
-
     const items = [
         {
             key: 'profile',

@@ -24,18 +24,21 @@ export default function ArenaGame() {
                 <ArenaHUD />
             </div>
 
-            {/* UI Overlays */}
+            {/* UI Overlays   */}
+
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, pointerEvents: 'none' }}>
                 <div style={{ pointerEvents: 'auto' }}>
                     <GameHeader />
                 </div>
             </div>
 
+            {/* Sidebar
             <div style={{ position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 100, pointerEvents: 'none' }}>
                 <div style={{ pointerEvents: 'auto', height: '100%' }}>
                     <Sidebar collapsed={collapsed} onCollapse={setCollapsed} />
                 </div>
             </div>
+            */}
 
             <Inventory />
             <Shop />

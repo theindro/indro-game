@@ -1,9 +1,9 @@
 import {DIFFICULTY, GS, ICE_MOB_SHOOT_INTERVAL_BASE, MOB_HP, MOB_RADIUS} from "../constants.js";
-import {resolveVsColliders} from "../collision.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import {createEnemyProj} from "../projectile.js";
 import {getBiome} from "../biome.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
+import {nearbyColliders} from "../props.js";
 
 export function createMobController(mob) {
     let shootTimer = 0;
@@ -11,124 +11,148 @@ export function createMobController(mob) {
     return {
         mob,
 
+        // In createMobController - replace the update function
         update(ctx) {
             if (!mob || !mob.c) return;
 
-            // Destructure the context that's actually being passed from game.js
             const {
-                px, py,           // Player position
-                colliders,        // Collision objects
-                roomManager,      // Room management
-                enemyProjs,       // Enemy projectiles array
-                playerState,      // Player state from store
-                shakeRef,         // Screen shake reference
-                mobs,            // All mobs array
-                world            // World container
+                px, py,
+                colliders,
+                openWorld,
+                enemyProjs,
+                playerState,
+                shakeRef,
+                mobs,
+                world
             } = ctx;
 
             const m = this.mob;
+            const distToPlayer = Math.hypot(px - m.x, py - m.y);
 
-            // ── movement ──
-            const dx = px - m.x;
-            const dy = py - m.y;
-            const dist = Math.hypot(dx, dy);
+            // State machine for open world
+            let moveX = 0, moveY = 0;
 
-            let mx = 0;
-            let my = 0;
-
-            if (dist > 0.01) {
-                mx = dx / dist;
-                my = dy / dist;
+            if (distToPlayer < 500) {
+                // Chase player
+                m.state = 'chase';
+                if (distToPlayer > 5) {
+                    moveX = (px - m.x) / distToPlayer;
+                    moveY = (py - m.y) / distToPlayer;
+                }
+            } else if (m.state === 'chase' && distToPlayer > 600) {
+                m.state = 'patrol';
+            } else if (m.state === 'idle') {
+                m.state = 'patrol';
             }
 
-            // collider separation
-            const SEP_RADIUS = 100;
-            const SEP_FORCE = 2.2;
+            if (m.state === 'patrol' && m.patrolPoints && m.patrolPoints.length > 0) {
+                const target = m.patrolPoints[m.currentPatrolIndex];
+                if (target) {
+                    const dx = target.x - m.x;
+                    const dy = target.y - m.y;
+                    const patrolDist = Math.hypot(dx, dy);
 
-            if (colliders && colliders.length) {
-                for (const col of colliders) {
-                    const cdx = m.x - col.x;
-                    const cdy = m.y - col.y;
-                    const cd = Math.hypot(cdx, cdy);
-                    const minD = MOB_RADIUS + (col.r || 0) + SEP_RADIUS;
-                    if (cd < minD && cd > 0.001) {
-                        const strength = (1 - cd / minD) * SEP_FORCE;
-                        mx += (cdx / cd) * strength;
-                        my += (cdy / cd) * strength;
+                    if (patrolDist < 20) {
+                        m.currentPatrolIndex = (m.currentPatrolIndex + 1) % m.patrolPoints.length;
+                    } else if (patrolDist > 0.01) {
+                        moveX = dx / patrolDist;
+                        moveY = dy / patrolDist;
                     }
                 }
             }
 
-            // mob separation
-            if (mobs && mobs.length) {
-                for (const o of mobs) {
-                    if (o === m) continue;
-                    const odx = m.x - o.x;
-                    const ody = m.y - o.y;
-                    const od = Math.hypot(odx, ody);
-                    const minO = MOB_RADIUS * 2 + 4;
-                    if (od < minO && od > 0.001) {
-                        const strength = (1 - od / minO) * 1.2;
-                        mx += (odx / od) * strength;
-                        my += (ody / od) * strength;
+            // Apply movement
+            if (moveX !== 0 || moveY !== 0) {
+                const speed = m.speed;
+                let newX = m.x + moveX * speed;
+                let newY = m.y + moveY * speed;
+
+                // Keep within world bounds and resolve collisions
+                if (openWorld) {
+                    const bounds = openWorld.getCurrentBounds();
+                    if (bounds) {
+                        newX = Math.max(bounds.minX + MOB_RADIUS, Math.min(bounds.maxX - MOB_RADIUS, newX));
+                        newY = Math.max(bounds.minY + MOB_RADIUS, Math.min(bounds.maxY - MOB_RADIUS, newY));
                     }
                 }
+
+                // Check collision with other mobs
+                if (mobs && mobs.length) {
+                    for (const other of mobs) {
+                        if (other === m) continue;
+                        const dist = Math.hypot(newX - other.x, newY - other.y);
+                        if (dist < MOB_RADIUS * 2) {
+                            // Push away
+                            const angle = Math.atan2(newY - other.y, newX - other.x);
+                            newX = other.x + Math.cos(angle) * MOB_RADIUS * 2;
+                            newY = other.y + Math.sin(angle) * MOB_RADIUS * 2;
+                        }
+                    }
+                }
+
+                // In createMobController.js, enhance the collision section:
+// Check collision with props
+                if (colliders) {
+                    const nearbyProps = nearbyColliders(colliders, newX, newY, MOB_RADIUS + 50);
+                    for (const prop of nearbyProps) {
+                        if (prop.type === 'prop' || prop.type === 'box') {
+                            if (prop.r) {
+                                const dx = newX - prop.x;
+                                const dy = newY - prop.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                if (dist < MOB_RADIUS + prop.r) {
+                                    const angle = Math.atan2(dy, dx);
+                                    newX = prop.x + Math.cos(angle) * (MOB_RADIUS + prop.r);
+                                    newY = prop.y + Math.sin(angle) * (MOB_RADIUS + prop.r);
+                                }
+                            } else if (prop.width && prop.height) {
+                                // Box collision for mobs
+                                const halfW = prop.width / 2;
+                                const halfH = prop.height / 2;
+                                const closestX = Math.max(prop.x - halfW, Math.min(newX, prop.x + halfW));
+                                const closestY = Math.max(prop.y - halfH, Math.min(newY, prop.y + halfH));
+                                const dx = newX - closestX;
+                                const dy = newY - closestY;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                if (dist < MOB_RADIUS) {
+                                    const angle = Math.atan2(dy, dx);
+                                    newX = closestX + Math.cos(angle) * MOB_RADIUS;
+                                    newY = closestY + Math.sin(angle) * MOB_RADIUS;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                m.x = newX;
+                m.y = newY;
+                m.c.x = m.x;
+                m.c.y = m.y;
             }
 
-            const len = Math.hypot(mx, my);
-            if (len > 0.001) {
-                mx = (mx / len) * m.speed * GS;
-                my = (my / len) * m.speed * GS;
-            }
+            // Bounce animation
+            m.bounceTime += m.bounceSpeed;
+            const bounceY = Math.sin(m.bounceTime) * m.bounceAmplitude;
+            m.c.y = m.y + bounceY;
 
-            let nx = m.x + mx;
-            let ny = m.y + my;
-
-            if (roomManager) {
-                const clamped = roomManager.clampToRoom(nx, ny, MOB_RADIUS);
-                const resolved = resolveVsColliders(
-                    clamped.x,
-                    clamped.y,
-                    MOB_RADIUS,
-                    colliders || []
-                );
-                m.x = resolved.x;
-                m.y = resolved.y;
-            } else {
-                m.x = nx;
-                m.y = ny;
-            }
-
-            m.c.x = m.x;
-            m.c.y = m.y;
-
-            // contact damage
-            if (dist < 26 && playerState) {
+            // Contact damage
+            if (distToPlayer < 26 && playerState) {
                 if (m.attackCooldown <= 0) {
                     useGameStore.getState().damagePlayer(2, 'mob atk');
-                    m.attackCooldown = 60; // 60fps → 12 ticks ≈ 5 hits/sec
+                    m.attackCooldown = 30;
                 }
             }
 
-            // reduce cooldown every frame
             if (m.attackCooldown > 0) {
                 m.attackCooldown--;
             }
 
-            // shooting
-            shootTimer++;
-            if (
-                m.biome === 'ice' &&
-                dist > 90 &&
-                dist < 380 &&
-                shootTimer > ICE_MOB_SHOOT_INTERVAL_BASE &&
-                world &&
-                enemyProjs
-            ) {
-                shootTimer = 0;
-                enemyProjs.push(
-                    createEnemyProj(world, m.x, m.y, px, py, 'ice', 5, 2.5, 6)
-                );
+            // Shooting for ice mobs
+            m.shootTimer++;
+            if (m.biome === 'ice' && distToPlayer > 90 && distToPlayer < 380 &&
+                m.shootTimer > ICE_MOB_SHOOT_INTERVAL_BASE && world && enemyProjs) {
+                m.shootTimer = 0;
+                enemyProjs.push(createEnemyProj(world, m.x, m.y, px, py, 'ice', 5, 2.5, 6));
             }
 
             updateMobBar(m, 13);
@@ -136,9 +160,10 @@ export function createMobController(mob) {
     };
 }
 
+// controllers/createMobController.js - Updated spawnMob
 export function spawnMob(world, x, y, biome = null) {
     const finalBiome = biome || getBiome(x, y) || 'forest';
-    const { c, body, gl, hpBar } = createMobEntity(finalBiome, 13);
+    const {c, body, gl, hpBar} = createMobEntity(finalBiome, 13);
 
     c.x = x;
     c.y = y;
@@ -156,7 +181,7 @@ export function spawnMob(world, x, y, biome = null) {
         y,
         hp: baseHp,
         maxHp: baseHp,
-        speed: baseSpeed + Math.random() * 0.4 * DIFFICULTY.mobSpeed,
+        speed: baseSpeed + Math.random() * 0.4,
         hitFlash: 0,
         biome: finalBiome,
         shootTimer: 0,
@@ -165,10 +190,25 @@ export function spawnMob(world, x, y, biome = null) {
         originalY: y,
         bounceAmplitude: 2 + Math.random() * 2,
         scalePulse: 0,
-        attackCooldown: 1,
+        attackCooldown: 0,
+        // Add these for open world
+        state: 'idle',
+        patrolPoints: [],
+        currentPatrolIndex: 0,
+        spawnX: x,
+        spawnY: y
     };
 
-    // 🔴 CRITICAL FIX: Attach the controller to the mob
+    // Generate patrol points for open world
+    for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * Math.PI * 2;
+        mob.patrolPoints.push({
+            x: mob.spawnX + Math.cos(angle) * 80,
+            y: mob.spawnY + Math.sin(angle) * 80
+        });
+    }
+
+    // Create the controller AFTER mob is fully defined
     mob.controller = createMobController(mob);
 
     return mob;

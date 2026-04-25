@@ -1,10 +1,9 @@
 import {Application, Container} from 'pixi.js';
-import {RoomManager} from './roomManager.js';
 import {createPlayerEntity,} from './entities/createPlayerEntity.js';
 import {emitEmber, emitSmoke, tickParticles} from './particles.js';
 import {tickFloats} from './floatText.js';
 import {createInputManager} from './input.js';
-import {resolveVsColliders, createDebugColliderToggle} from './collision.js';
+import {createDebugColliderToggle, resolveVsColliders} from './collision.js';
 import {createCombatSystem} from './combat.js';
 import {
     GS, PLAYER_SPEED, PLAYER_RADIUS,
@@ -15,6 +14,10 @@ import {createPlayerController} from "./controllers/createPlayerController.js";
 import {useGameStore} from '../stores/gameStore.js';
 import {createDevTool} from "./devtool.js";
 import {WeatherSystem} from "./WeatherSystem.js";
+import {OpenWorldManager} from "./world/OpenWorldManager.js";
+import { PerformanceMonitor } from './PerformanceMonitor.js';
+import {spawnBoss} from "./controllers/createBossController.js";
+import {WorldHud} from "./world/WorldHud.js";
 
 export async function createGame() {
     const app = new Application();
@@ -29,21 +32,23 @@ export async function createGame() {
     document.body.style.cursor = 'none';
 
     const world = new Container();
+
     world.scale.set(1.25);
+
     app.stage.addChild(world);
     app.stage.roundPixels = true;
 
     // In createGame, after creating weather system:
-    const weatherSystem = new WeatherSystem(world, app);
+    const weatherSystem = new WeatherSystem(app.stage, app);
 
-    // IMPORTANT: Move weather container to the top of the display list
-    world.addChild(weatherSystem.container); // Ensure it's added
-    world.setChildIndex(weatherSystem.container, world.children.length - 1); // Move to top
+// add directly to stage, not world
+    app.stage.addChild(weatherSystem.container);
+    app.stage.setChildIndex(weatherSystem.container, app.stage.children.length - 1);
 
     createDevTool(useGameStore);
 
     const colliders = [];
-    const roomManager = new RoomManager(world, colliders);
+
     const playerState = useGameStore.getState().player;
 
     // Player
@@ -69,6 +74,38 @@ export async function createGame() {
     let px = 0, py = 0;
     let pBobT = 0;
 
+    const perfMonitor = new PerformanceMonitor();
+
+    const openWorld = new OpenWorldManager(world, colliders, app.renderer);
+    openWorld.setEntitiesList(entities); // Add this line
+
+    const hud = new WorldHud(app);
+
+    let lastWeatherBiome = null;
+
+    openWorld.onChunkChangeCallback = (info) => {
+        hud.update(info);
+
+        if (info.biome === lastWeatherBiome) return;
+        lastWeatherBiome = info.biome;
+
+        const weatherConfig = {
+            forest: { type: 'rain', intensity: 5, speed: 1.0 },
+            desert: { type: 'sandstorm', intensity: 0.7, speed: 1.2 },
+            ice: { type: 'snow', intensity: 0.6, speed: 0.8 },
+            lava: { type: 'embers', intensity: 0.8, speed: 0.8 }
+        };
+
+        const weather = weatherConfig[info.biome];
+
+        if (weather) {
+            weatherSystem.setWeather(
+                weather.type,
+                weather.intensity,
+                weather.speed
+            );
+        }
+    };
 
     // Camera
     let camX = 0, camY = 0;
@@ -89,9 +126,17 @@ export async function createGame() {
     let bossActiveRef = {value: null};
 
     const combat = createCombatSystem({
-        world, entities, particles, floats,
-        playerState, shakeRef,
-        killsRef, bossActiveRef, roomManager
+        world,
+        entities,
+        particles,
+        floats,
+        playerState,
+        shakeRef,
+        killsRef,
+        bossActiveRef,
+        openWorld,
+        colliders,     // ADD THIS - for projectile-prop collision
+        // dropLayer will be added after we create it
     });
 
     // Pause/crosshair - use store
@@ -107,7 +152,7 @@ export async function createGame() {
         if (e.code === 'Space') dash.tryDash(px, py, stats);
     });
 
-// Safely update crosshair if element exists
+    // Safely update crosshair if element exists
     app.canvas.addEventListener('mousemove', e => {
         const crosshairEl = document.getElementById('crosshair');
         if (crosshairEl) {
@@ -116,60 +161,93 @@ export async function createGame() {
         }
     });
 
-    const biomeWeatherMap = {
-        //'desert': { type: 'sandstorm', intensity: 0.7, speed: 1.2 },
-        'lava': { type: 'embers', intensity: 0.8, speed: 0.8 },
-        //'ice': { type: 'snow', intensity: 0.6, speed: 0.5 },
-        'forest': { type: 'rain', intensity: 0.4, speed: 1.0 },
-        //'swamp': { type: 'fog', intensity: 0.5, speed: 0.3 },
-        //'void': { type: 'smoke', intensity: 0.9, speed: 0.7 }
-    };
+    // Track actual frame rendering
+    let frameTimes = [];
+    let lastFrameTime = performance.now();
 
-    // Room loading
-    let loadingRoom = false;
+    function measureFrameTime() {
+        const now = performance.now();
+        const frameTime = now - lastFrameTime;
+        frameTimes.push(frameTime);
 
-    function loadRoom(index) {
-        loadingRoom = true;
-        roomManager.loadRoom(index, roomData => {
-            px = roomData.spawnX;
-            py = 0;
-            pCont.x = px;
-            pCont.y = py;
-            world.addChild(pCont);
-            bossActiveRef.value = roomManager.spawnRoomEntities(
-                roomData.room, roomData.bounds, entities
-            );
+        if (frameTimes.length > 60) {
+            const avg = frameTimes.reduce((a,b) => a+b, 0) / frameTimes.length;
+            const variance = frameTimes.map(t => Math.abs(t - avg));
+            const maxJitter = Math.max(...variance);
 
-            // Set weather based on biome with speed
-            const biome = roomData.room.biome;
-            const weather = biomeWeatherMap[biome];
-
-            if (weather) {
-                // Pass type, intensity, AND speed
-                weatherSystem.setWeather(weather.type, weather.intensity, weather.speed);
-            } else {
-                weatherSystem.clear();
+            if (maxJitter > 5) {
+                console.log(`⚠️ Frame jitter detected: ${maxJitter.toFixed(2)}ms variance`);
+                console.log(`   Frame times: ${frameTimes.slice(0, 10).map(t => t.toFixed(1)).join(', ')}...`);
             }
 
-            // CRITICAL FIX: Move weather container to the top after room loads
-            if (weatherSystem.container) {
-                world.addChild(weatherSystem.container);
-                world.setChildIndex(weatherSystem.container, world.children.length - 1);
-            }
+            frameTimes = [];
+        }
 
-            loadingRoom = false;
-        });
+        lastFrameTime = now;
     }
+
+    // 🔴 TEST BOSS SPAWN - Press 'B' key to spawn a boss nearby
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'b' || e.key === 'B') {
+            console.log('🎮 Spawning test boss!');
+
+            // Import spawnBoss if not already imported
+            import('./controllers/createBossController.js').then(({ spawnBoss }) => {
+                // Spawn boss at player position + offset
+                const bossX = px + 300;
+                const bossY = py + 200;
+
+                // Check if there's already a boss
+                if (bosses.length > 0) {
+                    console.log('Boss already exists!');
+                    return;
+                }
+
+                // Spawn a lava boss for testing (you can use 'desert', 'ice', 'forest', 'lava')
+                const boss = spawnBoss(world, 'lava', bossX, bossY, 1);
+                bosses.push(boss);
+
+                console.log(`🔥 Boss spawned at (${bossX}, ${bossY})`);
+
+                // Optional: Add screen shake effect
+                shakeRef.value = 10;
+
+                // Optional: Play boss spawn sound
+                if (window.audioManager) {
+                    window.audioManager.playSFX('/sounds/boss-spawn.ogg', 0.5);
+                }
+            }).catch(err => console.error('Failed to load spawnBoss:', err));
+        }
+    });
+
+    px = 0;
+    py = 0;
+    pCont.x = px;
+    pCont.y = py;
+
+    console.log(`Player spawned at (${px}, ${py})`);
+    openWorld.entityLayer.addChild(pCont);
 
     let saveTimer = 0;
     let shootCooldown = 0;
+    let lastBiome = '';
 
     app.ticker.add((ticker) => {
         // Get fresh state every frame
         const store = useGameStore.getState();
         const {gameState, player: playerState} = store;
+        const deltaTime = ticker.deltaTime; // Get actual delta time
+
+        // In your ticker:
+        perfMonitor.update(mobs.length);
 
         if (gameState.paused || gameState.dead) return;
+
+        // In your game.js ticker, add:
+        if (Math.random() < 0.05) {
+            //console.log(`Player position: (${px.toFixed(0)}, ${py.toFixed(0)})`);
+            //console.log(`World bounds: minX=${openWorld.worldBounds.minX}, maxX=${openWorld.worldBounds.maxX}`);
+        }
 
         // Get current stats
         const currentStats = playerState.stats;
@@ -228,7 +306,8 @@ export async function createGame() {
             }
         }
 
-        const clamped = roomManager.clampToRoom(nx, ny, PLAYER_RADIUS);
+        // Apply world bounds and collision
+        const clamped = openWorld.clampToWorld(nx, ny, PLAYER_RADIUS);
         const resolved = resolveVsColliders(clamped.x, clamped.y, PLAYER_RADIUS, colliders);
         px = resolved.x;
         py = resolved.y;
@@ -237,13 +316,15 @@ export async function createGame() {
         pCont.y = py + Math.sin(pBobT) * (moving ? 1.5 : 0.5);
         pGlow.alpha = 0.12 + 0.06 * Math.sin(pBobT * 2);
 
+        openWorld.update(px, py, ticker.deltaTime);
+
         // Mobs
         for (const m of mobs) {
             m.controller.update({
                 px,
                 py,
                 colliders,
-                roomManager,
+                openWorld,
                 enemyProjs,
                 playerState,
                 shakeRef,
@@ -253,8 +334,13 @@ export async function createGame() {
         }
 
         for (const b of bosses) {
-            b.update({px, py, colliders, roomManager, enemyProjs, playerState, shakeRef});
+            b.update({
+                px, py, colliders, openWorld,
+                enemyProjs, playerState, shakeRef,
+                deltaTime: ticker.deltaTime
+            });
         }
+
 
         // Enemy projectiles
         combat.updateArrows(px, py);
@@ -265,31 +351,13 @@ export async function createGame() {
         tickParticles(world, particles);
         tickFloats(floats, camX, camY, app.screen.width, app.screen.height);
 
-        // game.js — after tickParticles, only for lava biome
-        if (roomManager.currentRoom?.biome === 'lava') {
-            for (const prop of roomManager.getProps()) {
-                prop.smokeTimer--;
-                prop.emberTimer--;
-
-                if (prop.smokeTimer <= 0) {
-                    emitSmoke(world, particles, prop.x, prop.y - 40);
-                    prop.smokeTimer = 18 + Math.random() * 20;
-                }
-
-                if (prop.emberTimer <= 0) {
-                    emitEmber(world, particles, prop.x, prop.y - 30);
-                    prop.emberTimer = 8 + Math.random() * 12;
-                }
-            }
-        }
-
         // Camera
         camX += (px - camX) * CAM_SMOOTH;
         camY += (py - camY) * CAM_SMOOTH;
 
         // Clamp camera so it never shows outside room bounds
         const scale = world.scale.x;
-        const bounds = roomManager.getCurrentBounds();
+        const bounds = openWorld.getCurrentBounds();
 
         if (bounds) {
             const halfScreenW = app.screen.width / 2 / scale;
@@ -313,13 +381,12 @@ export async function createGame() {
         // Debug tracking
         debug.tickUpdate();
 
-        const deltaTime = ticker.deltaTime; // Get actual delta time
-
         if (weatherSystem.currentWeather && bounds) {
             weatherSystem.update(deltaTime, camX, camY, bounds);
         }
 
         // HUD
+        //measureFrameTime();
 
         // Death
         if (playerState.hp <= 0 && !gameState.dead) {
@@ -330,20 +397,8 @@ export async function createGame() {
             document.getElementById('death-kills').textContent = `${killsRef.value} enemies slain · level ${playerState.pLevel}`;
             document.getElementById('deathscreen').classList.add('active');
         }
-
-        // Room clear
-        if (!loadingRoom) {
-            roomManager.checkRoomClear(entities, (nextRoomIndex) => {
-                const next = nextRoomIndex || roomManager.currentRoomIndex + 1;
-                if (next < ROOMS.length) {
-                    // Add a simple delay before loading next room
-                    loadRoom(next);
-                }
-            });
-        }
     });
 
-    loadRoom(0);
 
     return () => {
         input.destroy();

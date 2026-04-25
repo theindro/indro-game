@@ -13,14 +13,13 @@ import {DropManager} from './utils/dropManager.js';
 export function createCombatSystem(ctx) {
     const {
         world, entities, particles, floats,
-        shakeRef,
-        killsRef, bossActiveRef, xp, roomManager
+        shakeRef, bossActiveRef, openWorld
     } = ctx;
 
     const {mobs, bosses, arrows, enemyProjs, drops} = entities;
 
     // In createCombatSystem function, add:
-    const dropManager = new DropManager(world);
+    const dropManager = new DropManager(world, openWorld.entityLayer );
 
     // ─────────────────────────────
     // Helper: Find nearest mob NOT already hit
@@ -104,13 +103,33 @@ export function createCombatSystem(ctx) {
             a.c.y += a.vy;
             a.life--;
 
-            if (a.life <= 0 || !roomManager.isInsideRoom(a.c.x, a.c.y)) {
+            if (a.life <= 0 || !openWorld.isInsideWorld(a.c.x, a.c.y)) {
                 world.removeChild(a.c);
                 arrows.splice(ai, 1);
                 continue;
             }
 
             let hit = false;
+
+            // === NEW: Check collision with props ===
+            if (ctx.colliders && ctx.colliders.length) {
+                for (const collider of ctx.colliders) {
+                    if (collider.type === 'prop' || collider.r) {
+                        const dist = Math.hypot(a.c.x - collider.x, a.c.y - collider.y);
+                        const arrowRadius = 4; // Arrow hit radius
+
+                        if (dist < (collider.r || 10) + arrowRadius) {
+                            // Arrow hit a prop - create impact effect and remove arrow
+                            burst(world, particles, a.c.x, a.c.y, 0xaaaaaa, 5, 2);
+                            world.removeChild(a.c);
+                            arrows.splice(ai, 1);
+                            hit = true;
+                            break;
+                        }
+                    }
+                }
+                if (hit) continue;
+            }
 
             // vs mobs
             for (let mi = mobs.length - 1; mi >= 0; mi--) {
@@ -213,7 +232,7 @@ export function createCombatSystem(ctx) {
                     const newDrops = dropManager.spawnDrops(world, m.x, m.y, isElite ? 'elite' : 'default', false);
                     drops.push(...newDrops);
 
-                    world.removeChild(m.c);
+                    openWorld.entityLayer.removeChild(m.c);
                     mobs.splice(mi, 1);
                 }
                 break;
@@ -278,6 +297,9 @@ export function createCombatSystem(ctx) {
     // ─────────────────────────────
     // Enemy projectiles
     // ─────────────────────────────
+// ─────────────────────────────
+// Enemy projectiles with prop collision
+// ─────────────────────────────
     function updateEnemyProjs(px, py, pBody) {
         for (let ei = enemyProjs.length - 1; ei >= 0; ei--) {
             const ep = enemyProjs[ei];
@@ -285,14 +307,37 @@ export function createCombatSystem(ctx) {
             ep.c.y += ep.vy;
             ep.life--;
 
-            if (ep.life <= 0 || !roomManager.isInsideRoom(ep.c.x, ep.c.y)) {
+            if (ep.life <= 0 || !openWorld.isInsideWorld(ep.c.x, ep.c.y)) {
                 world.removeChild(ep.c);
                 enemyProjs.splice(ei, 1);
                 continue;
             }
 
+            // === NEW: Check collision with props ===
+            let hitProp = false;
+            if (ctx.colliders && ctx.colliders.length) {
+                for (const collider of ctx.colliders) {
+                    // Check if collider is a prop (has radius)
+                    if (collider.type === 'prop' || collider.r) {
+                        const dist = Math.hypot(ep.c.x - collider.x, ep.c.y - collider.y);
+                        const projRadius = 6; // Enemy projectile hit radius
+
+                        if (dist < (collider.r || 10) + projRadius) {
+                            // Projectile hit a prop - create impact effect and remove projectile
+                            burst(world, particles, ep.c.x, ep.c.y, 0xff6666, 6, 2);
+                            world.removeChild(ep.c);
+                            enemyProjs.splice(ei, 1);
+                            hitProp = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (hitProp) continue;
+
+            // Check collision with player
             if (Math.hypot(px - ep.c.x, py - ep.c.y) < 16) {
-                useGameStore.getState().damagePlayer(ep.dmg, 'boss proj attack');
+                useGameStore.getState().damagePlayer(ep.dmg, 'enemy projectile');
                 world.removeChild(ep.c);
                 enemyProjs.splice(ei, 1);
             }

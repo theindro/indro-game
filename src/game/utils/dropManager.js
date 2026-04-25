@@ -4,8 +4,9 @@ import { ItemDatabase, DropTables } from '../items.js';
 import { assetManager } from './assetManager.js';
 
 export class DropManager {
-    constructor(world) {
+    constructor(world, entityLayer) {
         this.world = world;
+        this.entityLayer = entityLayer;  // Drops go on entity layer (above props)
     }
 
     rollDrop(mobType = 'default', isBoss = false) {
@@ -106,7 +107,7 @@ export class DropManager {
             }
         }
 
-        this.world.addChild(container);
+        this.entityLayer.addChild(container);
         return container;
     }
 

@@ -5,7 +5,6 @@ export const useGameStore = create((set, get) => ({
     // ===== CORE SYSTEMS =====
     world: null,           // PixiJS Container (stage)
     app: null,            // PixiJS Application
-    roomManager: null,
     colliders: [],
     kills: 0,
 
@@ -32,7 +31,7 @@ export const useGameStore = create((set, get) => ({
             projectiles: 1,
             moveSpeed: 0.4,
             dashSpeed: 100,
-            dashRange: 150,
+            dashRange: 250,
             dashDuration: 60,
             dashCooldown: 120,
             // Chain stats

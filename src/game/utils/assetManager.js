@@ -7,18 +7,35 @@ class AssetManager {
         this.loaded = false;
     }
 
+// utils/assetManager.js
     async loadAssets() {
         // Load textures with the exact IDs that match your items' textureId
         const armourFiles = [
-            { file: '1.png', id: 'leather_boots' },  // ← This matches your item's textureId
-            { file: '2.png', id: 'iron_boots' },     // ← For iron boots
-            { file: '3.png', id: 'swift_boots' },    // ← For swift boots
+            { file: '1.png', id: 'leather_boots' },
+            { file: '2.png', id: 'iron_boots' },
+            { file: '3.png', id: 'swift_boots' },
+        ];
+
+        // Ground textures
+        const groundFiles = [
+            { file: 'lava-ground.png', id: 'lava-ground' },
+            { file: 'snow-ground.png', id: 'snow-ground' },
+            { file: 'grass-ground.png', id: 'grass-ground' },
+            { file: 'desert-ground.png', id: 'desert-ground' },
+            { file: '/lava/aaaaa.png', id: 'lava-texture' },
         ];
 
         const loadPromises = [];
 
+        // Load armour textures
         for (const item of armourFiles) {
             const path = `/rpg/armour/${item.file}`;
+            loadPromises.push(this.loadTexture(item.id, path));
+        }
+
+        // Load ground textures
+        for (const item of groundFiles) {
+            const path = `/${item.file}`;
             loadPromises.push(this.loadTexture(item.id, path));
         }
 

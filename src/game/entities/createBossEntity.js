@@ -257,20 +257,22 @@ export function createBossEntity(type) {
 
     // Initial draw for animated parts
     c.updateAnimations = function(deltaTime = 1) {
-        c.animation.time += deltaTime * 0.05;
+        // Increase animation speed (multiply by deltaTime properly)
+        const speedMultiplier = 0.15; // Increased from 0.05
+        c.animation.time += deltaTime * speedMultiplier;
 
-        // Bobbing motion
-        c.animation.bobOffset = Math.sin(c.animation.time) * 3;
+        // Bobbing motion - faster and more noticeable
+        c.animation.bobOffset = Math.sin(c.animation.time * 2) * 5; // Increased frequency and amplitude
         c.y = (c.animation.originalY || 0) + c.animation.bobOffset;
 
-        // Glow pulse
-        const pulse = 0.12 + Math.sin(c.animation.time * 2) * 0.04;
+        // Glow pulse - faster
+        const pulse = 0.15 + Math.sin(c.animation.time * 4) * 0.08; // Increased frequency
         gl.alpha = pulse;
 
         // Update based on boss type
         if (type === 'ice' && c.spikes) {
             c.spikes.forEach((spike, idx) => {
-                spike.rotation += spike.speed * deltaTime;
+                spike.rotation += spike.speed * deltaTime * 2; // 2x speed
                 spike.graphics.clear();
                 const a = spike.angle + spike.rotation;
                 const w = 0.12;
@@ -280,13 +282,12 @@ export function createBossEntity(type) {
                     .closePath().fill({ color: accentCol, alpha: 0.85 });
             });
 
-            // Animated lines
             if (c.animatedLines) {
                 const line1 = c.animatedLines[0];
                 const line2 = c.animatedLines[1];
                 line1.clear();
                 line2.clear();
-                const offset = Math.sin(c.animation.time * 3) * 2;
+                const offset = Math.sin(c.animation.time * 6) * 3; // Faster offset
                 line1.moveTo(-5 + offset, 4).lineTo(0, -2 + offset).lineTo(6 + offset, 5).stroke({ color: 0xffffff, alpha: 0.4, width: 1 });
                 line2.moveTo(-14, 10 + offset).lineTo(-8, 3 + offset).stroke({ color: 0xffffff, alpha: 0.3, width: 1 });
             }
@@ -294,38 +295,37 @@ export function createBossEntity(type) {
 
         if (type === 'lava' && c.fireSpikes) {
             c.fireSpikes.forEach((spike) => {
-                spike.rotation += spike.speed * deltaTime;
-                spike.pulse = Math.sin(c.animation.time * 5 + spike.angle) * 0.2;
+                spike.rotation += spike.speed * deltaTime * 2.5; // Faster rotation
+                spike.pulse = Math.sin(c.animation.time * 8 + spike.angle) * 0.3; // Faster pulse
                 spike.graphics.clear();
                 const a = spike.angle + spike.rotation;
-                const h = spike.height + spike.pulse * 4;
+                const h = spike.height + spike.pulse * 6;
                 spike.graphics.moveTo(Math.cos(a) * R, Math.sin(a) * R)
                     .lineTo(Math.cos(a) * (R + h), Math.sin(a) * (R + h))
                     .lineTo(Math.cos(a + 0.22) * (R + h * 0.4), Math.sin(a + 0.22) * (R + h * 0.4))
                     .closePath().fill({ color: glowCol, alpha: 0.85 + spike.pulse });
             });
 
-            // Animated cracks
             if (c.cracks) {
                 c.cracks.forEach((crack, idx) => {
                     crack.clear();
                     const offsets = [
-                        [[-12 + Math.sin(c.animation.time) * 2, -20], [-4, -8], [2, -14]],
-                        [[10, -18], [5, 0], [14 + Math.cos(c.animation.time) * 2, 6]],
-                        [[-8, 4], [-2 + Math.sin(c.animation.time) * 3, 18], [6, 12]],
+                        [[-12 + Math.sin(c.animation.time * 4) * 3, -20], [-4, -8], [2, -14]],
+                        [[10, -18], [5, 0], [14 + Math.cos(c.animation.time * 4) * 3, 6]],
+                        [[-8, 4], [-2 + Math.sin(c.animation.time * 5) * 4, 18], [6, 12]],
                         [[0, -30], [0, -8]],
                     ];
                     const pts = offsets[idx];
                     crack.moveTo(...pts[0]);
                     for (let i = 1; i < pts.length; i++) crack.lineTo(...pts[i]);
-                    crack.stroke({ color: glowCol, alpha: 0.7 + Math.sin(c.animation.time * 4) * 0.2, width: 2.5 });
+                    crack.stroke({ color: glowCol, alpha: 0.7 + Math.sin(c.animation.time * 6) * 0.3, width: 2.5 });
                 });
             }
         }
 
         if (type === 'forest' && c.leaves) {
             c.leaves.forEach((leaf, idx) => {
-                leaf.rotation += leaf.speed * deltaTime;
+                leaf.rotation += leaf.speed * deltaTime * 1.5; // Faster leaf movement
                 leaf.graphics.clear();
                 const a = leaf.angle + leaf.rotation;
                 const w = 0.2;
@@ -337,24 +337,19 @@ export function createBossEntity(type) {
             });
         }
 
-        // Animate eyes (blinking)
+        // Faster blinking
         if (c.animation.eyes) {
-            const blinkSpeed = 0.03;
-            const blinkInterval = 120; // frames between blinks
-
             c.animation.eyes.forEach(eye => {
                 if (eye.blink === undefined) eye.blink = 0;
 
-                if (eye.blink <= 0 && Math.random() < 0.005) {
-                    eye.blink = 10; // Blink duration
+                if (eye.blink <= 0 && Math.random() < 0.02) { // Increased blink chance
+                    eye.blink = 6; // Shorter blink duration
                 }
 
                 if (eye.blink > 0) {
-                    eye.blink -= deltaTime;
-                    // Blink - hide the eye
+                    eye.blink -= deltaTime * 2; // Faster blink recovery
                     if (eye.graphics) eye.graphics.clear();
                     if (eye.blink <= 0) {
-                        // Redraw eye
                         eye.graphics.clear();
                         if (eye.r === 8 || eye.r === 7) {
                             eye.graphics.circle(eye.x, eye.y, eye.r).fill(0);

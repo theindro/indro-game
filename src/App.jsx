@@ -25,6 +25,13 @@ if (initialState.audio) {
   audioManager.setSfxVolume(initialState.audio.sfxVolume);
 }
 
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  return false;
+});
+
+
 export default function App() {
   const [assetsLoaded, setAssetsLoaded] = useState(false);
 
