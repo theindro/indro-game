@@ -1,6 +1,6 @@
 // fireball.js - Player Fireball Projectile
 import { Container, Graphics } from 'pixi.js';
-import { ARROW_SPEED, GS } from './constants.js';
+import { ARROW_SPEED, GS } from '../constants.js';
 
 export function createFireball(world, px, py, tx, ty, angleOffset = 0) {
     const c = new Container();

@@ -7,7 +7,7 @@ import {createDebugColliderToggle, resolveVsColliders} from './collision.js';
 import {createCombatSystem} from './combat.js';
 import {
     GS, PLAYER_SPEED, PLAYER_RADIUS,
-    CAM_SMOOTH, ROOMS,
+    CAM_SMOOTH,
 } from './constants.js';
 import {createDashAbility} from './abilities/dash.js';
 import {createPlayerController} from "./controllers/createPlayerController.js";
@@ -378,7 +378,7 @@ export async function createGame() {
         minimap.playerRef.rotation = angleToMouse;
 
         minimap.update();
-        
+
         // Death
         if (playerState.hp <= 0 && !gameState.dead) {
             useGameStore.getState().setDead(true);

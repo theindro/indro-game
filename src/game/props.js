@@ -1,14 +1,16 @@
-// props.js
+// props.js - FIXED to use assetManager exclusively
+
 import { Texture, Sprite, Container, Assets, Graphics } from 'pixi.js';
 import { BIOME_COLORS } from './constants.js';
 import { PROP_TYPES, BIOME_PROP_CONFIG } from './world/propConfig.js';
 import { analyzeTexture, getOrGenerateColliders } from './world/textureAnalyzer.js';
 import * as PIXI from 'pixi.js';
+import { assetManager } from './utils/assetManager.js'; // IMPORT assetManager
 
 const NEARBY_THRESHOLD = 200;
 
-// Cache for prop textures
-const propTextureCache = new Map();
+// Cache for analyzed textures (not for loading)
+const analysisCache = new Map();
 
 /**
  * Returns only colliders within NEARBY_THRESHOLD of (ex, ey)
@@ -34,46 +36,21 @@ export class PropManager {
     }
 
     /**
-     * Get texture path for a prop type in a biome
+     * Get texture from assetManager (NO LOADING)
      */
-    getPropTexture(biome, propName) {
-        const biomeData = BIOME_COLORS[biome];
-        if (!biomeData?.props) return null;
-
-        const textureMap = {
-            TREE: '/testprop2.png',
-            BUSH: '/bush.png',
-            ROCK: '/rock.png',
-            SMALL_ROCK: '/small_rock.png',
-            FLOWER: '/flower.png',
-            MUSHROOM: '/mushroom.png',
-            CACTUS: '/cactus.png',
-            ICE_PILLAR: '/ice_pillar.png',
-            LAVA_ROCK: '/lava_rock.png'
-        };
-
-        const path = textureMap[propName];
-        if (path && biomeData.props.includes(path)) return path;
-
-        return biomeData.props[0] || null;
+    getTextureFromManager(textureId) {
+        const texture = assetManager.getTexture(textureId);
+        if (!texture) {
+            console.error(`Texture not found in assetManager: ${textureId}`);
+        }
+        return texture || null;
     }
 
     /**
-     * Get or load prop texture
+     * Get texture path for a prop type in a biome - returns asset ID, not file path
      */
-    async getPropTextureAsset(texturePath) {
-        if (propTextureCache.has(texturePath)) {
-            return propTextureCache.get(texturePath);
-        }
-
-        try {
-            const texture = await Assets.load(texturePath);
-            propTextureCache.set(texturePath, texture);
-            return texture;
-        } catch (err) {
-            console.warn(`Failed to load prop texture: ${texturePath}`, err);
-            return null;
-        }
+    getPropAssetId(biome, propName) {
+        return propName || null;
     }
 
     /**
@@ -85,7 +62,7 @@ export class PropManager {
         for (const existing of placedPositions) {
             const dist = Math.hypot(existing.x - x, existing.z - z);
             const existingMinDistance = existing.minDistance || 30;
-            const requiredDistance = (existingMinDistance + minDistance) / 2; // Average distance
+            const requiredDistance = (existingMinDistance + minDistance) / 2;
 
             if (dist < requiredDistance) {
                 return false;
@@ -95,17 +72,28 @@ export class PropManager {
     }
 
     /**
-     * Spawn a single prop
+     * Spawn a single prop - USES ASSETMANAGER ONLY
      */
+// In props.js - Update spawnSingleProp to work with texture analyzer
+
     async spawnSingleProp(x, z, propType, biome, propsArray, placedPositions, debugMode = false) {
-        const texturePath = this.getPropTexture(biome, propType.name);
-        if (!texturePath) return null;
-
         try {
-            const texture = await this.getPropTextureAsset(texturePath);
-            if (!texture) return null;
+            let texture;
+            let assetId;
+            let variantName;
 
-            const analysis = await analyzeTexture(texturePath);
+            if (propType.variants && propType.variants.length > 0) {
+                variantName = propType.variants[Math.floor(Math.random() * propType.variants.length)];
+                assetId = this.getPropAssetId(biome, variantName);
+                texture = this.getTextureFromManager(assetId);
+            } else {
+                assetId = this.getPropAssetId(biome, propType.name);
+                texture = this.getTextureFromManager(assetId);
+            }
+
+            if (!texture) {
+                return null;
+            }
 
             const container = new Container();
             container.x = x;
@@ -114,48 +102,25 @@ export class PropManager {
             const sprite = new Sprite(texture);
             sprite.anchor.set(0.5);
 
-            const baseScale = 0.6 + Math.random() * 0.6;
+            const scaleRange = propType.scaleRange || { min: 0.6, max: 0.8 };
+            const baseScale = scaleRange.min + Math.random() * (scaleRange.max - scaleRange.min);
             sprite.scale.set(baseScale);
 
-            // Add shadow for depth
+            // Add shadow
             const shadow = new Sprite(texture);
-            shadow.anchor.set(0.5);
-            shadow.scale.set(baseScale * 1.1, baseScale * 0.3);
+            shadow.anchor.set(0.5, 0.6);
+
+            // 🔥 mirror vertically (this is the key)
+            shadow.scale.set(baseScale, -baseScale);
+
             shadow.tint = 0x000000;
             shadow.alpha = 0.4;
-            shadow.x = 5;
-            shadow.y = 8;
+
+            // move it below the sprite (ground)
+            shadow.y = sprite.height * baseScale * 0.5; // tweak if needed
 
             container.addChild(shadow);
             container.addChild(sprite);
-
-            // Debug visuals
-            if (debugMode) {
-                const debugText = new PIXI.Text(propType.name, {
-                    fontSize: 20,
-                    fill: '#ff0000',
-                    stroke: '#000000',
-                    strokeThickness: 2,
-                    align: 'center'
-                });
-                debugText.anchor.set(0.5);
-                debugText.y = 30;
-                debugText.scale.set(0.5);
-                container.addChild(debugText);
-
-                // Show min distance radius
-                const distCircle = new Graphics();
-                distCircle.circle(0, 0, propType.minDistance || 30)
-                    .stroke({ width: 1, color: 0x00ff00, alpha: 0.5 });
-                container.addChild(distCircle);
-
-                // Show collision radius
-                const collisionRadius = (analysis?.maxRadius || Math.max(texture.width, texture.height) / 2) * baseScale * (propType.margin || 0.8);
-                const radiusCircle = new Graphics();
-                radiusCircle.circle(0, 0, collisionRadius)
-                    .stroke({ width: 1, color: 0xff0000, alpha: 0.5 });
-                container.addChild(radiusCircle);
-            }
 
             if (this.propLayer) {
                 this.propLayer.addChild(container);
@@ -163,41 +128,25 @@ export class PropManager {
                 this.world.addChild(container);
             }
 
-            // Calculate collision radius
-            const actualCollisionRadius = (analysis?.maxRadius || Math.max(texture.width, texture.height) / 2) * baseScale * (propType.margin || 0.8);
-
-            // Generate colliders
+            // Generate pixel-perfect colliders based on actual texture shape
             let colliders = [];
-            if (propType.collision) {
-                if (propType.collisionType === 'auto' || propType.collisionType === 'pixel') {
-                    colliders = await getOrGenerateColliders(texturePath, x, z, baseScale, propType);
-                } else if (propType.collisionType === 'circle') {
-                    colliders = [{
-                        x, y: z, r: actualCollisionRadius,
-                        type: 'prop',
-                        propType: propType.name,
-                        damageOnTouch: propType.damageOnTouch || 0
-                    }];
-                }
-
+            if (propType.collision && (propType.collisionType === 'auto' || propType.collisionType === 'pixel')) {
+                // Pass the texture object directly (not a path)
+                colliders = await getOrGenerateColliders(texture, x, z, baseScale, propType);
                 for (const collider of colliders) {
                     this.colliders.push(collider);
                 }
             }
 
-            const visualRadius = (analysis?.maxRadius || Math.max(texture.width, texture.height) / 2) * baseScale;
-
             const prop = {
                 container, x, z,
                 type: propType.name,
-                path: texturePath,
+                variant: variantName,
                 scale: baseScale,
-                visualRadius,
-                collisionRadius: actualCollisionRadius,
+                texture: texture,
                 colliders,
                 propType,
-                biome,
-                textureInfo: analysis
+                biome
             };
 
             propsArray.push(prop);
@@ -209,6 +158,7 @@ export class PropManager {
             });
 
             return prop;
+
         } catch (err) {
             console.warn(`Failed to spawn prop: ${propType.name}`, err);
             return null;
@@ -224,19 +174,16 @@ export class PropManager {
     }
 
     /**
-     * Spawn props in a chunk - SIMPLIFIED VERSION
+     * Spawn props in a chunk
      */
     async spawnPropsInChunk(chunkX, chunkZ, biome, chunkSize, tileSize, debugMode = false) {
         const key = `${chunkX},${chunkZ}`;
 
-
-        // STRONGER CHECK - also check if we're already loading this chunk
         if (this.spawnedProps.has(key)) {
             console.warn(`⚠️ Chunk ${key} already has props! Skipping duplicate spawn.`);
             return;
         }
 
-        // Optional: Add loading flag to prevent concurrent spawns
         if (this.loadingChunks?.has(key)) {
             console.warn(`⚠️ Chunk ${key} is already loading! Skipping.`);
             return;
@@ -245,80 +192,70 @@ export class PropManager {
         if (!this.loadingChunks) this.loadingChunks = new Set();
         this.loadingChunks.add(key);
 
+        try {
+            const biomeConfig = BIOME_PROP_CONFIG[biome];
+            if (!biomeConfig) {
+                console.warn(`No prop config for biome: ${biome}`);
+                return;
+            }
 
-        // Reload existing props
-        if (this.spawnedProps.has(key)) {
-            const existingProps = this.spawnedProps.get(key);
-            for (const prop of existingProps) {
-                prop.container.visible = true;
-                if (prop.colliders && prop.colliders.length) {
-                    for (const collider of prop.colliders) {
-                        if (!this.colliders.includes(collider)) {
-                            this.colliders.push(collider);
-                        }
+            // Build weighted prop list
+            const propPool = [];
+            for (const propDef of biomeConfig.props) {
+                for (let i = 0; i < propDef.weight; i++) {
+                    const propType = PROP_TYPES[propDef.type];
+                    if (propType) {
+                        propPool.push(propType);
                     }
                 }
             }
-            return;
-        }
 
-        const biomeConfig = BIOME_PROP_CONFIG[biome];
-        if (!biomeConfig) return;
-
-        // Build weighted prop list
-        const propPool = [];
-        for (const propDef of biomeConfig.props) {
-            for (let i = 0; i < propDef.weight; i++) {
-                propPool.push(PROP_TYPES[propDef.type]);
-            }
-        }
-
-        const props = [];
-        const chunkSizeWorld = chunkSize * tileSize;
-        const startX = chunkX * chunkSizeWorld;
-        const startZ = chunkZ * chunkSizeWorld;
-
-        const seed = this.worldSeed ^ (chunkX * 73856093) ^ (chunkZ * 19349663);
-        const density = biomeConfig.density;
-        const maxProps = 25;
-        const targetCount = Math.floor(density * maxProps);
-
-        const placedPositions = [];
-        let attempts = 0;
-        let spawned = 0;
-        const maxAttempts = targetCount * 30;
-
-        while (spawned < targetCount && attempts < maxAttempts) {
-            attempts++;
-
-            // Pick random prop type based on weights
-            const propType = propPool[Math.floor(this.seededRandom(seed + attempts * 53) * propPool.length)];
-            if (!propType) continue;
-
-            // Random position within chunk
-            const x = startX + this.seededRandom(seed + attempts * 71) * chunkSizeWorld;
-            const z = startZ + this.seededRandom(seed + attempts * 73) * chunkSizeWorld;
-
-            // Check if position is valid
-            if (!this.isValidPosition(x, z, propType, placedPositions)) {
-                continue;
+            if (propPool.length === 0) {
+                console.warn(`No valid props for biome: ${biome}`);
+                return;
             }
 
-            // Spawn the prop
-            await this.spawnSingleProp(x, z, propType, biome, props, placedPositions, debugMode);
-            spawned++;
+            const props = [];
+            const chunkSizeWorld = chunkSize * tileSize;
+            const startX = chunkX * chunkSizeWorld;
+            const startZ = chunkZ * chunkSizeWorld;
+
+            const seed = this.worldSeed ^ (chunkX * 73856093) ^ (chunkZ * 19349663);
+            const density = biomeConfig.density || 0.5;
+            const maxProps = 25;
+            const targetCount = Math.floor(density * maxProps);
+
+            console.log(`Spawning ${targetCount} props for ${biome} in chunk ${chunkX},${chunkZ}`);
+
+            const placedPositions = [];
+            let attempts = 0;
+            let spawned = 0;
+            const maxAttempts = targetCount * 30;
+
+            while (spawned < targetCount && attempts < maxAttempts) {
+                attempts++;
+
+                const propType = propPool[Math.floor(this.seededRandom(seed + attempts * 53) * propPool.length)];
+                if (!propType) continue;
+
+                const x = startX + this.seededRandom(seed + attempts * 71) * chunkSizeWorld;
+                const z = startZ + this.seededRandom(seed + attempts * 73) * chunkSizeWorld;
+
+                if (!this.isValidPosition(x, z, propType, placedPositions)) {
+                    continue;
+                }
+
+                await this.spawnSingleProp(x, z, propType, biome, props, placedPositions, debugMode);
+                spawned++;
+            }
+
+            console.log(`Spawned ${spawned}/${targetCount} ${biome} props in chunk ${chunkX},${chunkZ} after ${attempts} attempts`);
+
+            this.spawnedProps.set(key, props);
+
+        } finally {
+            this.loadingChunks.delete(key);
         }
-
-        console.log(`Spawned ${spawned}/${targetCount} ${biome} props in chunk ${chunkX},${chunkZ} after ${attempts} attempts`);
-
-        // Print total props across all chunks
-        let totalProps = 0;
-        for (const [chunkKey, chunkProps] of this.spawnedProps) {
-            totalProps += chunkProps.length;
-        }
-        console.log(`[DEBUG] Total props loaded: ${totalProps} across ${this.spawnedProps.size} chunks`);
-
-        this.spawnedProps.set(key, props);
     }
 
     /**
@@ -351,7 +288,9 @@ export class PropManager {
                         }
                     }
                 }
-                prop.container.visible = false;
+                if (prop.container) {
+                    prop.container.visible = false;
+                }
             }
         }
     }
@@ -362,10 +301,10 @@ export class PropManager {
     clearAllProps() {
         for (const [key, props] of this.spawnedProps) {
             for (const prop of props) {
-                if (prop.container.parent) {
+                if (prop.container && prop.container.parent) {
                     prop.container.parent.removeChild(prop.container);
+                    prop.container.destroy({ children: true });
                 }
-                prop.container.destroy({ children: true });
             }
         }
         this.spawnedProps.clear();

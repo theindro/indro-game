@@ -2,10 +2,6 @@
 import {Container, Graphics, Sprite, Assets, TilingSprite, BlurFilter} from 'pixi.js';
 import {spawnMob} from '../controllers/createMobController.js';
 import {MOB_RADIUS, BIOME_COLORS} from '../constants.js';
-
-// Add import at top
-import {PROP_TYPES, BIOME_PROP_CONFIG} from './propConfig.js';
-import {analyzeTexture, getOrGenerateColliders} from "./textureAnalyzer.js";
 import {PropManager} from "../props.js";
 
 export class OpenWorldManager {
@@ -30,7 +26,7 @@ export class OpenWorldManager {
 
         this.config = {
             biomeScale: 0.003,
-            debugChunks: true,
+            debugChunks: false,
 
             poi: {
                 spawnChance: 0.12,        // chance per chunk
@@ -199,7 +195,7 @@ export class OpenWorldManager {
 
         if (lavaCheck < -0.6) return 'lava';
 
-        return 'lava';
+        return 'forest';
     }
 
     async getBiomeTexture(biome) {
@@ -291,9 +287,10 @@ export class OpenWorldManager {
         // Draw line around chunk
         if (this.config.debugChunks) {
             const border = new Graphics();
+            const biomeData = BIOME_COLORS[biome];
             border
                 .rect(0, 0, chunkWidth, chunkHeight)
-                .stroke({width: 59, color: "#292234", alpha: 1});
+                .stroke({width: 59, color: biomeData.base, alpha: 0.1});
 
             border.x = startX;
             border.y = startZ;
@@ -301,6 +298,8 @@ export class OpenWorldManager {
             const blurFilter = new BlurFilter();
             blurFilter.blur = 25;
             border.filters = [blurFilter];
+
+            border.blendMode = 'screen';
 
             // Add to debug layer instead of chunk container
             this.debugLayer.addChild(border);

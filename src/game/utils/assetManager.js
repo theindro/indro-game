@@ -4,6 +4,7 @@ import * as PIXI from 'pixi.js';
 class AssetManager {
     constructor() {
         this.textures = new Map();
+        this.propTextures = new Map(); // Store props by type
         this.loaded = false;
     }
 
@@ -25,6 +26,21 @@ class AssetManager {
             { file: '/lava/aaaaa.png', id: 'lava-texture' },
         ];
 
+        // Ground textures
+        const propFiles = [
+            // Stone variants (10 different stones)
+            { file: '/gameprops/moss-stone-1.png', id: 'stone1', type: 'stone' },
+            { file: '/gameprops/moss-stone-2.png', id: 'stone2', type: 'stone' },
+            { file: '/gameprops/moss-stone-3.png', id: 'stone3', type: 'stone' },
+            { file: '/gameprops/moss-stone-4.png', id: 'stone4', type: 'stone' },
+            { file: '/gameprops/moss-stone-5.png', id: 'stone5', type: 'stone' },
+            { file: '/gameprops/moss-stone-6.png', id: 'stone6', type: 'stone' },
+            { file: '/gameprops/moss-stone-7.png', id: 'stone6', type: 'stone' },
+            { file: '/gameprops/bush-1.png', id: 'bush1', type: 'bush' },
+            { file: '/gameprops/bush-2.png', id: 'bush2', type: 'bush' },
+            { file: '/gameprops/bush-3.png', id: 'bush3', type: 'bush' },
+        ];
+
         const loadPromises = [];
 
         // Load armour textures
@@ -39,9 +55,38 @@ class AssetManager {
             loadPromises.push(this.loadTexture(item.id, path));
         }
 
+        for (const prop of propFiles) {
+            const path = prop.file;
+            loadPromises.push(this.loadTexture(prop.id, path, prop.type));
+        }
+
+        await Promise.all(loadPromises);
+
+        // Organize textures by type
+        for (const prop of propFiles) {
+            if (!this.propTextures.has(prop.type)) {
+                this.propTextures.set(prop.type, []);
+            }
+
+            const texture = this.textures.get(prop.id);
+
+            if (texture) {
+                this.propTextures.get(prop.type).push(texture);
+            }
+        }
+
         await Promise.all(loadPromises);
         this.loaded = true;
-        console.log('Loaded textures:', Array.from(this.textures.keys()));
+        console.log('Prop textures by type:', Array.from(this.propTextures.keys()));
+    }
+
+    getRandomPropTexture(type) {
+        const textures = this.propTextures.get(type);
+        if (!textures || textures.length === 0) {
+            console.warn(`No textures found for type: ${type}`);
+            return null;
+        }
+        return textures[Math.floor(Math.random() * textures.length)];
     }
 
     async loadTexture(name, path) {

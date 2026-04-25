@@ -1,87 +1,96 @@
-// propConfig.js - Simplified with minDistance
+// propConfig.js - Simplified with multiple variants
 export const PROP_TYPES = {
-    TREE: {
-        name: 'tree',
+    // Stone has multiple variants
+    STONE: {
+        name: 'stone',
+        variants: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5', 'stone6'],
         collision: true,
         collisionType: 'auto',
-        minDistance: 80,  // How close same type can spawn
-        margin: 0.8,
-        damageOnTouch: 0
-    },
-    BUSH: {
-        name: 'bush',
-        collision: true,
-        collisionType: 'auto',
-        minDistance: 40,
+        minDistance: 500,  // Stones can be closer together
         margin: 0.7,
-        damageOnTouch: 0
+        damageOnTouch: 0,
+        scaleRange: { min: 0.6, max: 0.6}  // Random size variation
     },
-    ROCK: {
-        name: 'rock',
+    BIG_STONE: {
+        name: 'big_stone',
+        variants: ['stone1'],
         collision: true,
         collisionType: 'auto',
         minDistance: 50,
-        margin: 0.85,
-        damageOnTouch: 0
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.6, max: 0.7 }
+    },
+    TREE: {
+        name: 'tree',
+        variants: ['tree'],
+        collision: true,
+        collisionType: 'auto',
+        minDistance: 80,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.6, max: 1.0 }
+    },
+    BUSH: {
+        name: 'bush',
+        variants: ['bush1', 'bush2', 'bush3'],
+        collision: false,
+        collisionType: 'auto',
+        minDistance: 40,
+        margin: 0.7,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.7, max: 0.8}
     },
     FLOWER: {
         name: 'flower',
+        variants: ['flower'],
         collision: false,
         collisionType: 'none',
         minDistance: 25,
         margin: 0,
-        damageOnTouch: 0
+        damageOnTouch: 0,
+        scaleRange: { min: 0.4, max: 0.7 }
     },
     CACTUS: {
         name: 'cactus',
+        variants: ['cactus'],
         collision: true,
         collisionType: 'auto',
         minDistance: 60,
         margin: 0.75,
-        damageOnTouch: 0
-    },
-    LAVA_ROCK: {
-        name: 'lava_rock',
-        collision: true,
-        collisionType: 'auto',
-        minDistance: 70,  // Lava rocks need more space
-        margin: 0.8,
-        damageOnTouch: 3
+        damageOnTouch: 0,
+        scaleRange: { min: 0.6, max: 1.0 }
     }
 };
 
-// Biome configurations
+// Biome configurations - Easy to adjust density per biome
+// propConfig.js - Move density to root level
 export const BIOME_PROP_CONFIG = {
     forest: {
+        density: 2,  // Move density here (root level)
         props: [
-            { type: 'TREE', weight: 40 },
-            { type: 'BUSH', weight: 30 },
-            { type: 'FLOWER', weight: 20 },
-            { type: 'ROCK', weight: 10 }
-        ],
-        density: 0.8  // 0-1 scale
+            { type: 'STONE', weight: 70 },
+            { type: 'BUSH', weight: 100 },
+        ]
     },
     desert: {
+        density: 0.5,  // Root level
         props: [
             { type: 'CACTUS', weight: 50 },
-            { type: 'ROCK', weight: 30 },
+            { type: 'STONE', weight: 30 },
             { type: 'BUSH', weight: 20 }
-        ],
-        density: 0.5
+        ]
     },
     ice: {
+        density: 0.6,  // Root level
         props: [
-            { type: 'TREE', weight: 40 },
-            { type: 'ROCK', weight: 30 },
-            { type: 'FLOWER', weight: 30 }
-        ],
-        density: 0.6
+            { type: 'STONE', weight: 35 },
+        ]
     },
     lava: {
+        density: 0.5,  // Root level
         props: [
-            { type: 'LAVA_ROCK', weight: 50 },
-            { type: 'TREE', weight: 50 }
-        ],
-        density: 0.4
+            { type: 'STONE', weight: 70 },
+        ]
     }
 };
