@@ -56,20 +56,6 @@ export class PropManager {
     generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize) {
         const key = `${chunkX},${chunkZ}`;
 
-        // already exists → reuse visuals
-        if (this.activeChunks.has(key)) {
-            const existing = this.activeChunks.get(key);
-
-            existing.container.visible = true;
-            existing.shadowContainer.visible = true;
-
-            // re-add colliders
-            const cols = this.chunkColliders.get(key);
-            if (cols) this.colliders.push(...cols);
-
-            return existing;
-        }
-
         const container = new Container();
         const shadowContainer = new Container();
 

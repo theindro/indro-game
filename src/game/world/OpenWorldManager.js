@@ -42,13 +42,12 @@ export class OpenWorldManager {
 
         this.biomeTextures = new Map();
         this.spawnedPOIs = new Map();
-        this.debugBorders = new Map();
 
         this.lastChunkUpdate = 0;
         this.chunkUpdateInterval = 100; // Only update chunks every 100ms
         this.processingChunks = false;
         this.pendingChunks = new Set();
-
+        this.onChunkChangeCallback = null; // ADD THIS LINE
 
         // Create PropManager
         this.propManager = new PropManager(world, colliders, this.worldSeed);
@@ -329,6 +328,11 @@ export class OpenWorldManager {
         return Math.max(1, Math.min(25, base + variation));
     }
 
+    // Add this method to your OpenWorldManager class
+    setChunkChangeCallback(callback) {
+        this.onChunkChangeCallback = callback;
+    }
+
     async update(playerX, playerZ) {
         if (!this.initialized) return;
 
@@ -336,6 +340,35 @@ export class OpenWorldManager {
         const chunkSizeWorld = this.chunkSize * this.tileSize;
         const centerChunkX = Math.floor(playerX / chunkSizeWorld);
         const centerChunkZ = Math.floor(playerZ / chunkSizeWorld);
+
+        // 🔥 CHECK FOR CHUNK CHANGE 🔥
+        if (centerChunkX !== this.lastPlayerChunk.x || centerChunkZ !== this.lastPlayerChunk.z) {
+            console.log(`Chunk changed from (${this.lastPlayerChunk.x},${this.lastPlayerChunk.z}) to (${centerChunkX},${centerChunkZ})`);
+
+            // Get the new biome
+            const newBiome = this.getBiomeAtChunk(centerChunkX, centerChunkZ);
+
+            // 🔥 TRIGGER THE CALLBACK HERE 🔥
+            if (this.onChunkChangeCallback) {
+                this.onChunkChangeCallback({
+                    chunkX: centerChunkX,
+                    chunkZ: centerChunkZ,
+                    biome: newBiome,
+                    x: centerChunkX * chunkSizeWorld,
+                    z: centerChunkZ * chunkSizeWorld,
+                    oldChunkX: this.lastPlayerChunk.x,
+                    oldChunkZ: this.lastPlayerChunk.z,
+                    oldBiome: this.lastPlayerChunk.biome
+                });
+            }
+
+            // Update last player chunk
+            this.lastPlayerChunk = {
+                x: centerChunkX,
+                z: centerChunkZ,
+                biome: newBiome
+            };
+        }
 
         // Calculate active chunks
         const activeChunks = new Set();
@@ -359,7 +392,7 @@ export class OpenWorldManager {
             // Process pending chunks in batches
             if (!this.processingChunks && this.pendingChunks.size > 0) {
                 this.processingChunks = true;
-                const toProcess = Array.from(this.pendingChunks).slice(0, 3); // Only load 3 chunks per batch
+                const toProcess = Array.from(this.pendingChunks).slice(0, 3);
                 for (const key of toProcess) {
                     this.pendingChunks.delete(key);
                     const [chunkX, chunkZ] = key.split(',').map(Number);
@@ -383,7 +416,7 @@ export class OpenWorldManager {
             if (activeChunks.has(`${mobChunkX},${mobChunkZ}`)) {
                 m.controller.update({
                     px: playerX, py: playerZ,
-                    colliders: this.colliders, // Use filtered colliders
+                    colliders: this.colliders,
                     openWorld: this,
                     enemyProjs: this.entitiesList.enemyProjs,
                     playerState: useGameStore.getState().player,
@@ -394,19 +427,12 @@ export class OpenWorldManager {
             }
         }
     }
-
     async unloadChunk(key) {
         const chunk = this.loadedChunks.get(key);
         if (!chunk) return;
 
         // 1. HIDE ground graphics (don't destroy)
         this.groundLayer.removeChild(chunk);
-
-        // 2. HIDE debug borders
-        const debugBorder = this.debugBorders?.get(key);
-        if (debugBorder) {
-            debugBorder.visible = false;
-        }
 
         // 3. HIDE props and remove colliders (managed by PropManager)
         this.propManager.unloadChunkProps(key);
@@ -462,17 +488,11 @@ export class OpenWorldManager {
         console.log(`🆕 Loading chunk ${key}`);
 
         const chunk = await this.generateChunk(chunkX, chunkZ);
-        this.groundLayer.addChild(chunk);
 
-        // Show debug border if exists
-        const debugBorder = this.debugBorders?.get(key);
-        if (debugBorder) {
-            debugBorder.visible = true;
-        }
+        this.groundLayer.addChild(chunk);
 
         const biome = this.getBiomeAtChunk(chunkX, chunkZ);
 
-        // This will SHOW existing props or create new ones
         await this.propManager.generateChunkProps(chunkX, chunkZ, biome, this.chunkSize, this.tileSize);
 
         await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, biome);

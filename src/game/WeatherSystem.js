@@ -15,6 +15,8 @@ export class WeatherSystem {
     setWeather(type, intensity = 1, speed = 1) {
         this.clear();
 
+        console.log(`set weather ${type}`);
+
         switch (type) {
             case 'rain':
                 this.currentWeather = new RainEffect(this.app, this.container, intensity);
@@ -240,6 +242,9 @@ class RainEffect {
                     alpha: p.alpha
                 });
         }
+
+        this.graphics.rect(0, 0, this.app.screen.width, this.app.screen.height)
+            .fill({ color: '#062646', alpha: 0.2 });
     }
 
     destroy() {

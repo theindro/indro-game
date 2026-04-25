@@ -92,7 +92,7 @@ export async function createGame() {
         lastWeatherBiome = info.biome;
 
         const weatherConfig = {
-            forest: { type: 'rain', intensity: 5, speed: 1.0 },
+            forest: { type: 'rain', intensity: 1, speed: 1.0 },
             desert: { type: 'sandstorm', intensity: 0.7, speed: 1.2 },
             ice: { type: 'snow', intensity: 0.6, speed: 0.8 },
             lava: { type: 'embers', intensity: 0.8, speed: 0.8 }
@@ -222,12 +222,6 @@ export async function createGame() {
         perfMonitor.update(mobs.length);
 
         if (gameState.paused || gameState.dead) return;
-
-        // In your game.js ticker, add:
-        if (Math.random() < 0.05) {
-            //console.log(`Player position: (${px.toFixed(0)}, ${py.toFixed(0)})`);
-            //console.log(`World bounds: minX=${openWorld.worldBounds.minX}, maxX=${openWorld.worldBounds.maxX}`);
-        }
 
         // Get current stats
         const currentStats = playerState.stats;
