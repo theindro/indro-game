@@ -25,7 +25,7 @@ export const PROP_TYPES = {
         name: 'tree',
         variants: ['tree1', 'tree2', 'tree3'],
         collision: false,
-        collisionType: 'auto',
+        collisionType: 'rect',
         minDistance: 80,
         margin: 0.8,
         damageOnTouch: 0,
@@ -53,7 +53,7 @@ export const PROP_TYPES = {
     },
     CACTUS: {
         name: 'cactus',
-        variants: ['cactus'],
+        variants: [],
         collision: true,
         collisionType: 'auto',
         minDistance: 60,
@@ -67,7 +67,7 @@ export const PROP_TYPES = {
 // propConfig.js - Move density to root level
 export const BIOME_PROP_CONFIG = {
     forest: {
-        density: 2,  // Move density here (root level)
+        density: 0.7,  // Move density here (root level)
         props: [
             { type: 'STONE', weight: 10 },
             { type: 'TREE', weight: 30 },
@@ -77,7 +77,6 @@ export const BIOME_PROP_CONFIG = {
     desert: {
         density: 0.5,  // Root level
         props: [
-            { type: 'CACTUS', weight: 50 },
             { type: 'STONE', weight: 30 },
             { type: 'BUSH', weight: 20 }
         ]

@@ -3,6 +3,7 @@ import {Container, Graphics, Sprite, Assets, TilingSprite, BlurFilter} from 'pix
 import {spawnMob} from '../controllers/createMobController.js';
 import {MOB_RADIUS, BIOME_COLORS} from '../constants.js';
 import {PropManager} from "../props.js";
+import {useGameStore} from "../../stores/gameStore.js";
 
 export class OpenWorldManager {
     constructor(world, colliders) {
@@ -22,154 +23,90 @@ export class OpenWorldManager {
         };
         this.entitiesList = null;
         this.initialized = false;
-        this.worldSeed = Math.random() * 5021;// make configurable
+        this.worldSeed = Math.random() * 5021;
 
         this.config = {
             biomeScale: 0.003,
             debugChunks: false,
-
             poi: {
-                spawnChance: 0.12,        // chance per chunk
-                minDistance: 3            // chunks between POIs
+                spawnChance: 0.12,
+                minDistance: 3
             },
-
             biomeSettings: {
-                forest: {
-                    propDensity: 0.8,     // normalized (0–1)
-                    mobDensity: 0.6,
-                    poiWeight: 1.0
-                },
-                desert: {
-                    propDensity: 0.4,
-                    mobDensity: 0.3,
-                    poiWeight: 0.7
-                },
-                ice: {
-                    propDensity: 0.6,
-                    mobDensity: 0.5,
-                    poiWeight: 0.8
-                },
-                lava: {
-                    propDensity: 0.3,
-                    mobDensity: 0.8,
-                    poiWeight: 1.2
-                }
+                forest: { propDensity: 0.8, mobDensity: 0.5, poiWeight: 1.0 },
+                desert: { propDensity: 0.4, mobDensity: 0.3, poiWeight: 0.7 },
+                ice: { propDensity: 0.6, mobDensity: 0.5, poiWeight: 0.8 },
+                lava: { propDensity: 0.3, mobDensity: 0.8, poiWeight: 1.2 }
             }
         };
 
-        // Store texture for each biome
         this.biomeTextures = new Map();
-        this.propTextures = new Map(); // Cache prop textures globally
         this.spawnedPOIs = new Map();
+        this.debugBorders = new Map();
 
-        this.currentChunkInfo = null;
-        this.onChunkChangeCallback = null;
+        this.lastChunkUpdate = 0;
+        this.chunkUpdateInterval = 100; // Only update chunks every 100ms
+        this.processingChunks = false;
+        this.pendingChunks = new Set();
+
 
         // Create PropManager
         this.propManager = new PropManager(world, colliders, this.worldSeed);
 
-        // Create ground layer and prop layer
+        // Create layers
         this.groundLayer = new Container();
         this.shadowLayer = new Container();
         this.debugLayer = new Container();
         this.entityLayer = new Container();
         this.propLayer = new Container();
 
-        // Set prop layer for PropManager
         this.propManager.setPropLayer(this.propLayer);
-        this.propManager.setShadowLayer(this.shadowLayer); // Add this
+        this.propManager.setShadowLayer(this.shadowLayer);
 
         this.world.addChild(this.groundLayer);
         this.world.addChild(this.debugLayer);
         this.world.addChild(this.entityLayer);
         this.world.addChild(this.shadowLayer);
         this.world.addChild(this.propLayer);
-
     }
 
     setEntitiesList(entities) {
         console.log("OpenWorld: setEntitiesList called");
         this.entitiesList = entities;
-
         if (!this.initialized) {
             this.initialized = true;
             this.update(0, 0);
         }
     }
 
-    getChunkInfo(chunkX, chunkZ, playerX, playerZ) {
-        const biome = this.getBiomeAtChunk(chunkX, chunkZ);
-
-        const key = `${chunkX},${chunkZ}`;
-
-        const mobs = this.spawnedEntities.get(key)?.mobs || [];
-        const props = this.propManager.spawnedProps.get(key) || [];
-
-        // simple POI example (extend later)
-        let poi = null;
-        if (biome === 'forest' && props.length > 8) poi = 'Ancient Grove';
-        if (biome === 'lava' && mobs.length > 5) poi = 'Volcanic Nest';
-
-        return {
-            biome,
-            chunkX,
-            chunkZ,
-            mobCount: mobs.length,
-            propCount: props.length,
-            poi
-        };
-    }
-
     spawnPOIInChunk(chunkX, chunkZ, biome) {
         const key = `${chunkX},${chunkZ}`;
-
         if (this.spawnedPOIs.has(key)) return;
-
         const seed = this.worldSeed ^ (chunkX * 73856093) ^ (chunkZ * 19349663);
         const rand = this.seededRandom(seed + 999);
-
         const biomeConfig = this.config.biomeSettings[biome];
         const chance = this.config.poi.spawnChance * (biomeConfig?.poiWeight || 1);
-
         if (rand > chance) return;
-
-        // prevent clustering
         for (let dx = -this.config.poi.minDistance; dx <= this.config.poi.minDistance; dx++) {
             for (let dz = -this.config.poi.minDistance; dz <= this.config.poi.minDistance; dz++) {
-                const nearbyKey = `${chunkX + dx},${chunkZ + dz}`;
-                if (this.spawnedPOIs.has(nearbyKey)) return;
+                if (this.spawnedPOIs.has(`${chunkX + dx},${chunkZ + dz}`)) return;
             }
         }
-
         const chunkSizeWorld = this.chunkSize * this.tileSize;
         const x = chunkX * chunkSizeWorld + chunkSizeWorld / 2;
         const z = chunkZ * chunkSizeWorld + chunkSizeWorld / 2;
-
-        // pick type
         const typeRand = this.seededRandom(seed + 5000);
-
         let type = 'event';
         if (typeRand > 0.7) type = 'boss';
         else if (typeRand > 0.4) type = 'loot';
-
-        console.log(`POI spawned: ${type} at ${chunkX},${chunkZ}`);
-
-        // DEBUG VISUAL
         const g = new Graphics();
         g.circle(0, 0, 80).fill({color: type === 'boss' ? 0xff0000 : 0x00ff00});
         g.x = x;
         g.y = z;
         this.world.addChild(g);
-
-        this.spawnedPOIs.set(key, {
-            type,
-            x,
-            z,
-            biome
-        });
+        this.spawnedPOIs.set(key, { type, x, z, biome });
     }
 
-    // Deterministic random function based on seed
     seededRandom(seed) {
         const x = Math.sin(seed) * 10000;
         return x - Math.floor(x);
@@ -178,34 +115,18 @@ export class OpenWorldManager {
     getBiomeAt(x, z) {
         const scale = this.config.biomeScale;
         const seed = this.worldSeed;
-
-        const value =
-            Math.sin((x + seed) * scale) *
-            Math.cos((z - seed) * scale);
-
+        const value = Math.sin((x + seed) * scale) * Math.cos((z - seed) * scale);
         if (value > 0.5) return 'forest';
         if (value < -0.5) return 'desert';
-
-        const iceCheck =
-            Math.sin((x + seed * 2) * scale * 1.5) *
-            Math.cos((z - seed * 2) * scale * 1.5);
-
+        const iceCheck = Math.sin((x + seed * 2) * scale * 1.5) * Math.cos((z - seed * 2) * scale * 1.5);
         if (iceCheck > 0.6) return 'ice';
-
-        const lavaCheck =
-            Math.sin((x - seed * 3) * scale * 0.7) *
-            Math.cos((z + seed * 3) * scale * 0.7);
-
+        const lavaCheck = Math.sin((x - seed * 3) * scale * 0.7) * Math.cos((z + seed * 3) * scale * 0.7);
         if (lavaCheck < -0.6) return 'lava';
-
         return 'forest';
     }
 
     async getBiomeTexture(biome) {
-        if (this.biomeTextures.has(biome)) {
-            return this.biomeTextures.get(biome);
-        }
-
+        if (this.biomeTextures.has(biome)) return this.biomeTextures.get(biome);
         const biomeData = BIOME_COLORS[biome];
         if (biomeData?.texture) {
             try {
@@ -213,7 +134,6 @@ export class OpenWorldManager {
                 this.biomeTextures.set(biome, texture);
                 return texture;
             } catch (err) {
-                console.warn(`Failed to load texture for ${biome}:`, err);
                 return null;
             }
         }
@@ -225,59 +145,37 @@ export class OpenWorldManager {
         return biomeData?.base || 0x333333;
     }
 
-    // In OpenWorldManager.js, add this method:
     getBiomeAtWorldPosition(worldX, worldZ) {
-        // Convert world → tile space (same as your system)
         const x = worldX / this.tileSize;
         const z = worldZ / this.tileSize;
-
         const scale = this.config.biomeScale;
         const seed = this.worldSeed;
-
-        const value =
-            Math.sin((x + seed) * scale) *
-            Math.cos((z - seed) * scale);
-
+        const value = Math.sin((x + seed) * scale) * Math.cos((z - seed) * scale);
         if (value > 0.5) return 'forest';
         if (value < -0.5) return 'desert';
-
-        const iceCheck =
-            Math.sin((x + seed * 2) * scale * 1.5) *
-            Math.cos((z - seed * 2) * scale * 1.5);
-
+        const iceCheck = Math.sin((x + seed * 2) * scale * 1.5) * Math.cos((z - seed * 2) * scale * 1.5);
         if (iceCheck > 0.6) return 'ice';
-
-        const lavaCheck =
-            Math.sin((x - seed * 3) * scale * 0.7) *
-            Math.cos((z + seed * 3) * scale * 0.7);
-
+        const lavaCheck = Math.sin((x - seed * 3) * scale * 0.7) * Math.cos((z + seed * 3) * scale * 0.7);
         if (lavaCheck < -0.6) return 'lava';
-
         return 'lava';
     }
 
-// Instead of creating individual sprites per tile, create one TilingSprite per chunk
     async generateChunk(chunkX, chunkZ) {
         const chunkContainer = new Container();
         const startX = chunkX * this.chunkSize * this.tileSize;
         const startZ = chunkZ * this.chunkSize * this.tileSize;
         const chunkWidth = this.chunkSize * this.tileSize;
         const chunkHeight = this.chunkSize * this.tileSize;
-
-        // Sample biome at center of chunk
         const centerX = (chunkX + 0.5) * this.chunkSize;
         const centerZ = (chunkZ + 0.5) * this.chunkSize;
         const biome = this.getBiomeAt(centerX, centerZ);
         const texture = await this.getBiomeTexture(biome);
-
         if (texture) {
-            // Create a single tiling sprite for the entire chunk
             const tilingSprite = new TilingSprite(texture, chunkWidth, chunkHeight);
             tilingSprite.x = startX;
             tilingSprite.y = startZ;
             chunkContainer.addChild(tilingSprite);
         } else {
-            // Fallback to colored rectangle
             const color = this.getBiomeColor(biome);
             const rect = new Graphics();
             rect.rect(0, 0, chunkWidth, chunkHeight).fill({color});
@@ -286,64 +184,7 @@ export class OpenWorldManager {
             chunkContainer.addChild(rect);
         }
 
-        // Draw line around chunk
-        // Draw line around chunk
-        if (this.config.debugChunks) {
-            const border = new Graphics();
-            const biomeData = BIOME_COLORS[biome];
-            border
-                .rect(0, 0, chunkWidth, chunkHeight)
-                .stroke({width: 59, color: biomeData.base, alpha: 0.1});
-
-            border.x = startX;
-            border.y = startZ;
-
-            const blurFilter = new BlurFilter();
-            blurFilter.blur = 25;
-            border.filters = [blurFilter];
-
-            border.blendMode = 'screen';
-
-            // Add to debug layer instead of chunk container
-            this.debugLayer.addChild(border);
-
-            // Store reference to remove later
-            if (!this.debugBorders) this.debugBorders = new Map();
-            this.debugBorders.set(`${chunkX},${chunkZ}`, border);
-        }
-
         return chunkContainer;
-    }
-
-    // Create a collision circle for a prop
-    createPropCollider(propX, propZ, propRadius = 20) {
-        return {
-            x: propX,
-            y: propZ,
-            r: propRadius,
-            type: 'prop'
-        };
-    }
-
-    // Preload all prop textures for a biome
-    async preloadPropTextures(biome) {
-        if (this.propTextures.has(biome)) return this.propTextures.get(biome);
-
-        const biomeData = BIOME_COLORS[biome];
-        const propsList = biomeData?.props || [];
-        const textures = new Map();
-
-        for (const propPath of propsList) {
-            try {
-                const texture = await Assets.load(propPath);
-                textures.set(propPath, texture);
-            } catch (err) {
-                console.warn(`Failed to load prop: ${propPath}`);
-            }
-        }
-
-        this.propTextures.set(biome, textures);
-        return textures;
     }
 
     getBiomeAtChunk(chunkX, chunkZ) {
@@ -352,35 +193,13 @@ export class OpenWorldManager {
         return this.getBiomeAt(centerX, centerZ);
     }
 
-    async loadChunk(chunkX, chunkZ, playerX, playerZ) {
-        const key = `${chunkX},${chunkZ}`;
-        if (this.loadedChunks.has(key)) return;
-
-        const chunk = await this.generateChunk(chunkX, chunkZ);
-        this.groundLayer.addChild(chunk);
-        this.loadedChunks.set(key, chunk);
-
-        const biome = this.getBiomeAtChunk(chunkX, chunkZ);
-
-        this.spawnPOIInChunk(chunkX, chunkZ, biome);
-
-        // Spawn props using PropManager
-        await this.propManager.spawnPropsInChunk(chunkX, chunkZ, biome, this.chunkSize, this.tileSize);
-
-        // Spawn mobs
-        await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, biome);
-    }
-
     async spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, biome) {
         const key = `${chunkX},${chunkZ}`;
 
-        // Check if we already have mobs for this chunk
         if (this.spawnedEntities.has(key)) {
-            // Mobs already exist, just make them visible again
             const entities = this.spawnedEntities.get(key);
             for (const mob of entities.mobs) {
                 mob.c.visible = true;
-                // Also ensure they're in the global mobs list
                 if (!this.entitiesList.mobs.includes(mob)) {
                     this.entitiesList.mobs.push(mob);
                 }
@@ -388,38 +207,80 @@ export class OpenWorldManager {
             return;
         }
 
-        if (!this.entitiesList || !this.entitiesList.mobs) return;
-
+        if (!this.entitiesList?.mobs) return;
         const entities = {mobs: []};
         const chunkSizeWorld = this.chunkSize * this.tileSize;
         const startX = chunkX * chunkSizeWorld;
         const startZ = chunkZ * chunkSizeWorld;
-
         const seed = this.worldSeed ^ (chunkX * 73856093) ^ (chunkZ * 19349663);
-        // Generate mob count based on biome and chunk position (deterministic)
         const mobCount = this.getMobCountForBiome(biome, seed);
 
+        // Get all colliders in this chunk
+        const props = this.propManager?.chunkColliders?.get(key) || [];
+
         for (let i = 0; i < mobCount; i++) {
-            const mobSeed = seed + i * 1000;
+            // Use a different seed for EACH mob and EACH attempt
+            let x, z, foundPosition = false;
 
-            // Try to find valid spawn position
-            let x, z;
-            let foundPosition = false;
+            // Generate random position with better distribution
+            for (let attempt = 0; attempt < 30; attempt++) {
+                // Create unique seed for each attempt
+                const attemptSeed = seed + (i * 10000) + (attempt * 37);
 
-            for (let attempt = 0; attempt < 20; attempt++) {
-                const testX = startX + this.seededRandom(mobSeed + attempt * 10) * chunkSizeWorld;
-                const testZ = startZ + this.seededRandom(mobSeed + attempt * 20) * chunkSizeWorld;
+                // Generate random position within chunk bounds (not just center)
+                const randomX = this.seededRandom(attemptSeed);
+                const randomZ = this.seededRandom(attemptSeed + 12345);
 
-                // Don't spawn too close to player spawn
+                // Spread mobs across the entire chunk, not clustered in center
+                const testX = startX + randomX * chunkSizeWorld;
+                const testZ = startZ + randomZ * chunkSizeWorld;
+
+                // Check distance from player (avoid spawning too close)
                 if (Math.hypot(testX - playerX, testZ - playerZ) < 200) continue;
+
+                // Check world bounds
                 if (!this.isInsideWorld(testX, testZ)) continue;
 
                 // Check collision with props
                 let collidesWithProp = false;
-                const props = this.propManager.spawnedProps.get(key);
-                if (props) {
-                    for (const prop of props) {
-                        if (Math.hypot(testX - prop.x, testZ - prop.z) < prop.radius + MOB_RADIUS) {
+
+                for (const p of props) {
+                    if (p.width && p.height) {
+                        const halfW = p.width * 0.5;
+                        const halfH = p.height * 0.5;
+                        const left = p.x - halfW;
+                        const right = p.x + halfW;
+                        const top = p.y - halfH;
+                        const bottom = p.y + halfH;
+
+                        const closestX = Math.max(left, Math.min(testX, right));
+                        const closestY = Math.max(top, Math.min(testZ, bottom));
+                        const dx = testX - closestX;
+                        const dy = testZ - closestY;
+                        const distSq = dx * dx + dy * dy;
+
+                        if (distSq < MOB_RADIUS * MOB_RADIUS * 4) { // Add margin
+                            collidesWithProp = true;
+                            break;
+                        }
+                    }
+                    else if (p.r) {
+                        const dx = testX - p.x;
+                        const dy = testZ - p.y;
+                        const dist = Math.hypot(dx, dy);
+
+                        if (dist < (p.r || 40) + MOB_RADIUS * 2) { // Add margin
+                            collidesWithProp = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Also check distance from other mobs in same spawn batch
+                if (!collidesWithProp && entities.mobs.length > 0) {
+                    for (const existingMob of entities.mobs) {
+                        const distToExisting = Math.hypot(testX - existingMob.x, testZ - existingMob.z);
+                        if (distToExisting < MOB_RADIUS * 3) { // Keep mobs spread out
                             collidesWithProp = true;
                             break;
                         }
@@ -435,104 +296,188 @@ export class OpenWorldManager {
             }
 
             if (!foundPosition) {
-                // Fallback position
-                x = startX + chunkSizeWorld / 2;
-                z = startZ + chunkSizeWorld / 2;
+                // Last resort: place at random edge of chunk
+                const fallbackSeed = seed + i * 999999;
+                x = startX + this.seededRandom(fallbackSeed) * chunkSizeWorld;
+                z = startZ + this.seededRandom(fallbackSeed + 777777) * chunkSizeWorld;
+
+                // Clamp to world bounds
+                x = Math.max(50, Math.min(x, this.worldWidth - 50));
+                z = Math.max(50, Math.min(z, this.worldHeight - 50));
             }
 
             const mob = spawnMob(this.entityLayer, x, z, biome);
             if (mob) {
-                mob.spawnChunk = key; // Store which chunk this mob belongs to
+                mob.spawnChunk = key;
                 entities.mobs.push(mob);
             }
         }
 
         this.spawnedEntities.set(key, entities);
-
-        if (this.entitiesList && this.entitiesList.mobs) {
-            for (const mob of entities.mobs) {
-                if (!this.entitiesList.mobs.includes(mob)) {
-                    this.entitiesList.mobs.push(mob);
-                }
-            }
+        for (const mob of entities.mobs) {
+            if (!this.entitiesList.mobs.includes(mob)) this.entitiesList.mobs.push(mob);
         }
     }
 
-    // Add helper method for mob count per biome
     getMobCountForBiome(biome, seed) {
         const biomeConfig = this.config.biomeSettings[biome];
         const density = biomeConfig?.mobDensity || 0.5;
-
-        const maxMobs = 8;
-
+        const maxMobs = 15 // Reduced from 8
         const base = Math.floor(density * maxMobs);
-        const variation = Math.floor(this.seededRandom(seed + 9999) * 3) - 1;
+        const variation = Math.floor(this.seededRandom(seed + 9999) * 2) - 0;
 
-        return Math.max(1, base + variation);
+        return Math.max(1, Math.min(25, base + variation));
     }
 
     async update(playerX, playerZ) {
         if (!this.initialized) return;
 
+        const now = Date.now();
         const chunkSizeWorld = this.chunkSize * this.tileSize;
         const centerChunkX = Math.floor(playerX / chunkSizeWorld);
         const centerChunkZ = Math.floor(playerZ / chunkSizeWorld);
 
-        const newInfo = this.getChunkInfo(centerChunkX, centerChunkZ, playerX, playerZ);
-
-        // only update if chunk changed
-        if (
-            !this.currentChunkInfo ||
-            this.currentChunkInfo.chunkX !== newInfo.chunkX ||
-            this.currentChunkInfo.chunkZ !== newInfo.chunkZ
-        ) {
-            this.currentChunkInfo = newInfo;
-
-            if (this.onChunkChangeCallback) {
-                this.onChunkChangeCallback(newInfo);
-            }
-        }
-
-        const chunksToLoad = new Set();
-
+        // Calculate active chunks
+        const activeChunks = new Set();
         for (let dx = -this.renderDistance; dx <= this.renderDistance; dx++) {
             for (let dz = -this.renderDistance; dz <= this.renderDistance; dz++) {
-                const chunkX = centerChunkX + dx;
-                const chunkZ = centerChunkZ + dz;
-                const key = `${chunkX},${chunkZ}`;
-                chunksToLoad.add(key);
+                activeChunks.add(`${centerChunkX + dx},${centerChunkZ + dz}`);
+            }
+        }
 
-                if (!this.loadedChunks.has(key)) {
+        // THROTTLE: Only process chunk loading/unloading every 100ms
+        if (now - this.lastChunkUpdate >= this.chunkUpdateInterval) {
+            this.lastChunkUpdate = now;
+
+            // Queue chunks to load
+            for (const key of activeChunks) {
+                if (!this.loadedChunks.has(key) && !this.pendingChunks.has(key)) {
+                    this.pendingChunks.add(key);
+                }
+            }
+
+            // Process pending chunks in batches
+            if (!this.processingChunks && this.pendingChunks.size > 0) {
+                this.processingChunks = true;
+                const toProcess = Array.from(this.pendingChunks).slice(0, 3); // Only load 3 chunks per batch
+                for (const key of toProcess) {
+                    this.pendingChunks.delete(key);
+                    const [chunkX, chunkZ] = key.split(',').map(Number);
                     await this.loadChunk(chunkX, chunkZ, playerX, playerZ);
                 }
+                this.processingChunks = false;
             }
-        }
 
-        // Unload distant chunks
-        for (const [key, chunk] of this.loadedChunks) {
-            if (!chunksToLoad.has(key)) {
-                this.groundLayer.removeChild(chunk);
-                chunk.destroy({children: true});
-                this.loadedChunks.delete(key);
-
-                // Unload props using PropManager
-                this.propManager.unloadChunkProps(key);
-
-                // Remove mobs (existing code)
-                const entities = this.spawnedEntities.get(key);
-                if (entities && this.entitiesList) {
-                    for (const mob of entities.mobs) {
-                        const index = this.entitiesList.mobs.indexOf(mob);
-                        if (index > -1) {
-                            this.entityLayer.removeChild(mob.c);
-                            mob.c.destroy();
-                            this.entitiesList.mobs.splice(index, 1);
-                        }
-                    }
+            // Unload far chunks
+            for (const [key, chunk] of this.loadedChunks) {
+                if (!activeChunks.has(key)) {
+                    await this.unloadChunk(key);
                 }
-                this.spawnedEntities.delete(key);
             }
         }
+
+        // Only update mobs (no chunk loading this frame)
+        for (const m of this.entitiesList.mobs) {
+            const mobChunkX = Math.floor(m.x / chunkSizeWorld);
+            const mobChunkZ = Math.floor(m.y / chunkSizeWorld);
+            if (activeChunks.has(`${mobChunkX},${mobChunkZ}`)) {
+                m.controller.update({
+                    px: playerX, py: playerZ,
+                    colliders: this.colliders, // Use filtered colliders
+                    openWorld: this,
+                    enemyProjs: this.entitiesList.enemyProjs,
+                    playerState: useGameStore.getState().player,
+                    shakeRef: { value: 0 },
+                    mobs: this.entitiesList.mobs,
+                    world: this.world
+                });
+            }
+        }
+    }
+
+    async unloadChunk(key) {
+        const chunk = this.loadedChunks.get(key);
+        if (!chunk) return;
+
+        // 1. HIDE ground graphics (don't destroy)
+        this.groundLayer.removeChild(chunk);
+
+        // 2. HIDE debug borders
+        const debugBorder = this.debugBorders?.get(key);
+        if (debugBorder) {
+            debugBorder.visible = false;
+        }
+
+        // 3. HIDE props and remove colliders (managed by PropManager)
+        this.propManager.unloadChunkProps(key);
+
+        // 4. HIDE mobs
+        const entities = this.spawnedEntities.get(key);
+
+        if (entities) {
+            for (const mob of entities.mobs) {
+                if (mob.c) {
+                    mob.c.visible = false;
+                }
+                // Remove from active mobs list
+                const mobIndex = this.entitiesList.mobs.indexOf(mob);
+                if (mobIndex > -1) {
+                    this.entitiesList.mobs.splice(mobIndex, 1);
+                }
+            }
+        }
+
+        this.loadedChunks.delete(key);
+    }
+
+    getActiveColliders() {
+        const now = Date.now();
+
+        if (!this._activeCollidersCache || now - this._cacheTime > 500) {
+
+            this._activeCollidersCache = [];
+
+            for (const key of this.loadedChunks.keys()) {
+                const list = this.propManager.chunkColliders?.get(key);
+
+                if (list && list.length) {
+                    this._activeCollidersCache.push(...list);
+                }
+            }
+
+            this._cacheTime = now;
+        }
+
+        return this._activeCollidersCache;
+    }
+
+    async loadChunk(chunkX, chunkZ, playerX, playerZ) {
+        const key = `${chunkX},${chunkZ}`;
+
+        // If already loaded, just return
+        if (this.loadedChunks.has(key)) {
+            return;
+        }
+
+        console.log(`🆕 Loading chunk ${key}`);
+
+        const chunk = await this.generateChunk(chunkX, chunkZ);
+        this.groundLayer.addChild(chunk);
+
+        // Show debug border if exists
+        const debugBorder = this.debugBorders?.get(key);
+        if (debugBorder) {
+            debugBorder.visible = true;
+        }
+
+        const biome = this.getBiomeAtChunk(chunkX, chunkZ);
+
+        // This will SHOW existing props or create new ones
+        await this.propManager.generateChunkProps(chunkX, chunkZ, biome, this.chunkSize, this.tileSize);
+
+        await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, biome);
+
+        this.loadedChunks.set(key, chunk);
     }
 
     getCurrentBounds() {
@@ -545,10 +490,8 @@ export class OpenWorldManager {
     }
 
     isInsideWorld(x, y, r = 0) {
-        return x - r >= this.worldBounds.minX &&
-            x + r <= this.worldBounds.maxX &&
-            y - r >= this.worldBounds.minY &&
-            y + r <= this.worldBounds.maxY;
+        return x - r >= this.worldBounds.minX && x + r <= this.worldBounds.maxX &&
+            y - r >= this.worldBounds.minY && y + r <= this.worldBounds.maxY;
     }
 
     clampToWorld(x, y, r = 0) {

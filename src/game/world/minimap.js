@@ -32,7 +32,7 @@ export class Minimap {
         this.frameCount = 0;
 
         // Limits
-        this.maxMobs = 30;
+        this.maxMobs = 50;
         this.maxDrops = 20;
 
         this.createContainer();

@@ -114,18 +114,33 @@ export function createCombatSystem(ctx) {
             // === NEW: Check collision with props ===
             if (ctx.colliders && ctx.colliders.length) {
                 for (const collider of ctx.colliders) {
-                    if (collider.type === 'prop' || collider.r) {
-                        const dist = Math.hypot(a.c.x - collider.x, a.c.y - collider.y);
-                        const arrowRadius = 4; // Arrow hit radius
+                    // Check if collider has collision enabled
+                    if (!collider.collision) continue;
 
-                        if (dist < (collider.r || 10) + arrowRadius) {
-                            // Arrow hit a prop - create impact effect and remove arrow
-                            burst(world, particles, a.c.x, a.c.y, 0xaaaaaa, 5, 2);
-                            world.removeChild(a.c);
-                            arrows.splice(ai, 1);
-                            hit = true;
-                            break;
-                        }
+                    // Handle rectangle colliders (from your resolveVsColliders function)
+                    const halfW = collider.width * 0.5;
+                    const halfH = collider.height * 0.5;
+                    const left = collider.x - halfW;
+                    const right = collider.x + halfW;
+                    const top = collider.y - halfH;
+                    const bottom = collider.y + halfH;
+
+                    const arrowRadius = 4;
+
+                    // Check if arrow point is inside rectangle (expanded by radius)
+                    const closestX = Math.max(left, Math.min(a.c.x, right));
+                    const closestY = Math.max(top, Math.min(a.c.y, bottom));
+                    const dx = a.c.x - closestX;
+                    const dy = a.c.y - closestY;
+                    const distSq = dx * dx + dy * dy;
+
+                    if (distSq < arrowRadius * arrowRadius) {
+                        // Arrow hit collider
+                        burst(world, particles, a.c.x, a.c.y, 0xaaaaaa, 5, 2);
+                        world.removeChild(a.c);
+                        arrows.splice(ai, 1);
+                        hit = true;
+                        break;
                     }
                 }
                 if (hit) continue;

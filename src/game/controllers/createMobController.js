@@ -3,7 +3,7 @@ import {useGameStore} from "../../stores/gameStore.js";
 import {createEnemyProj} from "../projectile.js";
 import {getBiome} from "../biome.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
-import {nearbyColliders} from "../props.js";
+import {resolveVsColliders} from "../collision.js";
 
 export function createMobController(mob) {
     let shootTimer = 0;
@@ -28,6 +28,12 @@ export function createMobController(mob) {
 
             const m = this.mob;
             const distToPlayer = Math.hypot(px - m.x, py - m.y);
+
+            // SKIP updates if mob is too far (performance optimization)
+            if (distToPlayer > 1500) {
+                // Only update basic position, no collision/physics
+                return;
+            }
 
             // State machine for open world
             let moveX = 0, moveY = 0;
@@ -67,7 +73,7 @@ export function createMobController(mob) {
                 let newX = m.x + moveX * speed;
                 let newY = m.y + moveY * speed;
 
-                // Keep within world bounds and resolve collisions
+                // 1. world bounds
                 if (openWorld) {
                     const bounds = openWorld.getCurrentBounds();
                     if (bounds) {
@@ -76,13 +82,14 @@ export function createMobController(mob) {
                     }
                 }
 
-                // Check collision with other mobs
+                // 2. mob vs mob collision
                 if (mobs && mobs.length) {
                     for (const other of mobs) {
                         if (other === m) continue;
+
                         const dist = Math.hypot(newX - other.x, newY - other.y);
+
                         if (dist < MOB_RADIUS * 2) {
-                            // Push away
                             const angle = Math.atan2(newY - other.y, newX - other.x);
                             newX = other.x + Math.cos(angle) * MOB_RADIUS * 2;
                             newY = other.y + Math.sin(angle) * MOB_RADIUS * 2;
@@ -90,40 +97,25 @@ export function createMobController(mob) {
                     }
                 }
 
-                // In createMobController.js, enhance the collision section:
-// Check collision with props
-                if (colliders) {
-                    const nearbyProps = nearbyColliders(colliders, newX, newY, MOB_RADIUS + 50);
-                    for (const prop of nearbyProps) {
-                        if (prop.type === 'prop' || prop.type === 'box') {
-                            if (prop.r) {
-                                const dx = newX - prop.x;
-                                const dy = newY - prop.y;
-                                const dist = Math.sqrt(dx * dx + dy * dy);
-                                if (dist < MOB_RADIUS + prop.r) {
-                                    const angle = Math.atan2(dy, dx);
-                                    newX = prop.x + Math.cos(angle) * (MOB_RADIUS + prop.r);
-                                    newY = prop.y + Math.sin(angle) * (MOB_RADIUS + prop.r);
-                                }
-                            } else if (prop.width && prop.height) {
-                                // Box collision for mobs
-                                const halfW = prop.width / 2;
-                                const halfH = prop.height / 2;
-                                const closestX = Math.max(prop.x - halfW, Math.min(newX, prop.x + halfW));
-                                const closestY = Math.max(prop.y - halfH, Math.min(newY, prop.y + halfH));
-                                const dx = newX - closestX;
-                                const dy = newY - closestY;
-                                const dist = Math.sqrt(dx * dx + dy * dy);
-                                if (dist < MOB_RADIUS) {
-                                    const angle = Math.atan2(dy, dx);
-                                    newX = closestX + Math.cos(angle) * MOB_RADIUS;
-                                    newY = closestY + Math.sin(angle) * MOB_RADIUS;
-                                }
-                            }
-                        }
+                // 3. ⭐ PROP COLLISION - FIXED VERSION
+                if (colliders && colliders.length) {
+                    // Make sure we're using the imported resolveVsColliders
+                    // Ensure colliders have the right format (x, y, width, height)
+                    const validColliders = colliders.filter(col => col && col.collision && col.width && col.height);
+
+                    if (validColliders.length) {
+                        const resolved = resolveVsColliders(
+                            newX,
+                            newY,
+                            MOB_RADIUS,
+                            validColliders
+                        );
+                        newX = resolved.x;
+                        newY = resolved.y;
                     }
                 }
 
+                // 4. commit final position
                 m.x = newX;
                 m.y = newY;
                 m.c.x = m.x;

@@ -298,21 +298,6 @@ export async function createGame() {
 
         openWorld.update(px, py, ticker.deltaTime);
 
-        // Mobs
-        for (const m of mobs) {
-            m.controller.update({
-                px,
-                py,
-                colliders,
-                openWorld,
-                enemyProjs,
-                playerState,
-                shakeRef,
-                mobs,
-                world
-            });
-        }
-
         for (const b of bosses) {
             b.update({
                 px, py, colliders, openWorld,
@@ -365,11 +350,11 @@ export async function createGame() {
             weatherSystem.update(deltaTime, camX, camY, bounds);
         }
 
-// Update player position for minimap first
+        // Update player position for minimap first
         minimap.playerRef.x = px;
         minimap.playerRef.y = py;
 
-// Get mouse position in world coordinates
+        // Get mouse position in world coordinates
         const mouseWorldX = (input.mouseX - world.x) / world.scale.x;
         const mouseWorldY = (input.mouseY - world.y) / world.scale.x;
 
