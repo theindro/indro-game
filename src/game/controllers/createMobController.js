@@ -1,7 +1,6 @@
 import {DIFFICULTY, GS, ICE_MOB_SHOOT_INTERVAL_BASE, MOB_HP, MOB_RADIUS} from "../constants.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import {createEnemyProj} from "../projectile.js";
-import {getBiome} from "../biome.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
 import {resolveVsColliders} from "../collision.js";
 
@@ -154,7 +153,7 @@ export function createMobController(mob) {
 
 // controllers/createMobController.js - Updated spawnMob
 export function spawnMob(world, x, y, biome = null) {
-    const finalBiome = biome || getBiome(x, y) || 'forest';
+    const finalBiome = biome || 'forest';
     const {c, body, gl, hpBar} = createMobEntity(finalBiome, 13);
 
     c.x = x;

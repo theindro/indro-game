@@ -67,7 +67,7 @@ export const PROP_TYPES = {
 // propConfig.js - Move density to root level
 export const BIOME_PROP_CONFIG = {
     forest: {
-        density: 0.7,  // Move density here (root level)
+        density: 3,  // Move density here (root level)
         props: [
             { type: 'STONE', weight: 10 },
             { type: 'TREE', weight: 30 },

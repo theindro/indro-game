@@ -338,10 +338,36 @@ export class OpenWorldManager {
 
         // 🔥 CHECK FOR CHUNK CHANGE 🔥
         if (centerChunkX !== this.lastPlayerChunk.x || centerChunkZ !== this.lastPlayerChunk.z) {
-            console.log(`Chunk changed from (${this.lastPlayerChunk.x},${this.lastPlayerChunk.z}) to (${centerChunkX},${centerChunkZ})`);
+            console.log(`🔄 CHUNK CHANGE: (${this.lastPlayerChunk.x},${this.lastPlayerChunk.z}) → (${centerChunkX},${centerChunkZ})`);
 
             // Get the new biome
             const newBiome = this.getBiomeAtChunk(centerChunkX, centerChunkZ);
+            const oldBiome = this.lastPlayerChunk.biome;
+
+            // Get chunk key for accessing data
+            const chunkKey = `${centerChunkX},${centerChunkZ}`;
+
+            // Get mob count in new chunk
+            const entitiesInChunk = this.spawnedEntities.get(chunkKey);
+            const mobCount = entitiesInChunk?.mobs?.length || 0;
+
+            // Get prop count in new chunk
+
+            console.log(this.propManager);
+            const propsInChunk = this.propManager?.chunkColliders?.get(chunkKey) || [];
+            const propCount = propsInChunk.length;
+
+            // Get weather info based on biome
+            const weatherConfig = {
+                forest: { type: '🌧️ Rain', intensity: 5, color: '#44aaff' },
+                desert: { type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44' },
+                ice: { type: '❄️ Snow', intensity: 0.6, color: '#88ccff' },
+                lava: { type: '🔥 Embers', intensity: 0.8, color: '#ff4400' }
+            };
+            const weather = weatherConfig[newBiome] || { type: '☀️ Clear', intensity: 0, color: '#ffffff' };
+
+            // Optional: More compact single-line log
+            console.log(`📊 [CHUNK ${centerChunkX},${centerChunkZ}] Biome: ${newBiome} | Mobs: ${mobCount} | Props: ${propCount} | Weather: ${weather.type}`);
 
             // 🔥 TRIGGER THE CALLBACK HERE 🔥
             if (this.onChunkChangeCallback) {
@@ -353,7 +379,10 @@ export class OpenWorldManager {
                     z: centerChunkZ * chunkSizeWorld,
                     oldChunkX: this.lastPlayerChunk.x,
                     oldChunkZ: this.lastPlayerChunk.z,
-                    oldBiome: this.lastPlayerChunk.biome
+                    oldBiome: this.lastPlayerChunk.biome,
+                    mobCount: mobCount,
+                    propCount: propCount,
+                    weather: weather
                 });
             }
 
@@ -364,7 +393,6 @@ export class OpenWorldManager {
                 biome: newBiome
             };
         }
-
         // Calculate active chunks
         const activeChunks = new Set();
         for (let dx = -this.renderDistance; dx <= this.renderDistance; dx++) {

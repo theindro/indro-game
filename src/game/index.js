@@ -210,7 +210,6 @@ export async function createGame() {
 
     let saveTimer = 0;
     let shootCooldown = 0;
-    let lastBiome = '';
 
     app.ticker.add((ticker) => {
         // Get fresh state every frame
