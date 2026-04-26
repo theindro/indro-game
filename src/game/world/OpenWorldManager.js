@@ -220,7 +220,7 @@ export class OpenWorldManager {
         const mobCount = this.getMobCountForBiome(biome, seed);
 
         // Get all colliders in this chunk
-        const props = this.propManager?.chunkColliders?.get(key) || [];
+        const props = this.colliders.filter(c => c.chunkKey === key && c.type === 'prop');
 
         for (let i = 0; i < mobCount; i++) {
             // Use a different seed for EACH mob and EACH attempt
@@ -354,8 +354,8 @@ export class OpenWorldManager {
             const entitiesInChunk = this.spawnedEntities.get(chunkKey);
             const mobCount = entitiesInChunk?.mobs?.length || 0;
 
-            // Get prop count in new chunk
-            const propsInChunk = this.propManager?.chunkColliders?.get(chunkKey) || [];
+            // ✅ FIXED: Get prop count in new chunk
+            const propsInChunk = this.colliders.filter(c => c.chunkKey === chunkKey && c.type === 'prop');
             const propCount = propsInChunk.length;
 
             // Get weather info based on biome

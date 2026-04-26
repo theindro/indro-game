@@ -13,7 +13,6 @@ export class PropManager {
 
         // runtime only
         this.activeChunks = new Map();     // visuals only
-        this.chunkColliders = new Map();   // collision only
     }
 
     setPropLayer(layer) {
@@ -61,14 +60,16 @@ export class PropManager {
         safeRemove(data.container);
         safeRemove(data.shadowContainer);
 
-        const chunkCols = this.chunkColliders.get(key);
-
-        if (chunkCols) {
-            this.colliders = this.colliders.filter(c => !chunkCols.includes(c));
+        // 🔴 Remove colliders with matching chunkKey
+        if (this.colliders) {
+            for (let i = this.colliders.length - 1; i >= 0; i--) {
+                if (this.colliders[i].chunkKey === key) {
+                    this.colliders.splice(i, 1);
+                }
+            }
         }
 
         this.activeChunks.delete(key);
-        this.chunkColliders.delete(key);
     }
 
     async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize) {
@@ -105,7 +106,6 @@ export class PropManager {
         }
 
         const placed = [];
-        const colliders = [];
         const props = [];
 
         const baseSeed = this.hash(chunkX, chunkZ);
@@ -214,12 +214,10 @@ export class PropManager {
                     collision: true,
                     type: 'prop',
                     propType: propType.type,
-                    biome: biome
+                    biome: biome,
+                    chunkKey: key
                 };
 
-                colliders.push(collider);
-
-                // Add to main colliders array
                 if (this.colliders) {
                     this.colliders.push(collider);
                 }
@@ -256,7 +254,6 @@ export class PropManager {
         const result = { container, shadowContainer };
 
         this.activeChunks.set(key, result);
-        this.chunkColliders.set(key, colliders);
 
         return result;
     }
