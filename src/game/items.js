@@ -916,7 +916,6 @@ export const DropTables = {
     forest_mob: {
         gold: { min: 2, max: 8, chance: 85 },
         items: [
-            { id: 'amulet_of_gods', chance: 100, minQty: 1, maxQty: 1 },
             { id: 'leather_boots', chance: 5, minQty: 1, maxQty: 1 },
             { id: 'leather_gloves', chance: 5, minQty: 1, maxQty: 1 },
             { id: 'leather_armor', chance: 3, minQty: 1, maxQty: 1 },
