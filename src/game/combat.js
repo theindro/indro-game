@@ -381,10 +381,16 @@ export function createCombatSystem(ctx) {
     // ─────────────────────────────
     // Drops
     // ─────────────────────────────
-// Update updateDrops function to handle item drops
     function updateDrops(px, py) {
         for (let di = drops.length - 1; di >= 0; di--) {
             const d = drops[di];
+
+            // Skip if already destroyed or missing container
+            if (!d || !d.container || d.container.destroyed) {
+                drops.splice(di, 1);
+                continue;
+            }
+
             d.update(); // Call the update function for animation
 
             const ddx = px - d.container.x;
@@ -411,21 +417,28 @@ export function createCombatSystem(ctx) {
                 else if (d.type === 'item' && d.item) {
                     // Add item to inventory
                     const added = useGameStore.getState().addItem(d.item, 1);
-
                     if (added) {
                         const rarityColor = d.item.rarity?.color || '#ffaa44';
                         showFloat(floats, d.container.x, d.container.y, d.item.name, rarityColor);
-                        // burst(world, particles, d.container.x, d.container.y, 0xffaa44, 8, 2);
-                        // audioManager.playSFX('/sounds/pickup.ogg', 0.3);
                     }
                 }
 
-                d.destroy();
+                // ✅ PROPER CLEANUP
+                if (d.container && d.container.parent) {
+                    d.container.parent.removeChild(d.container);
+                }
+                if (d.container && !d.container.destroyed) {
+                    d.container.destroy({ children: true });
+                }
+
+                // Clear reference
+                d.container = null;
+                d.item = null;
+
                 drops.splice(di, 1);
             }
         }
     }
-
 
     // Update freeze timers
     function updateFreezeTimers() {

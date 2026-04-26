@@ -20,20 +20,22 @@ export class Minimap {
             player: 0x44ff88,
             playerGlow: 0x88ffaa,
             mob: 0xff4466,
+            elite: 0xff6666,
             boss: 0xff0000,
             drop: 0xffd700,
             poi: 0x00ff00
         };
 
-        // Cached graphics objects (reuse instead of recreate each frame)
-        this.cachedEntities = new Map();
+        // Performance optimization
         this.lastUpdateFrame = 0;
-        this.updateInterval = 3; // Update every 3 frames for performance
+        this.updateInterval = 2; // Update every 2 frames for smoothness
         this.frameCount = 0;
 
-        // Limits
-        this.maxMobs = 50;
-        this.maxDrops = 20;
+        // Display limits - show closest entities
+        this.maxMobsToShow = 30;
+        this.maxDropsToShow = 20;
+        this.maxBossesToShow = 5;
+        this.maxPOIsToShow = 10;
 
         this.createContainer();
         this.createBackground();
@@ -114,6 +116,16 @@ export class Minimap {
         northText.anchor.set(0.5);
         northText.y = -this.radius + 8;
         this.container.addChild(northText);
+
+        // Distance indicator text
+        this.distanceText = new PIXI.Text('', {
+            fontSize: 10,
+            fill: 0xaaaaaa,
+            fontWeight: 'normal'
+        });
+        this.distanceText.anchor.set(0.5);
+        this.distanceText.y = this.radius - 12;
+        this.container.addChild(this.distanceText);
     }
 
     createPlayerIndicator() {
@@ -147,10 +159,11 @@ export class Minimap {
             return {
                 x: Math.cos(angle) * (this.radius - 10),
                 y: Math.sin(angle) * (this.radius - 10),
-                clamped: true
+                clamped: true,
+                distance: Math.hypot(worldX - this.playerRef.x, worldZ - this.playerRef.y)
             };
         }
-        return { x: dx, y: dz, clamped: false };
+        return { x: dx, y: dz, clamped: false, distance: dist / this.scale };
     }
 
     update() {
@@ -169,89 +182,162 @@ export class Minimap {
             this.playerDirection.rotation = this.playerRef.rotation;
         }
 
-        // Batch graphics creation (limit count)
-        const graphicsBatch = [];
+        // Collect and sort entities by distance
+        const entitiesToDraw = [];
 
-        // Draw mobs (with limit)
+        // Process mobs - calculate distance and filter
         if (this.entities.mobs && this.entities.mobs.length > 0) {
-            const mobsToDraw = this.entities.mobs.slice(0, this.maxMobs);
-            for (const mob of mobsToDraw) {
+            for (const mob of this.entities.mobs) {
                 if (!mob.c || !mob.c.visible) continue;
 
+                const distance = Math.hypot(mob.x - this.playerRef.x, mob.y - this.playerRef.y);
                 const pos = this.worldToMinimap(mob.x, mob.y);
-                if (Math.abs(pos.x) > this.radius || Math.abs(pos.y) > this.radius) continue;
 
-                const g = new Graphics();
-                const isElite = mob.type === 'elite';
-                g.circle(0, 0, isElite ? 4 : 3).fill({ color: this.colors.mob });
-                if (isElite) {
-                    g.circle(0, 0, 6).fill({ color: this.colors.mob, alpha: 0.3 });
-                }
-                g.x = pos.x;
-                g.y = pos.y;
-                graphicsBatch.push(g);
+                entitiesToDraw.push({
+                    type: 'mob',
+                    entity: mob,
+                    pos: pos,
+                    distance: distance,
+                    priority: mob.type === 'elite' ? 0 : 1 // Elite mobs get higher priority
+                });
             }
         }
 
-        // Draw bosses
+        // Process bosses
         if (this.entities.bosses && this.entities.bosses.length > 0) {
             for (const boss of this.entities.bosses) {
                 if (!boss.c || !boss.c.visible || boss.dead) continue;
 
+                const distance = Math.hypot(boss.x - this.playerRef.x, boss.y - this.playerRef.y);
                 const pos = this.worldToMinimap(boss.x, boss.y);
-                if (Math.abs(pos.x) > this.radius || Math.abs(pos.y) > this.radius) continue;
 
-                const g = new Graphics();
-                g.circle(0, 0, 6).fill({ color: this.colors.boss });
-                g.circle(0, 0, 9).fill({ color: this.colors.boss, alpha: 0.3 });
-                g.x = pos.x;
-                g.y = pos.y;
-                graphicsBatch.push(g);
+                entitiesToDraw.push({
+                    type: 'boss',
+                    entity: boss,
+                    pos: pos,
+                    distance: distance,
+                    priority: 0 // Bosses have highest priority
+                });
             }
         }
 
-        // Draw drops (limited)
-        if (this.entities.drops && this.entities.drops.length > 0 && this.entities.drops.length < 100) {
-            const dropsToDraw = this.entities.drops.slice(0, this.maxDrops);
-            for (const drop of dropsToDraw) {
+        // Process drops
+        if (this.entities.drops && this.entities.drops.length > 0) {
+            for (const drop of this.entities.drops) {
                 if (!drop.container || !drop.container.visible) continue;
 
+                const distance = Math.hypot(drop.container.x - this.playerRef.x, drop.container.y - this.playerRef.y);
                 const pos = this.worldToMinimap(drop.container.x, drop.container.y);
-                if (Math.abs(pos.x) > this.radius || Math.abs(pos.y) > this.radius) continue;
 
-                const g = new Graphics();
-                g.circle(0, 0, 2).fill({ color: this.colors.drop });
-                g.x = pos.x;
-                g.y = pos.y;
-                graphicsBatch.push(g);
+                entitiesToDraw.push({
+                    type: 'drop',
+                    entity: drop,
+                    pos: pos,
+                    distance: distance,
+                    priority: 2 // Drops have lower priority
+                });
             }
         }
 
-        // Draw POIs (limited)
+        // Sort by priority (lower number = higher priority) then by distance
+        entitiesToDraw.sort((a, b) => {
+            if (a.priority !== b.priority) return a.priority - b.priority;
+            return a.distance - b.distance;
+        });
+
+        // Draw with limits
+        let mobsDrawn = 0;
+        let bossesDrawn = 0;
+        let dropsDrawn = 0;
+
+        for (const item of entitiesToDraw) {
+            // Check limits
+            if (item.type === 'mob' && mobsDrawn >= this.maxMobsToShow) continue;
+            if (item.type === 'boss' && bossesDrawn >= this.maxBossesToShow) continue;
+            if (item.type === 'drop' && dropsDrawn >= this.maxDropsToShow) continue;
+
+            // Skip if outside minimap bounds (but still count toward limit if we processed it)
+            if (Math.abs(item.pos.x) > this.radius + 10 || Math.abs(item.pos.y) > this.radius + 10) continue;
+
+            const g = new Graphics();
+
+            switch(item.type) {
+                case 'mob':
+                    const isElite = item.entity.type === 'elite';
+                    g.circle(0, 0, isElite ? 4 : 3).fill({ color: this.colors.mob });
+                    if (isElite) {
+                        g.circle(0, 0, 6).fill({ color: this.colors.elite, alpha: 0.3 });
+                    }
+                    mobsDrawn++;
+                    break;
+
+                case 'boss':
+                    g.circle(0, 0, 6).fill({ color: this.colors.boss });
+                    g.circle(0, 0, 9).fill({ color: this.colors.boss, alpha: 0.3 });
+                    bossesDrawn++;
+                    break;
+
+                case 'drop':
+                    g.circle(0, 0, 2).fill({ color: this.colors.drop });
+                    dropsDrawn++;
+                    break;
+            }
+
+            g.x = item.pos.x;
+            g.y = item.pos.y;
+            this.entityLayer.addChild(g);
+        }
+
+        // Draw POIs separately (always show closest)
         if (this.openWorld.spawnedPOIs && this.openWorld.spawnedPOIs.size > 0) {
-            let poiCount = 0;
+            const pois = [];
             for (const [key, poi] of this.openWorld.spawnedPOIs) {
-                if (poiCount > 15) break; // Limit POIs
                 if (!poi.x || !poi.z) continue;
 
+                const distance = Math.hypot(poi.x - this.playerRef.x, poi.z - this.playerRef.y);
                 const pos = this.worldToMinimap(poi.x, poi.z);
-                if (Math.abs(pos.x) > this.radius || Math.abs(pos.y) > this.radius) continue;
+
+                pois.push({
+                    poi: poi,
+                    pos: pos,
+                    distance: distance,
+                    type: poi.type
+                });
+            }
+
+            // Sort by distance
+            pois.sort((a, b) => a.distance - b.distance);
+
+            let poisDrawn = 0;
+            for (const item of pois) {
+                if (poisDrawn >= this.maxPOIsToShow) break;
+                if (Math.abs(item.pos.x) > this.radius + 10 || Math.abs(item.pos.y) > this.radius + 10) continue;
 
                 const g = new Graphics();
-                const color = poi.type === 'boss' ? 0xff0000 :
-                    poi.type === 'loot' ? 0xffaa44 : 0x44ff44;
+                const color = item.type === 'boss' ? 0xff0000 :
+                    item.type === 'loot' ? 0xffaa44 : 0x44ff44;
                 g.circle(0, 0, 4).fill({ color });
                 g.circle(0, 0, 7).fill({ color, alpha: 0.2 });
-                g.x = pos.x;
-                g.y = pos.y;
-                graphicsBatch.push(g);
-                poiCount++;
+                g.x = item.pos.x;
+                g.y = item.pos.y;
+                this.entityLayer.addChild(g);
+                poisDrawn++;
             }
         }
 
-        // Add all graphics at once
-        for (const g of graphicsBatch) {
-            this.entityLayer.addChild(g);
+        // Update distance indicator text
+        this.updateDistanceIndicator(entitiesToDraw);
+    }
+
+    updateDistanceIndicator(entities) {
+        if (!this.distanceText) return;
+
+        // Find closest enemy (mob or boss)
+        let closestDistance = Infinity;
+        for (const item of entities) {
+            if ((item.type === 'mob' || item.type === 'boss') && item.distance < closestDistance) {
+                closestDistance = item.distance;
+            }
         }
     }
 
