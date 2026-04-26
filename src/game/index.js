@@ -32,7 +32,6 @@ export async function createGame() {
     let shakeRef = {value: 0};
     let killsRef = {value: 0};
     let bossActiveRef = {value: null};
-    let lastWeatherBiome = null;
 
     // ==================== SYSTEMS ====================
     const weatherSystem = initWeatherSystem(app);
@@ -82,7 +81,6 @@ export async function createGame() {
     // ==================== SETUP ====================
     setupEventListeners(input, dash, combat, playerState.stats, mouseWorld, entities.bosses, shakeRef, openWorld);
     setupChunkChangeHandler(openWorld, weatherSystem);
-    setupCrosshairHandler(app);
 
     // Initial player position
     pCont.x = px;
@@ -94,42 +92,47 @@ export async function createGame() {
         const store = useGameStore.getState();
         const {gameState, player: playerState} = store;
         const deltaTime = ticker.deltaTime;
+        const dt = deltaTime / 60; // 1 = 60fps baseline
 
         if (gameState.paused || gameState.dead) return;
 
         perfMonitor.update(entities.mobs.length);
 
-        // Auto-save
-        saveTimer++;
-        saveTimer = updateAutoSave(store, px, py, saveTimer) ?? saveTimer;
+        // Auto-save player position
+        saveTimer += dt;
+
+        if (saveTimer >= 0.1) { // 1 seconds
+            store.updatePlayerPosition(px, py);
+            saveTimer = 0;
+        }
 
         // Update cooldowns
-        if (shootCooldown > 0) shootCooldown--;
-        if (combat.updateFreezeTimers) combat.updateFreezeTimers(deltaTime);
+        if (shootCooldown > 0) shootCooldown -= dt;
+        if (combat.updateFreezeTimers) combat.updateFreezeTimers(dt);
 
         // Shooting
         shootCooldown = handleShooting(input, combat, px, py, world, shootCooldown, playerState.stats);
 
         // Player movement
-        const movement = handlePlayerMovement(input, px, py, playerState.stats, dash, openWorld, colliders);
+        const movement = handlePlayerMovement(input, px, py, playerState.stats, dash, openWorld, colliders, dt);
         px = movement.x;
         py = movement.y;
-        pBobT += 0.055;
+        pBobT += 0.055 * dt * 60;
 
         // Update visuals
         updatePlayerVisuals(pCont, pGlow, px, py, movement.moving, pBobT);
 
         // World updates
-        openWorld.update(px, py, deltaTime);
-        updateBosses(entities.bosses, px, py, colliders, openWorld, entities.enemyProjs, playerState, shakeRef, deltaTime);
+        openWorld.update(px, py, dt);
+        updateBosses(entities.bosses, px, py, colliders, openWorld, entities.enemyProjs, playerState, shakeRef, dt);
 
         // Combat updates
-        combat.updateArrows(px, py);
-        combat.updateEnemyProjs(px, py);
-        combat.updateDrops(px, py);
+        combat.updateArrows(px, py, dt);
+        combat.updateEnemyProjs(px, py, dt);
+        combat.updateDrops(px, py, dt);
 
         // Particles & floats
-        tickParticles(world, particles);
+        tickParticles(world, particles, dt);
         tickFloats(floats, camX, camY, app.screen.width, app.screen.height);
 
         // Camera
@@ -140,7 +143,7 @@ export async function createGame() {
         world.y = camera.worldY;
 
         // Weather
-        updateWeather(weatherSystem, deltaTime, camX, camY, openWorld);
+        updateWeather(weatherSystem, dt, camX, camY, openWorld);
 
         // Minimap
         updateMinimap(minimap, px, py, input, world, mouseWorld);
@@ -180,10 +183,7 @@ function createWorldContainer(app) {
 }
 
 function initWeatherSystem(app) {
-    const weatherSystem = new CreateWeatherController(app.stage, app);
-    app.stage.addChild(weatherSystem.container);
-    app.stage.setChildIndex(weatherSystem.container, app.stage.children.length - 1);
-    return weatherSystem;
+    return new CreateWeatherController(app, app.stage);
 }
 
 // Key listeners
@@ -228,10 +228,11 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
 
     openWorld.onChunkChangeCallback = (info) => {
         if (info.biome === lastWeatherBiome) return;
+
         lastWeatherBiome = info.biome;
 
         const weatherConfig = {
-            forest: {type: 'rain', intensity: 1, speed: 1.0},
+            forest: {type: 'rain', intensity: 0.6, speed: 1.0},
             desert: {type: 'sandstorm', intensity: 0.7, speed: 1.2},
             ice: {type: 'snow', intensity: 0.6, speed: 0.8},
             lava: {type: 'embers', intensity: 0.8, speed: 0.8}
@@ -244,16 +245,6 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
     };
 }
 
-function setupCrosshairHandler(app) {
-    app.canvas.addEventListener('mousemove', (e) => {
-        const crosshairEl = document.getElementById('crosshair');
-        if (crosshairEl) {
-            crosshairEl.style.left = e.clientX + 'px';
-            crosshairEl.style.top = e.clientY + 'px';
-        }
-    });
-}
-
 async function spawnTestBoss(bosses, shakeRef, openWorld) {
     const {x: px, y: py} = useGameStore.getState().player;
     console.log('🎮 Spawning test boss!');
@@ -262,6 +253,7 @@ async function spawnTestBoss(bosses, shakeRef, openWorld) {
     const bossX = px + 300;
     const bossY = py + 200;
     const boss = spawnBoss(openWorld.entityLayer, 'lava', bossX, bossY, 1);
+
     bosses.push(boss);
 
     console.log(`🔥 Boss spawned at (${bossX}, ${bossY}) on entityLayer`);
@@ -285,7 +277,7 @@ function handleShooting(input, combat, px, py, world, shootCooldown, stats) {
     return shootCooldown;
 }
 
-function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders) {
+function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders, dt) {
     let nx = px, ny = py;
     let moving = false;
 
@@ -295,7 +287,8 @@ function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders) 
         nx += dashState.vx;
         ny += dashState.vy;
     } else {
-        const spd = PLAYER_SPEED * GS * stats.moveSpeed;
+        const spd = PLAYER_SPEED * GS * stats.moveSpeed * dt;
+
         if (input.isDown('w')) {
             ny -= spd;
             moving = true;
@@ -326,12 +319,12 @@ function updatePlayerVisuals(pCont, pGlow, px, py, moving, pBobT) {
     pGlow.alpha = 0.12 + 0.06 * Math.sin(pBobT * 2);
 }
 
-function updateBosses(bosses, px, py, colliders, openWorld, enemyProjs, playerState, shakeRef, deltaTime) {
+function updateBosses(bosses, px, py, colliders, openWorld, enemyProjs, playerState, shakeRef, dt) {
     for (const boss of bosses) {
         boss.update({
             px, py, colliders, openWorld,
             enemyProjs, playerState, shakeRef,
-            deltaTime
+            dt
         });
     }
 }
@@ -364,11 +357,12 @@ function updateCamera(camX, camY, px, py, world, app, openWorld, shakeRef) {
     };
 }
 
-function updateWeather(weatherSystem, deltaTime, camX, camY, openWorld) {
+function updateWeather(weatherSystem, dt, camX, camY, openWorld) {
+    if (!weatherSystem.currentWeather) return;
+
     const bounds = openWorld.getCurrentBounds();
-    if (weatherSystem.currentWeather && bounds) {
-        weatherSystem.update(deltaTime, camX, camY, bounds);
-    }
+
+    weatherSystem.update(dt, camX, camY, bounds);
 }
 
 function updateMinimap(minimap, px, py, input, world, mouseWorld) {
@@ -382,13 +376,6 @@ function updateMinimap(minimap, px, py, input, world, mouseWorld) {
     angleToMouse += Math.PI / 2;
     minimap.playerRef.rotation = angleToMouse;
     minimap.update();
-}
-
-function updateAutoSave(store, px, py, saveTimer) {
-    if (saveTimer >= 30) {  // Changed from 60 to 500 for less spam
-        store.updatePlayerPosition(px, py);
-        return 0;  // Reset timer
-    }
 }
 
 function checkDeath(playerState, gameState, killsRef) {

@@ -1,15 +1,14 @@
 import { Graphics, Container } from 'pixi.js';
 
 export class CreateWeatherController {
-    constructor(stage, app) {
-        this.stage = stage;
+    constructor(app) {
         this.app = app;
-
         this.container = new Container();
-        this.stage.addChild(this.container);
 
-        this.currentWeather = null;
-        this.lastTimestamp = 0;
+        this.container.zIndex = 999;
+        this.app.stage.addChild(this.container);
+
+        this.app.stage.sortableChildren = true;
     }
 
     setWeather(type, intensity = 1, speed = 1) {
@@ -17,25 +16,20 @@ export class CreateWeatherController {
 
         switch (type) {
             case 'rain':
-                this.currentWeather = new RainEffect(this.app, this.container, intensity);
+                this.currentWeather = new RainEffect(this.app, this.container, intensity, speed);
                 break;
-
             case 'snow':
-                this.currentWeather = new SnowEffect(this.app, this.container, intensity);
+                this.currentWeather = new SnowEffect(this.app, this.container, intensity, speed);
                 break;
-
             case 'embers':
                 this.currentWeather = new EmberEffect(this.app, this.container, intensity, speed);
                 break;
-
             case 'sandstorm':
-                this.currentWeather = new SandstormEffect(this.app, this.container, intensity);
+                this.currentWeather = new SandstormEffect(this.app, this.container, intensity, speed);
                 break;
-
             case 'fog':
                 this.currentWeather = new FogEffect(this.app, this.container, intensity);
                 break;
-
             default:
                 this.currentWeather = null;
         }
@@ -52,7 +46,6 @@ export class CreateWeatherController {
             this.currentWeather.destroy();
             this.currentWeather = null;
         }
-
         this.container.removeChildren();
     }
 
@@ -64,41 +57,20 @@ export class CreateWeatherController {
 }
 
 /* ---------------------------
-   BASE PARTICLE STRUCT
----------------------------- */
-class WeatherParticle {
-    constructor(x, y, vx, vy, size, alpha, color) {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
-        this.size = size;
-        this.alpha = alpha;
-        this.color = color;
-    }
-}
-
-/* ---------------------------
-   EMBER EFFECT (LAVA)
+   EMBER EFFECT (LAVA) - FIXED FOR dt
 ---------------------------- */
 class EmberEffect {
     constructor(app, container, intensity, speed = 1) {
         this.app = app;
         this.container = container;
         this.speed = speed;
-
         this.graphics = new Graphics();
         this.container.addChild(this.graphics);
-
         this.particles = [];
-        // Use higher intensity for better coverage
         this.particleCount = Math.floor(300 * intensity);
-
-        this.createParticles();
-
-        // Store screen dimensions for resize handling
         this.screenWidth = app.screen.width;
         this.screenHeight = app.screen.height;
+        this.createParticles();
     }
 
     createParticles() {
@@ -106,11 +78,10 @@ class EmberEffect {
 
         for (let i = 0; i < this.particleCount; i++) {
             this.particles.push({
-                // Spread across ENTIRE screen width and height
                 x: Math.random() * this.screenWidth,
-                y: Math.random() * this.screenHeight, // KEY FIX: Random Y across full screen
-                vx: (Math.random() - 0.5) * 1.2 * this.speed,
-                vy: (-0.5 - Math.random() * 1.5) * this.speed,
+                y: Math.random() * this.screenHeight,
+                vx: (Math.random() - 0.5) * 120 * this.speed,
+                vy: (-50 - Math.random() * 150) * this.speed,
                 size: 2 + Math.random() * 4,
                 alpha: 0.4 + Math.random() * 0.6,
                 color: colors[Math.floor(Math.random() * colors.length)],
@@ -125,7 +96,10 @@ class EmberEffect {
     update(deltaTime) {
         this.graphics.clear();
 
-        // Update screen dimensions in case of resize
+        // Clamp deltaTime to prevent huge jumps
+        const dt = Math.min(deltaTime, 2.0);
+
+        // Update screen dimensions
         if (this.screenWidth !== this.app.screen.width || this.screenHeight !== this.app.screen.height) {
             this.screenWidth = this.app.screen.width;
             this.screenHeight = this.app.screen.height;
@@ -134,27 +108,26 @@ class EmberEffect {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
 
-            // Update position
-            p.wobble += p.wobbleSpeed * deltaTime;
-            p.x += (p.vx + Math.sin(p.wobble) * 0.3) * deltaTime;
-            p.y += p.vy * deltaTime;
-            p.life -= p.fade * deltaTime;
+            // Update position with deltaTime
+            p.wobble += p.wobbleSpeed * dt;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= p.fade * dt;
 
-            // Flicker effect
+            // Flicker effect (use time-based, not dt-dependent for visual effect)
             const flicker = 0.6 + Math.sin(Date.now() * 0.008 * p.size) * 0.4;
             p.alpha = Math.min(0.8, p.life * flicker);
 
-            // Reset particle when it goes off screen OR dies
+            // Reset particle when off screen or dead
             if (p.life <= 0 || p.y < -50 || p.y > this.screenHeight + 50 ||
                 p.x < -50 || p.x > this.screenWidth + 50) {
 
-                // Respawn at random position across FULL screen
                 this.particles[i] = {
                     x: Math.random() * this.screenWidth,
-                    y: Math.random() * this.screenHeight, // KEY FIX: Respawn anywhere
+                    y: Math.random() * this.screenHeight,
                     vx: (Math.random() - 0.5) * 1.2 * this.speed,
                     vy: (-0.5 - Math.random() * 1.5) * this.speed,
-                    size: 1 + Math.random() ,
+                    size: 1 + Math.random(),
                     alpha: 0.4,
                     color: p.color,
                     wobble: Math.random() * Math.PI * 2,
@@ -173,7 +146,7 @@ class EmberEffect {
             this.graphics.circle(p.x, p.y, p.size * 0.6)
                 .fill({ color: 0xffaa66, alpha: p.alpha * 0.7 });
 
-            // Trail effect (optional)
+            // Trail effect
             if (p.vy < 0) {
                 this.graphics.circle(p.x - p.vx * 2, p.y - p.vy * 2, p.size * 0.5)
                     .fill({ color: p.color, alpha: p.alpha * 0.3 });
@@ -191,19 +164,17 @@ class EmberEffect {
 }
 
 /* ---------------------------
-   RAIN
+   RAIN - FIXED FOR dt
 ---------------------------- */
 class RainEffect {
-    constructor(app, container, intensity) {
+    constructor(app, container, intensity, speed = 1) {
         this.app = app;
         this.container = container;
-
+        this.speed = speed;
         this.graphics = new Graphics();
         this.container.addChild(this.graphics);
-
         this.particles = [];
         this.count = Math.floor(300 * intensity);
-
         this.create();
     }
 
@@ -212,7 +183,7 @@ class RainEffect {
             this.particles.push({
                 x: Math.random() * this.app.screen.width,
                 y: Math.random() * this.app.screen.height,
-                speed: 8 + Math.random() * 10,
+                speed: (8 + Math.random() * 10) * 60 * this.speed,
                 length: 10 + Math.random() * 15,
                 alpha: 0.3 + Math.random() * 0.4,
                 width: 1 + Math.random()
@@ -222,9 +193,10 @@ class RainEffect {
 
     update(deltaTime) {
         this.graphics.clear();
+        const dt = Math.min(deltaTime, 2.0);
 
         for (const p of this.particles) {
-            p.y += p.speed * deltaTime;
+            p.y += p.speed * dt;
 
             if (p.y > this.app.screen.height) {
                 p.y = 0;
@@ -251,19 +223,17 @@ class RainEffect {
 }
 
 /* ---------------------------
-   SNOW
+   SNOW - FIXED FOR dt
 ---------------------------- */
 class SnowEffect {
-    constructor(app, container, intensity) {
+    constructor(app, container, intensity, speed = 1) {
         this.app = app;
         this.container = container;
-
+        this.speed = speed;
         this.graphics = new Graphics();
         this.container.addChild(this.graphics);
-
         this.particles = [];
         this.count = Math.floor(200 * intensity);
-
         this.create();
     }
 
@@ -272,25 +242,33 @@ class SnowEffect {
             this.particles.push({
                 x: Math.random() * this.app.screen.width,
                 y: Math.random() * this.app.screen.height,
-                vx: (Math.random() - 0.5) * 1,
-                vy: 1 + Math.random() * 2,
+                vy: (60 + Math.random() * 120) * this.speed,
+                vx: (Math.random() - 0.5) * 40 * this.speed,
                 size: 2 + Math.random() * 3,
-                wobble: Math.random() * Math.PI * 2
+                wobble: Math.random() * Math.PI * 2,
+                wobbleSpeed: 0.02 + Math.random() * 0.04
             });
         }
     }
 
     update(deltaTime) {
         this.graphics.clear();
+        const dt = Math.min(deltaTime, 2.0);
 
         for (const p of this.particles) {
-            p.x += p.vx * deltaTime;
-            p.y += p.vy * deltaTime;
-            p.wobble += 0.02;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.wobble += p.wobbleSpeed * dt;
 
             if (p.y > this.app.screen.height) {
                 p.y = 0;
                 p.x = Math.random() * this.app.screen.width;
+            }
+            if (p.x > this.app.screen.width) {
+                p.x = 0;
+            }
+            if (p.x < 0) {
+                p.x = this.app.screen.width;
             }
 
             this.graphics.circle(
@@ -307,19 +285,17 @@ class SnowEffect {
 }
 
 /* ---------------------------
-   SANDSTORM
+   SANDSTORM - FIXED FOR dt
 ---------------------------- */
 class SandstormEffect {
-    constructor(app, container, intensity) {
+    constructor(app, container, intensity, speed = 1) {
         this.app = app;
         this.container = container;
-
+        this.speed = speed;
         this.graphics = new Graphics();
         this.container.addChild(this.graphics);
-
         this.particles = [];
         this.count = Math.floor(400 * intensity);
-
         this.create();
     }
 
@@ -328,7 +304,7 @@ class SandstormEffect {
             this.particles.push({
                 x: Math.random() * this.app.screen.width,
                 y: Math.random() * this.app.screen.height,
-                vx: 2 + Math.random() * 3,
+                vx: (80 + Math.random() * 160) * this.speed,
                 size: 1 + Math.random() * 2,
                 alpha: 0.2 + Math.random() * 0.3
             });
@@ -337,9 +313,10 @@ class SandstormEffect {
 
     update(deltaTime) {
         this.graphics.clear();
+        const dt = Math.min(deltaTime, 2.0);
 
         for (const p of this.particles) {
-            p.x += p.vx * deltaTime;
+            p.x += p.vx * dt;
 
             if (p.x > this.app.screen.width) {
                 p.x = 0;
@@ -360,22 +337,20 @@ class SandstormEffect {
 }
 
 /* ---------------------------
-   FOG (simple)
+   FOG - FIXED
 ---------------------------- */
 class FogEffect {
     constructor(app, container, intensity) {
         this.app = app;
         this.container = container;
-
+        this.intensity = intensity;
         this.graphics = new Graphics();
         this.container.addChild(this.graphics);
-
-        this.intensity = intensity;
     }
 
-    update() {
+    update(deltaTime) {
+        // Fog doesn't need deltaTime for animation
         this.graphics.clear();
-
         this.graphics.rect(0, 0, this.app.screen.width, this.app.screen.height)
             .fill({ color: 0x88aaff, alpha: 0.05 * this.intensity });
     }
@@ -383,4 +358,13 @@ class FogEffect {
     destroy() {
         this.graphics.destroy();
     }
+}
+
+// Update function for your game loop
+function updateWeather(weatherSystem, deltaTime, camX, camY, openWorld) {
+    if (!weatherSystem.currentWeather) return;
+
+    const bounds = openWorld.getCurrentBounds();
+    // Pass raw deltaTime to weather system
+    weatherSystem.update(deltaTime);
 }

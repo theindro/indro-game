@@ -26,10 +26,10 @@ export const useGameStore = create((set, get) => ({
         x: 0,
         y: 0,
         stats: {
-            attackSpeed: 100,
+            attackSpeed: 0.6,
             damage: 5,
             projectiles: 1,
-            moveSpeed: 0.4,
+            moveSpeed: 100,
             dashSpeed: 100,
             dashRange: 250,
             dashDuration: 60,
@@ -339,8 +339,8 @@ export const useGameStore = create((set, get) => ({
                 hp: Math.min(state.player.hp, newMaxHp), // Don't exceed new max
                 stats: {
                     damage: 5 + bonusDamage,
-                    attackSpeed: 100 + bonusAttackSpeed,
-                    moveSpeed: 0.4 + bonusMoveSpeed,
+                    attackSpeed: 0.6 + bonusAttackSpeed,
+                    moveSpeed: 100 + bonusMoveSpeed,
                     critChance: 5 + bonusCritChance,
                     critDamage: 100 + bonusCritDamage,
                     projectiles: 1 + bonusProjectiles,

@@ -70,7 +70,7 @@ export function createDashAbility({ input, world }) {
         ghosts.push(ghost);
     }
 
-    function update(stats) {
+    function update(stats, dt) {
         // track movement direction
         let dx = 0;
         let dy = 0;
@@ -94,7 +94,6 @@ export function createDashAbility({ input, world }) {
 
             // 🔴 compute speed FROM RANGE
             const speed = stats.dashRange / stats.dashDuration;
-
 
             return {
                 active: true,
