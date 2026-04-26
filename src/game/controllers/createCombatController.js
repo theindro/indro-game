@@ -90,7 +90,7 @@ export function createCombatController(ctx) {
         updateEnemyProjs: projectileSystem.updateEnemyProjs,
         updateDrops: dropSystem.updateDrops,
         spawnDrops: dropSystem.spawnDrops,  // Used when mobs die
-        updateFreezeTimers: () => {},
+        updateFreezeTimers: abilityManager.updateFreezeTimers.bind(abilityManager),
         useArrowBarrage: useArrowBarrageWrapper,
         useRapidFire: useRapidFireWrapper,
         useFrostArrow: useFrostArrowWrapper

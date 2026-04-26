@@ -192,8 +192,6 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, sha
     window.addEventListener('keydown', (e) => {
         const key = e.key;
 
-        console.log(e);
-
         if (e.code === 'Space') dash.tryDash();
 
         if (e.key === 'Escape') {
@@ -259,11 +257,6 @@ function setupCrosshairHandler(app) {
 async function spawnTestBoss(bosses, shakeRef, openWorld) {
     const {x: px, y: py} = useGameStore.getState().player;
     console.log('🎮 Spawning test boss!');
-
-    if (bosses.length > 0) {
-        console.log('Boss already exists!');
-        return;
-    }
 
     const {spawnBoss} = await import('./controllers/createBossController.js');
     const bossX = px + 300;
@@ -394,7 +387,6 @@ function updateMinimap(minimap, px, py, input, world, mouseWorld) {
 function updateAutoSave(store, px, py, saveTimer) {
     if (saveTimer >= 30) {  // Changed from 60 to 500 for less spam
         store.updatePlayerPosition(px, py);
-        console.log(`player pos ${px} ${py}`)
         return 0;  // Reset timer
     }
 }
