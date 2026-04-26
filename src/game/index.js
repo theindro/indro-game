@@ -206,7 +206,6 @@ export async function createGame() {
 
     // Abilities
     window.addEventListener('keydown', (e) => {
-        const store = useGameStore.getState();
         const key = e.key;
 
         switch(key) {
@@ -217,12 +216,10 @@ export async function createGame() {
                 combat.useRapidFire(px, py, mouseWorld.x, mouseWorld.y);
                 break;
             case '3':
-                store.useAbility(3, Date.now());
                 console.log('Ability 3 used!');
                 break;
             case '4':
-                store.useAbility(4, Date.now());
-                console.log('Ability 4 used!');
+                combat.useFrostArrow(px, py, mouseWorld.x, mouseWorld.y);
                 break;
         }
     });
@@ -264,6 +261,10 @@ export async function createGame() {
         // Update shoot cooldown
         if (shootCooldown > 0) {
             shootCooldown--;
+        }
+
+        if (combat.updateFreezeTimers) {
+            combat.updateFreezeTimers(deltaTime);
         }
 
         // Shooting

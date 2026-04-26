@@ -134,12 +134,20 @@ export const useGameStore = create((set, get) => ({
         },
         // Ability 4 (R/4)
         ability4: {
-            name: 'Ragnarok',
-            icon: '🔥',
+            name: 'Frost Arrow',
+            icon: '❄️',
             cooldownEnd: 0,
-            maxCooldown: 500, // 5 seconds at 60fps
+            maxCooldown: 600, // 10 seconds at 60fps
             level: 1,
-            description: 'Ultimate: Massive damage to all enemies'
+            description: 'Launches a massive frost arrow that explodes and freezes enemies',
+            stats: {
+                damageMultiplier: 2.5,
+                explosionRadius: 180,
+                freezeDuration: 3000, // 3 seconds at 60fps
+                slowAmount: 0.6, // 60% slow
+                arrowCount: 1,
+                projectileSpeed: 8
+            }
         },
     },
 

@@ -4,8 +4,12 @@ import {showFloat} from './floatText.js';
 import {BOSS_RADIUS, HEART_COLOR, BIOME_COLORS} from './constants.js';
 import {audioManager} from "./utils/audioManager.js";
 import {useGameStore} from "../stores/gameStore.js";
-import {Graphics} from 'pixi.js';
+import {Container, Graphics} from 'pixi.js';
 import {DropManager} from './utils/dropManager.js';
+import {useFrostArrow} from "./abilities/FrostArrow.js";
+import {AbilityManager} from "./abilities/AbilityManager.js";
+import {useArrowBarrage} from "./abilities/ArrowBarrage.js";
+import {useRapidFire} from "./abilities/RapidFire.js";
 
 /**
  * @param {object} ctx - shared references passed in once at setup
@@ -20,6 +24,9 @@ export function createCombatSystem(ctx) {
 
     // In createCombatSystem function, add:
     const dropManager = new DropManager(world, openWorld.entityLayer );
+
+    // Create ability manager instance
+    const abilityManager = new AbilityManager(ctx);
 
     // ─────────────────────────────
     // Helper: Find nearest mob NOT already hit
@@ -417,196 +424,38 @@ export function createCombatSystem(ctx) {
         }
     }
 
-    // ─────────────────────────────
-    // ABILITY 1: Arrow Barrage
-    // ─────────────────────────────
-    function useArrowBarrage(px, py, targetX, targetY) {
-        const store = useGameStore.getState();
-        const stats = store.player.stats;
-        const ability = store.abilities.ability1;
 
-        const now = performance.now();
-
-        // ✅ Check cooldown using time
-        if (now < ability.cooldownEnd) {
-            console.log(`⏱️ Arrow Barrage on cooldown!`, ability.cooldownEnd);
-            return false;
-        }
-
-        // Find nearest enemy
-        let nearestEnemy = findNearestTarget(px, py);
-
-        // Use the ability (sets cooldown)
-        store.useAbility(1, now);
-
-        // Calculate arrow parameters
-        const arrowCount = ability.arrowCount + Math.floor(ability.level / 2);
-        const spread = ability.arrowSpread - (ability.level * 0.02);
-        const damageMult = ability.damageMultiplier + (ability.level * 0.05);
-
-        console.log(`💥 Arrow Barrage! ${arrowCount} arrows at ${nearestEnemy.type}!`);
-
-        // Visual effect at player position
-        burst(world, particles, px, py, 0x88aaff, 20, 3);
-
-        // Calculate angle to target
-        const angleToTarget = Math.atan2(targetY - py, targetX - px);
-
-        // Create barrage of arrows
-        for (let i = 0; i < arrowCount; i++) {
-            const spreadOffset = (i - (arrowCount - 1) / 2) * spread;
-            const randomOffset = (Math.random() - 0.5) * 0.1;
-            const angle = angleToTarget + spreadOffset + randomOffset;
-
-            const speed = 6;
-            const vx = Math.cos(angle) * speed;
-            const vy = Math.sin(angle) * speed;
-
-            const chainData = {
-                chainRemaining: 0,
-                chainHitMobs: new Set(),
-                damage: stats.damage * damageMult,
-                isBarrageArrow: true
-            };
-
-            // Random offset for start position
-            const startX = px + (Math.random() - 0.5) * 20;
-            const startY = py + (Math.random() - 0.5) * 20;
-
-            const arrow = createArrow(world, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.LIGHTNING);
-            arrow.vx = vx;
-            arrow.vy = vy;
-            arrow.life = 120;
-
-            arrows.push(arrow);
-        }
-
-  
-        return true;
+    // Update freeze timers
+    function updateFreezeTimers() {
+        abilityManager.updateFreezeTimers();
     }
 
-    // ─────────────────────────────
-    // ABILITY 2: Rapid Fire
-    // ─────────────────────────────
-    function useRapidFire(px, py, targetX, targetY) {
-        const store = useGameStore.getState();
-        const stats = store.player.stats;
-        const ability = store.abilities.ability2;
 
-        const now = performance.now();
-
-        // ✅ Check cooldown using time
-        if (now < ability.cooldownEnd) {
-            console.log(`⏱️ Rapid Fire on cooldown!`);
-            return false;
-        }
-
-        // Find nearest enemy
-        let nearestEnemy = findNearestTarget(px,py);
-
-        // Use the ability (sets cooldown)
-        store.useAbility(2, now);
-
-        // Calculate arrow parameters
-        const arrowCount = ability.arrowCount + Math.floor(ability.level / 2);
-        const damageMult = ability.damageMultiplier + (ability.level * 0.05);
-        const fireDelay = ability.fireDelay || 3; // Frames between shots (3 frames = 20 shots per second at 60fps)
-
-        console.log(`💥 Rapid Fire! ${arrowCount} arrows at ${nearestEnemy.type}!`);
-
-        // Visual effect - muzzle flash at player position
-        burst(world, particles, px, py, 0xffaa44, 5, 2);
-
-        // Calculate angle to target
-        const angleToTarget = Math.atan2(targetY - py, targetX - px);
-
-        // Track how many arrows have been fired
-        let arrowsFired = 0;
-
-        // Create arrows with delay between them
-        function fireNextArrow() {
-            if (arrowsFired >= arrowCount) return;
-
-            const i = arrowsFired;
-
-            // Small random spread for rapid fire (less accurate than barrage)
-            const spread = 0.08;
-            const randomOffset = (Math.random() - 0.5) * spread;
-            const angle = angleToTarget + randomOffset;
-
-            // Calculate velocity (slightly faster than normal arrows)
-            const speed = 2;
-            const vx = Math.cos(angle) * speed;
-            const vy = Math.sin(angle) * speed;
-
-            const chainData = {
-                chainRemaining: 0,
-                chainHitMobs: new Set(),
-                damage: stats.damage * damageMult,
-                isRapidFireArrow: true
-            };
-
-            // Calculate start position (slightly in front of player)
-            const startX = px + Math.cos(angleToTarget) * 20 + (Math.random() - 0.5) * 15;
-            const startY = py + Math.sin(angleToTarget) * 20 + (Math.random() - 0.5) * 15;
-
-            const arrow = createArrow(world, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.POISON);
-            arrow.vx = vx;
-            arrow.vy = vy;
-            arrow.life = 100;
-
-            arrows.push(arrow);
-
-            arrowsFired++;
-
-            // Fire next arrow after delay
-            setTimeout(() => fireNextArrow(), fireDelay * 16.67); // Convert frames to ms (approx)
-        }
-
-        // Start firing
-        fireNextArrow();
-
-        // Impact effect sound at target (play once)
-        setTimeout(() => {
-            audioManager.playSFX('/sounds/rapid-fire-impact.ogg', 0.4);
-            burst(world, particles, nearestEnemy.x, nearestEnemy.y, 0xffaa66, 10, 2);
-        }, arrowCount * fireDelay * 16.67 / 2);
-
-        return true;
+    // Wrapper functions that pass ctx to abilities
+    function useArrowBarrageWrapper(px, py, targetX, targetY) {
+        const abilityCtx = { ...ctx, arrows, abilityManager };
+        return useArrowBarrage(abilityCtx, px, py, targetX, targetY);
     }
 
-    function findNearestTarget(px, py) {
-        let nearestEnemy = null;
-        let nearestDist = Infinity;
-
-        // Check mobs
-        for (const mob of mobs) {
-            if (mob.hp <= 0) continue;
-            const dist = Math.hypot(mob.x - px, mob.y - py);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearestEnemy = { type: 'mob', target: mob, x: mob.x, y: mob.y };
-            }
-        }
-
-        // Check bosses
-        for (const boss of bosses) {
-            if (boss.dead) continue;
-            const dist = Math.hypot(boss.x - px, boss.y - py);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearestEnemy = { type: 'boss', target: boss, x: boss.x, y: boss.y };
-            }
-        }
-
-        if (!nearestEnemy) {
-            console.log("❌ No enemies nearby for Arrow Barrage!");
-            return false;
-        }
-
-        return nearestEnemy;
+    function useRapidFireWrapper(px, py, targetX, targetY) {
+        const abilityCtx = { ...ctx, arrows, abilityManager };
+        return useRapidFire(abilityCtx, px, py, targetX, targetY);
     }
 
-    return {tryShoot, updateArrows, updateEnemyProjs, updateDrops, useArrowBarrage, useRapidFire};
+    function useFrostArrowWrapper(px, py, targetX, targetY) {
+        const abilityCtx = { ...ctx, arrows, mobs, bosses, abilityManager };
+        return useFrostArrow(abilityCtx, px, py, targetX, targetY);
+    }
+
+    return {
+        tryShoot,
+        updateArrows,
+        updateEnemyProjs,
+        updateDrops,
+        updateFreezeTimers,
+        useArrowBarrage: useArrowBarrageWrapper,
+        useRapidFire: useRapidFireWrapper,
+        useFrostArrow: useFrostArrowWrapper
+    };
 }
 
