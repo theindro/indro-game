@@ -39,7 +39,7 @@ export const BIOME_COLORS = {
         tint: '',
     },
     desert: {
-        base: 0xb8843a,
+        base: '#855655',
         accent: 0xd4a055,
         tint: 0xddbb88,
         props: false

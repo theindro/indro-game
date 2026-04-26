@@ -72,7 +72,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
     }
 
     arrowContainer.rotation = angle;
-    world.addChild(arrowContainer);
+    openWorld.entityLayer.addChild(arrowContainer);
 
     let arrowLife = 100;
     let arrowX = px, arrowY = py;
@@ -81,7 +81,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
     function cleanupExplosion(elements) {
         for (const element of elements) {
             if (element && !element.destroyed) {
-                world.removeChild(element);
+                openWorld.entityLayer.removeChild(element);
                 element.destroy();
             }
         }
@@ -92,7 +92,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
         explosionDone = true;
 
         // Remove arrow
-        world.removeChild(arrowContainer);
+        openWorld.entityLayer.removeChild(arrowContainer);
         arrowContainer.destroy();
 
         // Create explosion ring
@@ -100,7 +100,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
         explosionRing.circle(0, 0, explosionRadius).stroke({ color: 0xaaddff, width: 4, alpha: 0.8 });
         explosionRing.x = x;
         explosionRing.y = y;
-        world.addChild(explosionRing);
+        openWorld.entityLayer.addChild(explosionRing);
 
         let scale = 1;
         function animateExplosion() {
@@ -109,7 +109,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
             explosionRing.scale.set(scale);
             explosionRing.alpha -= 0.05;
             if (explosionRing.alpha <= 0) {
-                world.removeChild(explosionRing);
+                openWorld.entityLayer.removeChild(explosionRing);
                 explosionRing.destroy();
             } else {
                 requestAnimationFrame(animateExplosion);
@@ -127,8 +127,8 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
             const spike = new Graphics();
             spike.moveTo(x, y);
             spike.lineTo(x + Math.cos(spikeAngle) * explosionRadius, y + Math.sin(spikeAngle) * explosionRadius);
-            spike.stroke({ color: 0x88ccff, width: 3, alpha: 0.7 });
-            world.addChild(spike);
+            spike.stroke({ color: 0x88ccff, width: 3, alpha: 0.2 });
+            openWorld.entityLayer.addChild(spike);
             spikes.push(spike);
         }
 
@@ -136,7 +136,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
         setTimeout(() => {
             for (const spike of spikes) {
                 if (spike && !spike.destroyed) {
-                    world.removeChild(spike);
+                    openWorld.entityLayer.removeChild(spike);
                     spike.destroy();
                 }
             }
@@ -187,7 +187,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
         frostGround.circle(0, 0, explosionRadius).fill({ color: 0x88ccff, alpha: 0.15 });
         frostGround.x = x;
         frostGround.y = y;
-        world.addChild(frostGround);
+        openWorld.entityLayer.addChild(frostGround);
 
         // Fade out ground effect
         let fadeAlpha = 1;
@@ -196,7 +196,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
             fadeAlpha -= 0.05;
             frostGround.alpha = fadeAlpha;
             if (fadeAlpha <= 0) {
-                world.removeChild(frostGround);
+                openWorld.entityLayer.removeChild(frostGround);
                 frostGround.destroy();
             } else {
                 requestAnimationFrame(fadeFrostGround);

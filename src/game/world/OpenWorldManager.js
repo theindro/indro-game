@@ -4,6 +4,7 @@ import {spawnMob} from '../controllers/createMobController.js';
 import {MOB_RADIUS, BIOME_COLORS} from '../constants.js';
 import {PropManager} from "../props.js";
 import {useGameStore} from "../../stores/gameStore.js";
+import * as PIXI from 'pixi.js';
 
 export class OpenWorldManager {
     constructor(world, colliders) {
@@ -69,9 +70,8 @@ export class OpenWorldManager {
         this.world.addChild(this.propLayer);
 
         // For debug
-        this.lastDebugTime = 0;
-        this.debugInterval = 5000;
-
+        this._debugTimer = 0;
+        this._debugInterval = 5000; // 5 seconds
     }
 
     setEntitiesList(entities) {
@@ -367,6 +367,8 @@ export class OpenWorldManager {
             };
             const weather = weatherConfig[newBiome] || { type: '☀️ Clear', intensity: 0, color: '#ffffff' };
 
+            this.debugCountScene();
+
             // Optional: More compact single-line log
             console.log(`📊 [CHUNK ${centerChunkX},${centerChunkZ}] Biome: ${newBiome} | Mobs: ${mobCount} | Weather: ${weather.type}`);
 
@@ -489,35 +491,52 @@ export class OpenWorldManager {
         this.loadedChunks.delete(key);
     }
 
-    debugCountScene() {
-        let totalContainers = 0;
-        let totalSprites = 0;
-        let totalGraphics = 0;
-        let totalChildren = 0;
 
-        const walk = (obj) => {
-            if (!obj) return;
+    debugCountScene(openWorld) {
+        let stats = {
+            containers: 0,
+            sprites: 0,
+            graphics: 0,
+            text: 0,
+            other: 0,
+            totalNodes: 0,
+            maxDepth: 0
+        };
 
-            if (obj.children) {
-                totalContainers++;
-                totalChildren += obj.children.length;
+        const roots = [
+            this.world,
+        ];
 
+        const visited = new Set(); // prevents double counting
+
+        const walk = (obj, depth = 0) => {
+            if (!obj || visited.has(obj)) return;
+            visited.add(obj);
+
+            stats.totalNodes++;
+            stats.maxDepth = Math.max(stats.maxDepth, depth);
+
+            const name = obj.constructor.name;
+
+            if (name === 'Container') stats.containers++;
+            else if (name === 'Sprite') stats.sprites++;
+            else if (name === 'Graphics') stats.graphics++;
+            else if (name === 'Text') stats.text++;
+            else stats.other++;
+
+            if (obj.children && obj.children.length) {
                 for (const child of obj.children) {
-                    if (child instanceof Sprite) totalSprites++;
-                    else if (child instanceof Graphics) totalGraphics++;
-
-                    walk(child);
+                    walk(child, depth + 1);
                 }
             }
         };
 
-        walk(this.world);
+        for (const root of roots) {
+            walk(root);
+        }
 
-        console.log('=== SCENE DEBUG ===');
-        console.log('Containers:', totalContainers);
-        console.log('Sprites:', totalSprites);
-        console.log('Graphics:', totalGraphics);
-        console.log('Total children refs:', totalChildren);
+        console.log("=== FULL SCENE (ALL ROOTS) ===");
+        console.table(stats);
     }
 
     async loadChunk(chunkX, chunkZ, playerX, playerZ) {

@@ -48,12 +48,23 @@ export class PropManager {
         const data = this.activeChunks.get(key);
         if (!data) return;
 
-        if (data.container) {
-            data.container.destroy({ children: true });
-        }
+        const safeRemove = (obj) => {
+            if (!obj) return;
 
-        if (data.shadowContainer) {
-            data.shadowContainer.destroy({ children: true });
+            if (obj.parent) {
+                obj.parent.removeChild(obj);
+            }
+
+            obj.destroy({ children: true });
+        };
+
+        safeRemove(data.container);
+        safeRemove(data.shadowContainer);
+
+        const chunkCols = this.chunkColliders.get(key);
+
+        if (chunkCols) {
+            this.colliders = this.colliders.filter(c => !chunkCols.includes(c));
         }
 
         this.activeChunks.delete(key);
@@ -158,32 +169,48 @@ export class PropManager {
                 }
             }
 
+            propVisual.anchor.set(0.5, 1);
             propVisual.x = x;
             propVisual.y = z;
 
             propVisual.zIndex = z;
-            
+
             container.addChild(propVisual);
 
             // Add shadow
             if (this.shadowLayer && propVisual instanceof Sprite) {
                 const shadow = new Sprite(propVisual.texture);
-                shadow.anchor.set(0.5, 0.6);
+
+                shadow.anchor.set(0.5, 0.5);
+
+                shadow.x = propVisual.x;
+                shadow.y = propVisual.y;
+
                 shadow.scale.set(scale, -scale);
+
                 shadow.tint = 0x000000;
                 shadow.alpha = 0.15;
-                shadow.x = x - 5;
-                shadow.y = z + (propVisual.height * scale * 0.5);
+
+
                 shadowContainer.addChild(shadow);
             }
 
             // ✅ FIX 3: Create collider synchronously
             if (propType.collision) {
+                const scale = 0.85; // 85% of visual size
+
+                const baseWidth = Math.max(20, propVisual.width || 30);
+                const baseHeight = Math.max(20, propVisual.height || 30);
+
+                const width = baseWidth * scale;
+                const height = baseHeight * scale;
+
+                // keep bottom aligned at z
                 const collider = {
                     x: x,
-                    y: z,
-                    width: Math.max(20, propVisual.width || 30),
-                    height: Math.max(20, propVisual.height || 30),
+                    y: z - height / 2,
+                    width,
+                    height,
                     collision: true,
                     type: 'prop',
                     propType: propType.type,

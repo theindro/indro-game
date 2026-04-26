@@ -4,7 +4,7 @@ import { burst } from '../particles.js';
 import {useGameStore} from "../../stores/gameStore.js";
 
 export function useArrowBarrage(ctx, px, py, targetX, targetY) {
-    const { world, particles, arrows, shakeRef } = ctx;
+    const { world, particles, arrows, openWorld } = ctx;
     const store = useGameStore.getState();
     const stats = store.player.stats;
     const ability = store.abilities.ability1;
@@ -21,7 +21,7 @@ export function useArrowBarrage(ctx, px, py, targetX, targetY) {
     const spread = ability.arrowSpread - (ability.level * 0.02);
     const damageMult = ability.damageMultiplier + (ability.level * 0.05);
 
-    burst(world, particles, px, py, 0x88aaff, 20, 3);
+    burst(openWorld.entityLayer, particles, px, py, 0x88aaff, 20, 3);
 
     const angleToTarget = Math.atan2(targetY - py, targetX - px);
 
@@ -43,7 +43,7 @@ export function useArrowBarrage(ctx, px, py, targetX, targetY) {
         const startX = px + (Math.random() - 0.5) * 20;
         const startY = py + (Math.random() - 0.5) * 20;
 
-        const arrow = createArrow(world, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.LIGHTNING);
+        const arrow = createArrow(openWorld.entityLayer, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.LIGHTNING);
         arrow.vx = vx;
         arrow.vy = vy;
         arrow.life = 120;

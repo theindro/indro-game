@@ -3,7 +3,7 @@ export const PROP_TYPES = {
     // Stone has multiple variants
     STONE: {
         name: 'stone',
-        variants: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5', 'stone6'],
+        variants: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5', 'stone6', 'stone7', 'stone8'],
         collision: true,
         collisionType: 'auto',
         minDistance: 500,  // Stones can be closer together
@@ -13,13 +13,13 @@ export const PROP_TYPES = {
     },
     BIG_STONE: {
         name: 'big_stone',
-        variants: ['stone1'],
+        variants: [],
         collision: true,
         collisionType: 'auto',
         minDistance: 50,
         margin: 0.8,
         damageOnTouch: 0,
-        scaleRange: { min: 0.6, max: 0.7 }
+        scaleRange: { min: 0.5, max: 0.7 }
     },
     TREE: {
         name: 'tree',
@@ -77,8 +77,7 @@ export const BIOME_PROP_CONFIG = {
     desert: {
         density: 0.5,  // Root level
         props: [
-            { type: 'STONE', weight: 30 },
-            { type: 'BUSH', weight: 20 }
+            { type: 'STONE', weight: 100 },
         ]
     },
     ice: {

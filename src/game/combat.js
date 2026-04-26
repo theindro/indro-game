@@ -20,6 +20,8 @@ export function createCombatSystem(ctx) {
         shakeRef, bossActiveRef, openWorld
     } = ctx;
 
+    const entityLayer = openWorld.entityLayer;
+
     const {mobs, bosses, arrows, enemyProjs, drops} = entities;
 
     // In createCombatSystem function, add:
@@ -61,7 +63,7 @@ export function createCombatSystem(ctx) {
         line.lineTo(toX - fromX, toY - fromY);
         line.stroke({color: "white", width: 3, alpha: 0.8});
         line.position.set(fromX, fromY);
-        world.addChild(line);
+        entityLayer.addChild(line);
 
         // Fade and remove
         let alpha = 1;
@@ -70,7 +72,7 @@ export function createCombatSystem(ctx) {
             line.alpha = alpha;
             if (alpha <= 0) {
                 clearInterval(interval);
-                world.removeChild(line);
+                entityLayer.removeChild(line);
             }
         }, 50);
     }
@@ -93,7 +95,7 @@ export function createCombatSystem(ctx) {
                 chainDamageMultiplier: stats.chainDamage
             };
 
-            arrows.push(createArrow(world, px, py, tx, ty, spread, chainData));
+            arrows.push(createArrow(entityLayer, px, py, tx, ty, spread, chainData));
         }
     }
 
@@ -111,7 +113,7 @@ export function createCombatSystem(ctx) {
             a.life--;
 
             if (a.life <= 0 || !openWorld.isInsideWorld(a.c.x, a.c.y)) {
-                world.removeChild(a.c);
+                entityLayer.removeChild(a.c);
                 arrows.splice(ai, 1);
                 continue;
             }
@@ -146,7 +148,7 @@ export function createCombatSystem(ctx) {
                     if (distSq < arrowRadius * arrowRadius) {
                         // Arrow hit collider
                         burst(world, particles, a.c.x, a.c.y, 0xaaaaaa, 5, 2);
-                        world.removeChild(a.c);
+                        entityLayer.removeChild(a.c);
                         arrows.splice(ai, 1);
                         hit = true;
                         break;
@@ -185,7 +187,7 @@ export function createCombatSystem(ctx) {
                 // Visual effects based on crit
                 const hitColor = isCrit ? 0xffaa00 : 0xff4466;
                 const particleCount = isCrit ? 12 : 7;
-                burst(world, particles, m.x, m.y, hitColor, particleCount);
+                burst(entityLayer, particles, m.x, m.y, hitColor, particleCount);
 
                 // Show damage text with crit indicator
                 const damageText = isCrit ? `-${finalDamage} CRIT!` : `-${finalDamage}`;
@@ -240,20 +242,20 @@ export function createCombatSystem(ctx) {
                     }
                 }
 
-                world.removeChild(a.c);
+                entityLayer.removeChild(a.c);
                 arrows.splice(ai, 1);
                 hit = true;
 
                 if (m.hp <= 0) {
-                    burst(world, particles, m.x, m.y, 0xffd700, 14, 4);
-                    burst(world, particles, m.x, m.y, 0xff4466, 8, 3);
+                    burst(entityLayer, particles, m.x, m.y, 0xffd700, 14, 4);
+                    burst(entityLayer, particles, m.x, m.y, 0xff4466, 8, 3);
                     shakeRef.value = Math.max(shakeRef.value, 6);
 
                     useGameStore.getState().addKills(1);
 
                     // Spawn drops using drop manager
                     const isElite = m.type === 'elite';
-                    const newDrops = dropManager.spawnDrops(world, m.x, m.y, isElite ? 'elite' : 'default', false);
+                    const newDrops = dropManager.spawnDrops(entityLayer, m.x, m.y, isElite ? 'elite' : 'default', false);
                     drops.push(...newDrops);
 
                     openWorld.entityLayer.removeChild(m.c);
@@ -278,13 +280,13 @@ export function createCombatSystem(ctx) {
                 b.hp -= finalDamage;
                 const biomeCol = BIOME_COLORS[b.type]?.glow ?? 0x00ccff;
                 const hitColor = isCrit ? 0xffaa00 : biomeCol;
-                burst(world, particles, b.x, b.y, hitColor, isCrit ? 15 : 10, 3.5);
+                burst(entityLayer, particles, b.x, b.y, hitColor, isCrit ? 15 : 10, 3.5);
 
                 const damageText = isCrit ? `-${finalDamage} CRIT!` : `-${finalDamage}`;
                 const textColor = isCrit ? '#ffaa00' : '#ffffff';
                 showFloat(floats, b.x, b.y - 60, damageText, textColor);
 
-                world.removeChild(a.c);
+                entityLayer.removeChild(a.c);
                 arrows.splice(ai, 1);
                 hit = true;
 
@@ -296,18 +298,18 @@ export function createCombatSystem(ctx) {
                 if (b.hp <= 0) {
                     b.dead = true;
 
-                    burst(world, particles, b.x, b.y, biomeCol, 50, 6);
+                    burst(entityLayer, particles, b.x, b.y, biomeCol, 50, 6);
 
-                    burst(world, particles, b.x, b.y, 0xffd700, 30, 5);
+                    burst(entityLayer, particles, b.x, b.y, 0xffd700, 30, 5);
 
                     shakeRef.value = 18;
 
                     // Spawn boss drops
-                    const bossDrops = dropManager.spawnDrops(world, b.x, b.y, 'default', true);
+                    const bossDrops = dropManager.spawnDrops(entityLayer, b.x, b.y, 'default', true);
 
                     drops.push(...bossDrops);
 
-                    world.removeChild(b.c);
+                    entityLayer.removeChild(b.c);
 
                     showFloat(floats, b.x, b.y - 90, 'BOSS DEFEATED!', '#ffd700');
 
@@ -350,7 +352,7 @@ export function createCombatSystem(ctx) {
 
                         if (dist < (collider.r || 10) + projRadius) {
                             // Projectile hit a prop - create impact effect and remove projectile
-                            burst(world, particles, ep.c.x, ep.c.y, 0xff6666, 6, 2);
+                            burst(entityLayer, particles, ep.c.x, ep.c.y, 0xff6666, 6, 2);
                             // Remove from its parent
                             if (ep.c.parent) {
                                 ep.c.parent.removeChild(ep.c);
@@ -399,7 +401,7 @@ export function createCombatSystem(ctx) {
             if (ddist < 22) {
                 if (d.type === 'hp') {
                     useGameStore.getState().healPlayer(d.amount || 20);
-                    burst(world, particles, d.container.x, d.container.y, 0xff2255, 6, 2);
+                    burst(entityLayer, particles, d.container.x, d.container.y, 0xff2255, 6, 2);
                     showFloat(floats, d.container.x, d.container.y, `+${d.amount || 20} HP`, '#ff2255');
                 }
                 else if (d.type === 'gold') {

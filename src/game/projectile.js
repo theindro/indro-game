@@ -214,7 +214,7 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 2.8, siz
     const dy = py - ey;
     const baseAngle = Math.atan2(dy, dx) + angleOffset;
     const sv = spd * GS;
-    
+
     // Store animation data
     c.userData = {
         elementalType,

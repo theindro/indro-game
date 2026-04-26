@@ -4,7 +4,7 @@ import {ARROW_TYPES, createArrow} from "../projectile.js";
 import {audioManager} from "../utils/audioManager.js";
 
 export function useRapidFire(ctx, px, py, targetX, targetY) {
-    const { world, arrows} = ctx;
+    const { world, arrows, openWorld} = ctx;
     const store = useGameStore.getState();
     const stats = store.player.stats;
     const ability = store.abilities.ability2;
@@ -62,7 +62,7 @@ export function useRapidFire(ctx, px, py, targetX, targetY) {
         const startX = px + Math.cos(angleToTarget) * 20 + (Math.random() - 0.5) * 15;
         const startY = py + Math.sin(angleToTarget) * 20 + (Math.random() - 0.5) * 15;
 
-        const arrow = createArrow(world, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.POISON);
+        const arrow = createArrow(openWorld.entityLayer, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.POISON);
         arrow.vx = vx;
         arrow.vy = vy;
         arrow.life = 100;
