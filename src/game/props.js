@@ -48,23 +48,12 @@ export class PropManager {
         const data = this.activeChunks.get(key);
         if (!data) return;
 
-        // remove visuals
         if (data.container) {
             data.container.destroy({ children: true });
         }
+
         if (data.shadowContainer) {
             data.shadowContainer.destroy({ children: true });
-        }
-
-        // remove colliders from main array
-        const colliders = this.chunkColliders.get(key);
-        if (colliders && this.colliders) {
-            for (const collider of colliders) {
-                const index = this.colliders.indexOf(collider);
-                if (index > -1) {
-                    this.colliders.splice(index, 1);
-                }
-            }
         }
 
         this.activeChunks.delete(key);

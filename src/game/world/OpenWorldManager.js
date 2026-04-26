@@ -67,6 +67,11 @@ export class OpenWorldManager {
         this.world.addChild(this.entityLayer);
         this.world.addChild(this.shadowLayer);
         this.world.addChild(this.propLayer);
+
+        // For debug
+        this.lastDebugTime = 0;
+        this.debugInterval = 5000;
+
     }
 
     setEntitiesList(entities) {
@@ -446,14 +451,18 @@ export class OpenWorldManager {
             }
         }
     }
+
     async unloadChunk(key) {
         const chunk = this.loadedChunks.get(key);
         if (!chunk) return;
 
-        // 1. remove ground
-        this.groundLayer.removeChild(chunk);
+        // GROUND ONLY
+        if (chunk.ground) {
+            this.groundLayer.removeChild(chunk.ground);
+            chunk.ground.destroy({ children: true });
+        }
 
-        // 3. remove props
+        // PROPS + SHADOWS HANDLED HERE ONLY
         this.propManager.unloadChunkProps(key);
 
         // 4. remove mobs and antities
@@ -461,18 +470,54 @@ export class OpenWorldManager {
 
         if (entities) {
             for (const mob of entities.mobs) {
-                if (mob.c) {
-                    mob.c.visible = false;
+
+                // 1. remove from global active list
+                const index = this.entitiesList?.mobs?.indexOf(mob);
+                if (index > -1) {
+                    this.entitiesList.mobs.splice(index, 1);
                 }
-                // Remove from active mobs list
-                const mobIndex = this.entitiesList.mobs.indexOf(mob);
-                if (mobIndex > -1) {
-                    this.entitiesList.mobs.splice(mobIndex, 1);
-                }
+
+                // 2. destroy visual
+                mob.c?.destroy?.();
+
+                // 3. kill controller reference (IMPORTANT)
+                mob.controller = null;
             }
         }
 
+        this.spawnedEntities.delete(key);
         this.loadedChunks.delete(key);
+    }
+
+    debugCountScene() {
+        let totalContainers = 0;
+        let totalSprites = 0;
+        let totalGraphics = 0;
+        let totalChildren = 0;
+
+        const walk = (obj) => {
+            if (!obj) return;
+
+            if (obj.children) {
+                totalContainers++;
+                totalChildren += obj.children.length;
+
+                for (const child of obj.children) {
+                    if (child instanceof Sprite) totalSprites++;
+                    else if (child instanceof Graphics) totalGraphics++;
+
+                    walk(child);
+                }
+            }
+        };
+
+        walk(this.world);
+
+        console.log('=== SCENE DEBUG ===');
+        console.log('Containers:', totalContainers);
+        console.log('Sprites:', totalSprites);
+        console.log('Graphics:', totalGraphics);
+        console.log('Total children refs:', totalChildren);
     }
 
     async loadChunk(chunkX, chunkZ, playerX, playerZ) {
@@ -482,6 +527,7 @@ export class OpenWorldManager {
         if (this.loadedChunks.has(key)) {
             return;
         }
+
 
         const chunk = await this.generateChunk(chunkX, chunkZ);
 

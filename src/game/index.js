@@ -42,9 +42,10 @@ export async function createGame() {
     // In createGame, after creating weather system:
     const weatherSystem = new WeatherSystem(app.stage, app);
 
-// add directly to stage, not world
+    // add directly to stage, not world
     app.stage.addChild(weatherSystem.container);
     app.stage.setChildIndex(weatherSystem.container, app.stage.children.length - 1);
+
 
     createDevTool(useGameStore);
 
