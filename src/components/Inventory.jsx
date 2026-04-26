@@ -14,9 +14,12 @@ const {Text, Title} = Typography;
 export default function Inventory() {
     const [isOpen, setIsOpen] = useState(false);
     const [messageApi, contextHolder] = message.useMessage();
-    const {inventory, equipItem, sellItem, unequipItem} = useGameStore();
-    const gold = useGameStore(state => state.player?.gold);
-    const player = useGameStore(state => state.player);
+    const inventory = useGameStore((state) => state.inventory);
+    const equipItem = useGameStore((state) => state.equipItem);
+    const sellItem = useGameStore((state) => state.sellItem);
+    const unequipItem = useGameStore((state) => state.unequipItem);
+
+    console.log(inventory);
 
     const handleKeyPress = (e) => {
         if (e.key === 'i' || e.key === 'I') {
@@ -46,9 +49,9 @@ export default function Inventory() {
         { key: 'pants', label: 'Pants', icon: '', row: 2, col: 1 },
         { key: '632', label: '', icon: '', row: 2, col: 2 },
         // Row 4
-        { key: '12312', label: '', icon: '', row: 2, col: 0 },
+        { key: 'amulet', label: 'Amulet', icon: '', row: 2, col: 0 },
         { key: 'boots', label: 'Boots', icon: '', row: 2, col: 1 },
-        { key: '123122', label: '', icon: '', row: 2, col: 2 },
+        { key: 'ring', label: 'Ring', icon: '', row: 2, col: 2 },
     ];
 
 
@@ -165,6 +168,8 @@ export default function Inventory() {
 
         return null;
     };
+
+    console.log('rerenderrr inventory')
 
     const inventoryItems = inventory?.slots || [];
 

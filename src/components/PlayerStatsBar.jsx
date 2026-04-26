@@ -181,15 +181,6 @@ export default function AbilityBar() {
     const useAbility = useGameStore(state => state.useAbility);
 
     const [activeAbility, setActiveAbility] = useState(null);
-    const [, forceUpdate] = useState({});
-
-    // Force re-render every second for cooldown display
-    useEffect(() => {
-        const interval = setInterval(() => {
-            forceUpdate({});
-        }, 200);
-        return () => clearInterval(interval);
-    }, []);
 
     const hpPercent = ((playerHp || 0) / (playerMaxHp || 100)) * 100;
     const xpPercent = ((playerXP || 0) / (playerXPNext || 100)) * 100;
@@ -208,6 +199,8 @@ export default function AbilityBar() {
         3: ability3,
         4: ability4,
     };
+
+    console.log('rerender stats');
 
     const cooldownPercents = {
         1: getAbilityCooldownPercent?.(1) || 0,

@@ -212,7 +212,6 @@ export const useGameStore = create((set, get) => ({
     },
 
     addKills: (amount) => {
-        console.log(`Killed ${amount} mob`);
         set(state => ({
             ...state,
             kills: state.kills + amount
@@ -316,8 +315,6 @@ export const useGameStore = create((set, get) => ({
         let bonusProjectiles = 0;
         let bonusDodge = 0;
 
-        console.log('here');
-
         Object.values(state.inventory.equipment).forEach(item => {
             if (item && item.stats) {
                 bonusDamage += item.stats.damage || 0;
@@ -392,6 +389,8 @@ export const useGameStore = create((set, get) => ({
             console.log("Inventory full, cannot unequip");
             return false;
         }
+
+        console.log(`equipped ${slotKey}`);
 
         // Remove from equipment
         const newEquipment = { ...state.inventory.equipment };

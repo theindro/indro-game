@@ -24,7 +24,7 @@ export class OpenWorldManager {
         };
         this.entitiesList = null;
         this.initialized = false;
-        this.worldSeed = 5021;
+        this.worldSeed = Math.floor(Math.random() * 1000000);
 
         this.config = {
             biomeScale: 0.006,

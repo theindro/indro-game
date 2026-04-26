@@ -15,31 +15,16 @@ const { Title, Text } = Typography;
 
 export default function DeathScreen() {
     const [isOpen, setIsOpen] = useState(false);
-    const gameState = useGameStore(state => state.gameState);
-    const player = useGameStore(state => state.player);
+    const isDead = useGameStore(state => state.gameState.dead);
     const inventory = useGameStore(state => state.inventory);
     const kills = useGameStore(state => state.kills);
-    const resetGame = useGameStore(state => state.resetGame);
-    const setDead = useGameStore(state => state.setDead);
 
     // Track playtime (optional)
     const [playTime, setPlayTime] = useState(0);
 
     useEffect(() => {
-        // Start timer when game starts
-        const startTime = Date.now();
-        const timer = setInterval(() => {
-            if (!gameState?.dead) {
-                setPlayTime(Math.floor((Date.now() - startTime) / 1000));
-            }
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, []);
-
-    useEffect(() => {
-        setIsOpen(gameState?.dead || false);
-    }, [gameState?.dead]);
+        setIsOpen(isDead);
+    }, [isDead]);
 
     const handleQuit = () => {
         window.location.href = '/';
@@ -50,6 +35,8 @@ export default function DeathScreen() {
         const secs = seconds % 60;
         return `${mins}m ${secs}s`;
     };
+
+    console.log('rendering deathscreen');
 
     return (
         <Modal
@@ -108,7 +95,7 @@ export default function DeathScreen() {
                             borderRadius: 8,
                         }}>
                             <Text style={{ color: '#ffaa44' }}><TrophyOutlined /> Level Reached</Text>
-                            <Text strong style={{ color: '#ffffff' }}>{player?.pLevel || 1}</Text>
+                            <Text strong style={{ color: '#ffffff' }}>{1}</Text>
                         </div>
 
                         <div style={{

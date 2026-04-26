@@ -1,5 +1,5 @@
 // ArenaGame.jsx
-import { useState } from 'react';
+import {useMemo, useState} from 'react';
 import { ConfigProvider, message } from 'antd';
 import ArenaHUD from './ArenaHUD.jsx';
 import GameHeader from './GameHeader.jsx';
@@ -13,11 +13,12 @@ import DeathScreen from "./DeathScreen.jsx";
 import PlayerStatsBar from "./PlayerStatsBar.jsx";
 
 export default function ArenaGame() {
-    const [collapsed, setCollapsed] = useState(false);
     const [messageApi, contextHolder] = message.useMessage();
 
+    const theme = useMemo(() => cartoonTheme, []);
+
     return (
-        <ConfigProvider theme={cartoonTheme}>
+        <ConfigProvider theme={theme}>
             {contextHolder}
 
             {/* Fullscreen Game */}
@@ -42,7 +43,6 @@ export default function ArenaGame() {
             */}
 
             <PlayerStatsBar />
-
             <Inventory />
             <Shop />
             <PauseScreen />

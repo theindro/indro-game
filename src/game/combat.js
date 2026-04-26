@@ -382,6 +382,7 @@ export function createCombatSystem(ctx) {
     // Drops
     // ─────────────────────────────
     function updateDrops(px, py) {
+
         for (let di = drops.length - 1; di >= 0; di--) {
             const d = drops[di];
 
@@ -391,11 +392,14 @@ export function createCombatSystem(ctx) {
                 continue;
             }
 
-            d.update(); // Call the update function for animation
-
             const ddx = px - d.container.x;
             const ddy = py - d.container.y;
             const ddist = Math.hypot(ddx, ddy);
+
+            // optional: cull far drops (performance win)
+            if (ddist > 1000) continue;
+
+            d.update(); // Call the update function for animation
 
             // Magnetic effect
             if (ddist < 120) {

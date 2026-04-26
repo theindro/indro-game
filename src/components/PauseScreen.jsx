@@ -15,10 +15,8 @@ const { Title, Text } = Typography;
 export default function PauseScreen() {
     const gameState = useGameStore(state => state.gameState);
     const togglePause = useGameStore(state => state.togglePause);
-    const resetGame = useGameStore(state => state.resetGame);
     const player = useGameStore(state => state.player);
     const inventory = useGameStore(state => state.inventory);
-    const kills = useGameStore(state => state.kills);
     const audio = useGameStore(state => state.audio);
     const setMuted = useGameStore(state => state.setMuted);
     const setMusicVolume = useGameStore(state => state.setMusicVolume);
@@ -27,21 +25,6 @@ export default function PauseScreen() {
     const handleResume = () => {
         togglePause();
         document.body.style.cursor = 'none';
-    };
-
-    const handleRestart = () => {
-        if (window.confirm('Restart game? All progress will be lost.')) {
-            resetGame();
-            togglePause();
-            document.body.style.cursor = 'none';
-            window.location.reload();
-        }
-    };
-
-    const handleQuit = () => {
-        if (window.confirm('Quit to menu?')) {
-            window.location.href = '/';
-        }
     };
 
     if (!gameState?.paused) return null;
