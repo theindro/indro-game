@@ -95,6 +95,7 @@ export class PropManager {
 
         const placed = [];
         const colliders = [];
+        const props = [];
 
         const baseSeed = this.hash(chunkX, chunkZ);
         const targetCount = Math.floor((biomeConfig.density || 0.5) * 25);
@@ -160,6 +161,8 @@ export class PropManager {
             propVisual.x = x;
             propVisual.y = z;
 
+            propVisual.zIndex = z;
+            
             container.addChild(propVisual);
 
             // Add shadow
@@ -195,9 +198,22 @@ export class PropManager {
                 }
             }
 
+
+            props.push({
+                x,
+                z,
+                propType,
+                texture,
+                scale,
+                assetId
+            });
+
+
             placed.push({ x, z });
             actualCount++;
         }
+
+        container.sortableChildren = true;
 
         // Add to layers
         if (this.propLayer) {
