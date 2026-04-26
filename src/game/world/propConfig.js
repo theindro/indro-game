@@ -11,12 +11,12 @@ export const PROP_TYPES = {
         damageOnTouch: 0,
         scaleRange: { min: 0.6, max: 0.6}  // Random size variation
     },
-    BIG_STONE: {
-        name: 'big_stone',
-        variants: [],
+    SNOW_STONE: {
+        name: 'snow_stone',
+        variants: ['snowstone1', 'snowstone2', 'snowstone3' , 'snowstone4', 'snowstone5'],
         collision: true,
         collisionType: 'auto',
-        minDistance: 50,
+        minDistance: 500,
         margin: 0.8,
         damageOnTouch: 0,
         scaleRange: { min: 0.5, max: 0.7 }
@@ -83,7 +83,7 @@ export const BIOME_PROP_CONFIG = {
     ice: {
         density: 0.6,  // Root level
         props: [
-            { type: 'STONE', weight: 35 },
+            { type: 'SNOW_STONE', weight: 35 },
         ]
     },
     lava: {

@@ -106,6 +106,12 @@ class AssetManager {
             { file: '/gameprops/moss-stone-6.png', id: 'stone6', type: 'stone', itemId: null },
             { file: '/gameprops/moss-stone-7.png', id: 'stone7', type: 'stone', itemId: null },
             { file: '/gameprops/moss-stone-8.png', id: 'stone8', type: 'stone', itemId: null },
+            // Snow stone
+            { file: '/gameprops/snow-stone-1.png', id: 'snowstone1', type: 'snow_stone', itemId: null },
+            { file: '/gameprops/snow-stone-2.png', id: 'snowstone2', type: 'snow_stone', itemId: null },
+            { file: '/gameprops/snow-stone-3.png', id: 'snowstone3', type: 'snow_stone', itemId: null },
+            { file: '/gameprops/snow-stone-4.png', id: 'snowstone4', type: 'snow_stone', itemId: null },
+            { file: '/gameprops/snow-stone-5.png', id: 'snowstone5', type: 'snow_stone', itemId: null },
             // Bushes
             { file: '/gameprops/bush-1.png', id: 'bush1', type: 'bush', itemId: null },
             { file: '/gameprops/bush-2.png', id: 'bush2', type: 'bush', itemId: null },
