@@ -1,7 +1,5 @@
 // abilities/AbilityManager.js
 import { Graphics } from 'pixi.js';
-import { showFloat } from '../floatText.js';
-import { burst } from '../particles.js';
 
 export class AbilityManager {
     constructor(ctx) {

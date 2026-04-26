@@ -511,7 +511,10 @@ export class OpenWorldManager {
         };
 
         const roots = [
-            this.world,
+            this.entityLayer,
+            this.propLayer,
+            this.shadowLayer,
+            this.groundLayer,
         ];
 
         const visited = new Set(); // prevents double counting

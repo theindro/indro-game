@@ -51,6 +51,9 @@ export function tickParticles(world, particles) {
 
         if (p.life <= 0) {
             world.removeChild(p.g);
+
+            p.g.destroy(); // 🔥 THIS IS REQUIRED
+
             particles.splice(i, 1);
         }
     }

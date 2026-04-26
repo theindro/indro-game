@@ -1,10 +1,10 @@
-import {ARROW_TYPES, createArrow, updateArrowParticleAnimation} from './projectile.js';
-import {burst, emitEmber, emitSmoke} from './particles.js';
+import {createArrow, updateArrowParticleAnimation} from './projectile.js';
+import {burst} from './particles.js';
 import {showFloat} from './floatText.js';
 import {BOSS_RADIUS, HEART_COLOR, BIOME_COLORS} from './constants.js';
 import {audioManager} from "./utils/audioManager.js";
 import {useGameStore} from "../stores/gameStore.js";
-import {Container, Graphics} from 'pixi.js';
+import {Graphics} from 'pixi.js';
 import {DropManager} from './utils/dropManager.js';
 import {useFrostArrow} from "./abilities/FrostArrow.js";
 import {AbilityManager} from "./abilities/AbilityManager.js";
@@ -231,7 +231,7 @@ export function createCombatSystem(ctx) {
                         };
 
                         const chainArrow = createArrow(
-                            world,
+                            entityLayer,
                             m.x, m.y,
                             nextMob.x, nextMob.y,
                             0,
