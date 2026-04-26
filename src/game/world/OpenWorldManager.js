@@ -458,37 +458,44 @@ export class OpenWorldManager {
         const chunk = this.loadedChunks.get(key);
         if (!chunk) return;
 
-        // GROUND ONLY
-        if (chunk.ground) {
-            this.groundLayer.removeChild(chunk.ground);
-            chunk.ground.destroy({ children: true });
+        // FIX: Destroy the chunk directly (it IS the ground)
+        if (chunk.parent) {
+            this.groundLayer.removeChild(chunk);
         }
+        chunk.destroy({ children: true });
 
-        // PROPS + SHADOWS HANDLED HERE ONLY
+        // Unload props (this is handled correctly)
         this.propManager.unloadChunkProps(key);
 
-        // 4. remove mobs and antities
+        // Remove mobs
         const entities = this.spawnedEntities.get(key);
-
         if (entities) {
             for (const mob of entities.mobs) {
-
-                // 1. remove from global active list
+                // Remove from global active list
                 const index = this.entitiesList?.mobs?.indexOf(mob);
                 if (index > -1) {
                     this.entitiesList.mobs.splice(index, 1);
                 }
-
-                // 2. destroy visual
-                mob.c?.destroy?.();
-
-                // 3. kill controller reference (IMPORTANT)
+                // Remove from world
+                if (mob.c && mob.c.parent) {
+                    this.entityLayer.removeChild(mob.c);
+                }
+                // Destroy mob
+                if (mob.c) {
+                    mob.c.destroy({ children: true });
+                }
+                // Kill controller reference
                 mob.controller = null;
             }
         }
 
         this.spawnedEntities.delete(key);
         this.loadedChunks.delete(key);
+
+        // Also remove from active chunks tracking if exists
+        if (this.propManager?.activeChunks) {
+            this.propManager.activeChunks.delete(key);
+        }
     }
 
 
@@ -541,23 +548,17 @@ export class OpenWorldManager {
 
     async loadChunk(chunkX, chunkZ, playerX, playerZ) {
         const key = `${chunkX},${chunkZ}`;
-
-        // If already loaded, just return
-        if (this.loadedChunks.has(key)) {
-            return;
-        }
-
+        if (this.loadedChunks.has(key)) return;
 
         const chunk = await this.generateChunk(chunkX, chunkZ);
+        // Store biome with chunk for cleanup
+        chunk.biome = this.getBiomeAtChunk(chunkX, chunkZ);
+        chunk.chunkX = chunkX;
+        chunk.chunkZ = chunkZ;
 
         this.groundLayer.addChild(chunk);
-
-        const biome = this.getBiomeAtChunk(chunkX, chunkZ);
-
-        await this.propManager.generateChunkProps(chunkX, chunkZ, biome, this.chunkSize, this.tileSize);
-
-        await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, biome);
-
+        await this.propManager.generateChunkProps(chunkX, chunkZ, chunk.biome, this.chunkSize, this.tileSize);
+        await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunk.biome);
         this.loadedChunks.set(key, chunk);
     }
 
