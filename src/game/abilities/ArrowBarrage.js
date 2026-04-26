@@ -1,13 +1,14 @@
 // abilities/ArrowBarrage.js
-import { createArrow, ARROW_TYPES } from '../projectile.js';
+import { createArrow, ARROW_TYPES } from '../controllers/createProjectileController.js';
 import { burst } from '../particles.js';
 import {useGameStore} from "../../stores/gameStore.js";
 
-export function useArrowBarrage(ctx, px, py, targetX, targetY) {
+export function useArrowBarrage(ctx, targetX, targetY) {
     const { world, particles, arrows, openWorld } = ctx;
     const store = useGameStore.getState();
     const stats = store.player.stats;
     const ability = store.abilities.ability1;
+    const {x: px, y: py} = store.player;
     const now = performance.now();
 
     if (now < ability.cooldownEnd) {

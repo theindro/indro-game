@@ -2,19 +2,19 @@
 import { Container, Graphics } from 'pixi.js';
 import { showFloat } from '../floatText.js';
 import { burst } from '../particles.js';
-import { audioManager } from '../utils/audioManager.js';
 import { useGameStore } from '../../stores/gameStore.js';
 
-export function useFrostArrow(ctx, px, py, targetX, targetY) {
+export function useFrostArrow(ctx, targetX, targetY) {
     const {
-        world, particles, floats, arrows, mobs, bosses,
-        openWorld, shakeRef, abilityManager, drops
+        world, particles, floats, mobs, bosses,
+        openWorld, shakeRef, abilityManager
     } = ctx;
 
     const store = useGameStore.getState();
     const stats = store.player.stats;
     const ability = store.abilities.ability4;
     const now = performance.now();
+    const {x: px, y: py} = store.player;
 
     if (now < ability.cooldownEnd) {
         console.log(`❄️ Frost Arrow on cooldown!`);
@@ -31,7 +31,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
     let angle;
         angle = Math.atan2(targetY - py, targetX - px);
 
-    burst(world, particles, px, py, 0x88ccff, 15, 3);
+    burst(openWorld.entityLayer, particles, px, py, 0x88ccff, 15, 3);
 
     const speed = ability.stats.projectileSpeed;
     const vx = Math.cos(angle) * speed;
@@ -118,7 +118,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
         requestAnimationFrame(animateExplosion);
 
         // Impact burst
-        burst(world, particles, x, y, 0xaaddff, 25, 4);
+        burst(openWorld.entityLayer, particles, x, y, 0xaaddff, 25, 4);
 
         // Create ice spikes with auto-cleanup
         const spikes = [];
@@ -152,10 +152,10 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
                 mob.hp -= damage;
                 showFloat(floats, mob.x, mob.y - 30, `❄️ ${Math.floor(damage)}`, '#88ccff');
                 abilityManager.applyFreezeEffect(mob, freezeDuration, slowAmount);
-                burst(world, particles, mob.x, mob.y, 0x88ddff, 8, 2);
+                burst(openWorld.entityLayer, particles, mob.x, mob.y, 0x88ddff, 8, 2);
 
                 if (mob.hp <= 0) {
-                    burst(world, particles, mob.x, mob.y, 0xffd700, 14, 4);
+                    burst(openWorld.entityLayer, particles, mob.x, mob.y, 0xffd700, 14, 4);
                     store.addKills(1);
                     openWorld.entityLayer?.removeChild(mob.c);
                     mobs.splice(mi, 1);
@@ -172,7 +172,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
                 boss.hp -= damage;
                 showFloat(floats, boss.x, boss.y - 60, `❄️ ${Math.floor(damage)}`, '#88ccff');
                 abilityManager.applyFreezeEffect(boss, freezeDuration * 0.5, slowAmount * 0.5);
-                burst(world, particles, boss.x, boss.y, 0x88ddff, 12, 3);
+                burst(openWorld.entityLayer, particles, boss.x, boss.y, 0x88ddff, 12, 3);
             }
         }
 
@@ -180,7 +180,7 @@ export function useFrostArrow(ctx, px, py, targetX, targetY) {
         shakeRef.value = Math.max(shakeRef.value, 12);
 
         // Play sound
-        audioManager.playSFX('/sounds/frost-explosion.ogg', 0.5);
+        // audioManager.playSFX('/sounds/frost-explosion.ogg', 0.5);
 
         // Frost ground effect that fades out
         const frostGround = new Graphics();

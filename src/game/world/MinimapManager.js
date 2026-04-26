@@ -1,8 +1,8 @@
-// minimap.js
+// MinimapManager.js
 import { Container, Graphics } from 'pixi.js';
 import * as PIXI from 'pixi.js';
 
-export class Minimap {
+export class MinimapManager {
     constructor(app, openWorld, playerRef, entities) {
         this.app = app;
         this.openWorld = openWorld;

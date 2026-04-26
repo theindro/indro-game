@@ -1,6 +1,6 @@
-// projectile.js - Updated with elemental arrow types
+// createProjectileController.js - Updated with elemental arrow types
 import { Container, Graphics } from 'pixi.js';
-import { ARROW_SPEED, GS } from './constants.js';
+import { ARROW_SPEED, GS } from '../constants.js';
 
 /* ── player arrow ── */
 
@@ -136,7 +136,7 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
     };
 }
 
-// Update projectile animation in your combat.js
+// Update projectile animation in your createCombatController.js
 export function updateArrowParticleAnimation(arrow, deltaTime) {
     if (!arrow.c.userData?.particles) return;
 

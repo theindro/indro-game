@@ -1,13 +1,14 @@
 import {useGameStore} from "../../stores/gameStore.js";
 import {burst} from "../particles.js";
-import {ARROW_TYPES, createArrow} from "../projectile.js";
+import {ARROW_TYPES, createArrow} from "../controllers/createProjectileController.js";
 import {audioManager} from "../utils/audioManager.js";
 
-export function useRapidFire(ctx, px, py, targetX, targetY) {
+export function useRapidFire(ctx, targetX, targetY) {
     const { world, arrows, openWorld} = ctx;
     const store = useGameStore.getState();
     const stats = store.player.stats;
     const ability = store.abilities.ability2;
+    const {x: px, y: py} = store.player;
 
     const now = performance.now();
 

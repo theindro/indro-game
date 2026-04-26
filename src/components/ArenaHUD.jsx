@@ -4,6 +4,7 @@ import { useGame } from '../hooks/useGame.js';
 
 export default function ArenaHUD() {
     const containerRef = useRef(null);
+
     useGame(containerRef); // Pass container ref to game
 
     return (

@@ -1,4 +1,5 @@
 import { Sprite } from 'pixi.js';
+import {useGameStore} from "../../stores/gameStore.js";
 
 export function createDashAbility({ input, world }) {
 
@@ -12,7 +13,9 @@ export function createDashAbility({ input, world }) {
     // ghost trail
     const ghosts = [];
 
-    function tryDash(px, py, stats) {
+    function tryDash() {
+        const {x: px, y: py, stats} = useGameStore.getState().player;
+
         if (dashCooldown > 0 || dashTime > 0) return null;
 
         let dx = 0;
@@ -67,7 +70,7 @@ export function createDashAbility({ input, world }) {
         ghosts.push(ghost);
     }
 
-    function update(stats, playerSprite, px, py) {
+    function update(stats) {
         // track movement direction
         let dx = 0;
         let dy = 0;
@@ -92,8 +95,6 @@ export function createDashAbility({ input, world }) {
             // 🔴 compute speed FROM RANGE
             const speed = stats.dashRange / stats.dashDuration;
 
-            // spawn ghost EVERY frame (important for smooth trail)
-            spawnGhost(playerSprite, px, py);
 
             return {
                 active: true,

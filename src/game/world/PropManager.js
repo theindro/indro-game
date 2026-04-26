@@ -1,6 +1,6 @@
 import { Container, Sprite, Graphics, Texture } from 'pixi.js';
-import { BIOME_PROP_CONFIG, PROP_TYPES } from './world/propConfig.js';
-import { assetManager } from './utils/assetManager.js';
+import { BIOME_PROP_CONFIG, PROP_TYPES } from './propConfig.js';
+import { assetManager } from '../utils/assetManager.js';
 
 export class PropManager {
     constructor(world, colliders, worldSeed = 1) {

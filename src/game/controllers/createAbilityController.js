@@ -1,7 +1,7 @@
-// abilities/AbilityManager.js
+// abilities/createAbilityController.js
 import { Graphics } from 'pixi.js';
 
-export class AbilityManager {
+export class CreateAbilityController {
     constructor(ctx) {
         this.ctx = ctx;
         this.world = ctx.world;

@@ -1,8 +1,8 @@
 import {DIFFICULTY, GS, ICE_MOB_SHOOT_INTERVAL_BASE, MOB_HP, MOB_RADIUS} from "../constants.js";
 import {useGameStore} from "../../stores/gameStore.js";
-import {createEnemyProj} from "../projectile.js";
+import {createEnemyProj} from "./createProjectileController.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
-import {resolveVsColliders} from "../collision.js";
+import {resolveVsColliders} from "../world/collision.js";
 
 export function createMobController(mob) {
     let shootTimer = 0;

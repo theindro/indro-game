@@ -5,8 +5,8 @@ import {
     BOSS_SHOOT_INTERVAL,
     BOSS_RADIUS, BIOME_COLORS
 } from '../constants.js';
-import { createEnemyProj } from '../projectile.js';
-import { resolveVsColliders } from '../collision.js';
+import { createEnemyProj } from './createProjectileController.js';
+import { resolveVsColliders } from '../world/collision.js';
 import {useGameStore} from "../../stores/gameStore.js";
 import {createBossEntity} from "../entities/createBossEntity.js";
 

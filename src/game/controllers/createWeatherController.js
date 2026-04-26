@@ -1,6 +1,6 @@
 import { Graphics, Container } from 'pixi.js';
 
-export class WeatherSystem {
+export class CreateWeatherController {
     constructor(stage, app) {
         this.stage = stage;
         this.app = app;

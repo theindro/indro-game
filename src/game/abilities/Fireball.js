@@ -1,4 +1,4 @@
-// fireball.js - Player Fireball Projectile
+// Fireball.js - Player Fireball Projectile
 import { Container, Graphics } from 'pixi.js';
 import { ARROW_SPEED, GS } from '../constants.js';
 

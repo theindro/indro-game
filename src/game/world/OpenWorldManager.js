@@ -2,7 +2,7 @@
 import {Container, Graphics, Sprite, Assets, TilingSprite, BlurFilter} from 'pixi.js';
 import {spawnMob} from '../controllers/createMobController.js';
 import {MOB_RADIUS, BIOME_COLORS} from '../constants.js';
-import {PropManager} from "../props.js";
+import {PropManager} from "./PropManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import * as PIXI from 'pixi.js';
 
