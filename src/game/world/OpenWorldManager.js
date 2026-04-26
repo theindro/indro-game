@@ -33,10 +33,10 @@ export class OpenWorldManager {
                 minDistance: 3
             },
             biomeSettings: {
-                forest: { propDensity: 0.8, mobDensity: 0.5, poiWeight: 1.0 },
-                desert: { propDensity: 0.4, mobDensity: 0.3, poiWeight: 0.7 },
-                ice: { propDensity: 0.6, mobDensity: 0.5, poiWeight: 0.8 },
-                lava: { propDensity: 0.3, mobDensity: 0.8, poiWeight: 1.2 }
+                forest: { mobDensity: 0.3, poiWeight: 1.0 },
+                desert: { mobDensity: 0.5, poiWeight: 0.7 },
+                ice: { mobDensity: 1, poiWeight: 0.8 },
+                lava: { mobDensity: 2, poiWeight: 1.2 }
             }
         };
 

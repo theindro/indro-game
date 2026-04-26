@@ -109,21 +109,19 @@ export const useGameStore = create((set, get) => ({
             description: 'Shoots 10 arrows in cone front of player',
             arrowCount: 10,
             arrowSpread: 0.15,
-            damageMultiplier: 20
+            damageMultiplier: 4
         },
         // Ability 2 (W/2)
         ability2: {
-            name: 'Chain Lightning',
-            icon: '⚡',
+            name: 'Rapid Fire',
+            icon: '🏹⚡',
             cooldownEnd: 0,
-            maxCooldown: 500, // ~8.3 seconds at 60fps
+            maxCooldown: 500, // 5 seconds at 60fps
             level: 1,
-            description: 'Shoots a lightning arrow that jumps between 8 enemies',
-            stats: {
-                bounces: 8,
-                damageMultiplier: 0.85,
-                bounceRange: 250,
-            }
+            description: 'Rapidly fires 10 arrows at the nearest enemy',
+            arrowCount: 6,
+            damageMultiplier: 0.6, // Each arrow does 60% damage
+            fireDelay: 2, // Frames between shots (2 frames = 30 shots/sec at 60fps)
         },
         // Ability 3 (E/3)
         ability3: {

@@ -214,7 +214,7 @@ export async function createGame() {
                 combat.useArrowBarrage(px, py, mouseWorld.x, mouseWorld.y);
                 break;
             case '2':
-                combat.useChainLightning(px, py, mouseWorld.x, mouseWorld.y);
+                combat.useRapidFire(px, py, mouseWorld.x, mouseWorld.y);
                 break;
             case '3':
                 store.useAbility(3, Date.now());
