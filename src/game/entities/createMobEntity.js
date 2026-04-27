@@ -46,13 +46,20 @@ export function createMobEntity(biome, size = 13) {
     eye.circle(5, -5, 0.8).fill({color: 0xffffff, alpha: 0.7});
     c.addChild(eye);
 
+    // HP Bar - positioned relative to size
     const hpBg = new Graphics();
-    hpBg.rect(-size - 3, -size - 14, size * 2 + 6, 5).fill({color: 0x111111, alpha: 0.8});
+    const barWidth = size * 2 + 6;
+    const barHeight = 5;
+    const barY = -size - 14;
+    hpBg.rect(-size - 3, barY, barWidth, barHeight).fill({color: 0x111111, alpha: 0.8});
     c.addChild(hpBg);
 
     const hpBar = new Graphics();
-    hpBar.rect(-size - 2, -size - 13, size * 2 + 4, 3).fill(0xff4444);
+    hpBar.rect(-size - 2, barY + 1, size * 2 + 4, 3).fill(0xff4444);
     c.addChild(hpBar);
+
+    // Store size on the container for later reference
+    c.userData = { size, barY, barWidth };
 
     return {c, body, gl, hpBar};
 }

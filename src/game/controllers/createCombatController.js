@@ -7,15 +7,12 @@ import { createProjectileSystem } from "./subsystems/createProjectileSystem.js";
 import { useArrowBarrage } from "../abilities/ArrowBarrage.js";
 import { useRapidFire } from "../abilities/RapidFire.js";
 import { useFrostArrow } from "../abilities/FrostArrow.js";
-import {CreateAbilityController} from "./createAbilityController.js";
 
 export function createCombatController(ctx) {
     const { world, entities, particles, floats, openWorld, shakeRef, colliders } = ctx;
     const { mobs, bosses, arrows, drops, enemyProjs } = entities;
     const { x, y } = useGameStore.getState().player;
     const entityLayer = openWorld.entityLayer;
-
-    const abilityManager = new CreateAbilityController(ctx);
 
     // Create drop system first (so we can pass its spawnDrops to arrow system)
     const dropSystem = createDropSystem({
@@ -53,6 +50,7 @@ export function createCombatController(ctx) {
 
         for (let i = 0; i < stats.projectiles; i++) {
             const spread = (i - (stats.projectiles - 1) / 2) * 0.12;
+
             const chainData = {
                 chainRemaining: stats.chainEnabled ? stats.chainCount : 0,
                 chainHitMobs: new Set(),
@@ -79,7 +77,7 @@ export function createCombatController(ctx) {
     }
 
     function useFrostArrowWrapper(targetX, targetY) {
-        const abilityCtx = { ...ctx, arrows, mobs, bosses, abilityManager };
+        const abilityCtx = { ...ctx, arrows, mobs, bosses };
 
         return useFrostArrow(abilityCtx, targetX, targetY);
     }
@@ -90,7 +88,6 @@ export function createCombatController(ctx) {
         updateEnemyProjs: projectileSystem.updateEnemyProjs,
         updateDrops: dropSystem.updateDrops,
         spawnDrops: dropSystem.spawnDrops,  // Used when mobs die
-        updateFreezeTimers: abilityManager.updateFreezeTimers.bind(abilityManager),
         useArrowBarrage: useArrowBarrageWrapper,
         useRapidFire: useRapidFireWrapper,
         useFrostArrow: useFrostArrowWrapper

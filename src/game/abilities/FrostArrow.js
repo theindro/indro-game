@@ -3,12 +3,10 @@ import { Container, Graphics } from 'pixi.js';
 import { showFloat } from '../utils/floatText.js';
 import { burst } from '../utils/particles.js';
 import { useGameStore } from '../../stores/gameStore.js';
+import {applyStatusEffect, createFreezeEffect, STATUS_TYPES} from "../statusEffects.js";
 
 export function useFrostArrow(ctx, targetX, targetY) {
-    const {
-        world, particles, floats, mobs, bosses,
-        openWorld, shakeRef, abilityManager
-    } = ctx;
+    const {particles, floats, mobs, bosses, openWorld, shakeRef} = ctx;
 
     const store = useGameStore.getState();
     const stats = store.player.stats;
@@ -103,6 +101,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
         openWorld.entityLayer.addChild(explosionRing);
 
         let scale = 1;
+
         function animateExplosion() {
             if (explosionRing.destroyed) return;
             scale += 0.15;
@@ -115,6 +114,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
                 requestAnimationFrame(animateExplosion);
             }
         }
+
         requestAnimationFrame(animateExplosion);
 
         // Impact burst
@@ -151,7 +151,9 @@ export function useFrostArrow(ctx, targetX, targetY) {
             if (dist < explosionRadius) {
                 mob.hp -= damage;
                 showFloat(floats, mob.x, mob.y - 30, `❄️ ${Math.floor(damage)}`, '#88ccff');
-                abilityManager.applyFreezeEffect(mob, freezeDuration, slowAmount);
+
+                applyStatusEffect(mob, createFreezeEffect(freezeDuration, slowAmount));
+
                 burst(openWorld.entityLayer, particles, mob.x, mob.y, 0x88ddff, 8, 2);
 
                 if (mob.hp <= 0) {
@@ -170,8 +172,11 @@ export function useFrostArrow(ctx, targetX, targetY) {
             const dist = Math.hypot(boss.x - x, boss.y - y);
             if (dist < explosionRadius) {
                 boss.hp -= damage;
+
                 showFloat(floats, boss.x, boss.y - 60, `❄️ ${Math.floor(damage)}`, '#88ccff');
-                abilityManager.applyFreezeEffect(boss, freezeDuration * 0.5, slowAmount * 0.5);
+
+                applyStatusEffect(boss, createFreezeEffect(freezeDuration * 0.5, slowAmount * 0.5));
+
                 burst(openWorld.entityLayer, particles, boss.x, boss.y, 0x88ddff, 12, 3);
             }
         }

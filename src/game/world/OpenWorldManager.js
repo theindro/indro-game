@@ -448,7 +448,8 @@ export class OpenWorldManager {
                     playerState: useGameStore.getState().player,
                     shakeRef: { value: 0 },
                     mobs: this.entitiesList.mobs,
-                    world: this.world
+                    world: this.world,
+                    floats: this.entitiesList.floats
                 });
             }
         }

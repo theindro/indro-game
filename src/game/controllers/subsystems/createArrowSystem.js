@@ -6,6 +6,7 @@ import { burst } from "../../utils/particles.js";
 import { showFloat } from "../../utils/floatText.js";
 import { audioManager } from "../../utils/audioManager.js";
 import { BIOME_COLORS, BOSS_RADIUS } from "../../constants.js";
+import {applyStatusEffect, createBurnEffect, createFreezeEffect} from "../../statusEffects.js";
 
 export function createArrowSystem(ctx) {
     // Destructure all needed dependencies
@@ -197,6 +198,10 @@ export function createArrowSystem(ctx) {
                 const particleCount = isCrit ? 12 : 7;
                 burst(entityLayer, particles, m.x, m.y, hitColor, particleCount);
                 showFloat(floats, m.x, m.y - 20, isCrit ? `-${finalDamage} CRIT!` : `-${finalDamage}`, isCrit ? '#ffaa00' : '#fff');
+
+                if (a.elementalEffect === 'fire') {
+                    applyStatusEffect(m, createBurnEffect(5000, 5));
+                }
 
                 // Sound effects
                 audioManager.playSFX('/sounds/hit-splat.ogg', 0.3);

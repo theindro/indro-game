@@ -44,7 +44,7 @@ export function useArrowBarrage(ctx, targetX, targetY) {
         const startX = px + (Math.random() - 0.5) * 20;
         const startY = py + (Math.random() - 0.5) * 20;
 
-        const arrow = createArrow(openWorld.entityLayer, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.LIGHTNING);
+        const arrow = createArrow(openWorld.entityLayer, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.FIRE);
         arrow.vx = vx;
         arrow.vy = vy;
         arrow.life = 120;

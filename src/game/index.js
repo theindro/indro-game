@@ -58,6 +58,7 @@ export async function createGame() {
         arrows: [],
         enemyProjs: [],
         drops: [],
+        floats: []
     };
 
     // ==================== WORLD ====================
@@ -124,13 +125,14 @@ export async function createGame() {
 
         // World updates
         openWorld.update(px, py, dt);
+
+        // boss updates
         updateBosses(entities.bosses, px, py, colliders, openWorld, entities.enemyProjs, playerState, shakeRef, dt);
 
         // Combat updates
         combat.updateArrows(px, py, dt);
         combat.updateEnemyProjs(px, py, dt);
         combat.updateDrops(px, py, dt);
-
 
         // Camera
         const camera = updateCamera(camX, camY, px, py, world, app, openWorld, shakeRef);

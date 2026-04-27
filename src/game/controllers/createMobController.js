@@ -1,76 +1,90 @@
 import {DIFFICULTY, GS, ICE_MOB_SHOOT_INTERVAL_BASE, MOB_HP, MOB_RADIUS} from "../constants.js";
 import {useGameStore} from "../../stores/gameStore.js";
-import {createEnemyProj} from "./createProjectileController.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
 import {resolveVsColliders} from "../world/collision.js";
+import { ARCHETYPES, archetypeMap, ARCHETYPE_STATS, applyArchetypeVisuals } from './mobArchetypes/index.js';
+import {updateStatusEffects} from "../statusEffects.js";
+import {showFloat} from "../utils/floatText.js";
 
 export function createMobController(mob) {
-    let shootTimer = 0;
+    let archetypeBehavior = null;
+    let archetypeType = mob.archetype || ARCHETYPES.RUSHER;
+
+    // Initialize archetype behavior
+    const ArchetypeClass = archetypeMap[archetypeType];
+    if (ArchetypeClass) {
+        archetypeBehavior = new ArchetypeClass(mob, {});
+    }
 
     return {
         mob,
+        archetype: archetypeBehavior,
+        archetypeType,
 
-        // In createMobController - replace the update function
         update(ctx) {
             if (!mob || !mob.c) return;
 
-            const {
-                px, py,
-                colliders,
-                openWorld,
-                enemyProjs,
-                playerState,
-                shakeRef,
-                mobs,
-                world
-            } = ctx;
+            const {px, py, colliders, openWorld, mobs, dt = 1} = ctx;
 
             const m = this.mob;
             const distToPlayer = Math.hypot(px - m.x, py - m.y);
 
-            // SKIP updates if mob is too far (performance optimization)
-            if (distToPlayer > 1500) {
-                // Only update basic position, no collision/physics
-                return;
-            }
+            // Every tick update status effect on boss
+            updateStatusEffects(m, dt, performance.now(), (damage, type) => {
+                // Show floating damage text for DOT effects
+                let icon = '🔥';
+                let color = '#ff6600';
 
-            // State machine for open world
+                switch(type) {
+                    case 'burn':
+                        icon = '🔥';
+                        color = '#ff6600';
+                        break;
+                    case 'poison':
+                        icon = '💚';
+                        color = '#88ff88';
+                        break;
+                    case 'freeze':
+                        icon = '❄️';
+                        color = '#88ccff';
+                        break;
+                    case 'bleed':
+                        icon = '🩸';
+                        color = '#ff4444';
+                        break;
+                }
+
+                // Use the showFloat function from ctx
+                // showFloat(ctx.floats, m.x, m.y - 20, `${icon} ${Math.floor(damage)}`, color);
+
+            });
+
+            // Performance optimization
+            if (distToPlayer > 1500) return;
+
+            // Get archetype-specific movement
             let moveX = 0, moveY = 0;
+            let attackOverride = false;
 
-            if (distToPlayer < 500) {
-                // Chase player
-                m.state = 'chase';
-                if (distToPlayer > 5) {
-                    moveX = (px - m.x) / distToPlayer;
-                    moveY = (py - m.y) / distToPlayer;
-                }
-            } else if (m.state === 'chase' && distToPlayer > 600) {
-                m.state = 'patrol';
-            } else if (m.state === 'idle') {
-                m.state = 'patrol';
+            if (archetypeBehavior && archetypeBehavior.update) {
+                const archetypeResult = archetypeBehavior.update({...ctx, dt});
+                moveX = archetypeResult.moveX || 0;
+                moveY = archetypeResult.moveY || 0;
+                attackOverride = archetypeResult.attackOverride || false;
+            } else {
+                // Fallback to original movement logic
+                // ... (keep your existing movement code as fallback)
             }
 
-            if (m.state === 'patrol' && m.patrolPoints && m.patrolPoints.length > 0) {
-                const target = m.patrolPoints[m.currentPatrolIndex];
-                if (target) {
-                    const dx = target.x - m.x;
-                    const dy = target.y - m.y;
-                    const patrolDist = Math.hypot(dx, dy);
-
-                    if (patrolDist < 20) {
-                        m.currentPatrolIndex = (m.currentPatrolIndex + 1) % m.patrolPoints.length;
-                    } else if (patrolDist > 0.01) {
-                        moveX = dx / patrolDist;
-                        moveY = dy / patrolDist;
-                    }
-                }
-            }
-
-            // Apply movement
+            // Apply movement with collision (same as before)
             if (moveX !== 0 || moveY !== 0) {
-                const speed = m.speed;
-                let newX = m.x + moveX * speed;
-                let newY = m.y + moveY * speed;
+
+                // 🔥 APPLY SLOW HERE
+                const slow = m.statusSlow || 0;
+                const speedMultiplier = 1 - slow;
+
+                let newX = m.x + moveX * speedMultiplier;
+                let newY = m.y + moveY * speedMultiplier;
 
                 // 1. world bounds
                 if (openWorld) {
@@ -114,67 +128,97 @@ export function createMobController(mob) {
                     }
                 }
 
-                // 4. commit final position
                 m.x = newX;
                 m.y = newY;
                 m.c.x = m.x;
                 m.c.y = m.y;
             }
 
-            // Bounce animation
-            m.bounceTime += m.bounceSpeed;
-            const bounceY = Math.sin(m.bounceTime) * m.bounceAmplitude;
+            // Attack handling based on archetype
+            if (!attackOverride) {
+                this.handleAttack({...ctx, distToPlayer});
+            }
+
+            // Bounce animation (modified for archetypes)
+            this.updateAnimation(dt);
+
+            // Update mob health bar every update
+            updateMobHealthBar(m);
+        },
+
+        handleAttack(ctx) {
+            const { distToPlayer, playerState } = ctx;
+            const m = this.mob;
+
+            // Archetype-specific damage
+            let damage = 2; // base damage
+            if (this.archetypeType === ARCHETYPES.RUSHER) damage = 3;
+            if (this.archetypeType === ARCHETYPES.TANK) damage = 4;
+            if (this.archetypeType === ARCHETYPES.EXPLODER) damage = 5;
+
+            if (distToPlayer < 26 && m.attackCooldown <= 0) {
+                useGameStore.getState().damagePlayer(damage, `${this.archetypeType} atk`);
+                m.attackCooldown = this.getAttackCooldown();
+            }
+
+            if (m.attackCooldown > 0) m.attackCooldown--;
+        },
+        getAttackCooldown() {
+            switch(this.archetypeType) {
+                case ARCHETYPES.RUSHER: return 20;
+                case ARCHETYPES.TANK: return 45;
+                case ARCHETYPES.EXPLODER: return 60;
+                default: return 30;
+            }
+        },
+        updateAnimation(dt) {
+            const m = this.mob;
+            if (!m.c) return;
+
+            m.bounceTime += (m.bounceSpeed || 0.08) * dt;
+            const bounceY = Math.sin(m.bounceTime) * (m.bounceAmplitude || 2);
             m.c.y = m.y + bounceY;
 
-            // Contact damage
-            if (distToPlayer < 26 && playerState) {
-                if (m.attackCooldown <= 0) {
-                    useGameStore.getState().damagePlayer(2, 'mob atk');
-                    m.attackCooldown = 30;
-                }
+            // Archetype-specific animations handled in their own classes
+        },
+        onDamage(amount, source, direction) {
+            if (archetypeBehavior && archetypeBehavior.onDamage) {
+                return archetypeBehavior.onDamage(amount, source);
             }
-
-            if (m.attackCooldown > 0) {
-                m.attackCooldown--;
-            }
-
-            // Shooting for ice mobs
-            m.shootTimer++;
-            if (m.biome === 'ice' && distToPlayer > 90 && distToPlayer < 380 &&
-                m.shootTimer > ICE_MOB_SHOOT_INTERVAL_BASE && world && enemyProjs) {
-                m.shootTimer = 0;
-                enemyProjs.push(createEnemyProj(world, m.x, m.y, px, py, 'ice', 5, 2.5, 6));
-            }
-
-            updateMobBar(m, 13);
+            return { damageMult: 1, knockbackMult: 1 };
         }
     };
 }
 
-// controllers/createMobController.js - Updated spawnMob
-export function spawnMob(world, x, y, biome = null) {
+// Updated spawnMob function
+export function spawnMob(world, x, y, biome = null, archetype = null) {
     const finalBiome = biome || 'forest';
-    const {c, body, gl, hpBar} = createMobEntity(finalBiome, 13);
+    // Random archetype selection if not specified
+    const archetypesList = Object.values(ARCHETYPES);
+    const finalArchetype = archetype || archetypesList[Math.floor(Math.random() * archetypesList.length)];
 
+    const stats = ARCHETYPE_STATS[finalArchetype];
+    const size = stats.size;
+
+    const {c, body, gl, hpBar} = createMobEntity(finalBiome, size);
     c.x = x;
     c.y = y;
     world.addChild(c);
 
-    const baseHp = MOB_HP * DIFFICULTY.mobHp;
-    const baseSpeed = 0.78 * DIFFICULTY.mobSpeed;
+    const baseHp = (MOB_HP * DIFFICULTY.mobHp) * stats.hpMultiplier;
+    const baseSpeed = (0.78 * DIFFICULTY.mobSpeed) * stats.speedMultiplier;
 
     const mob = {
-        c,
-        body,
-        gl,
-        hpBar,
-        x,
-        y,
+        c, body, gl, hpBar,
+        x, y,
         hp: baseHp,
         maxHp: baseHp,
-        speed: baseSpeed + Math.random() * 0.4,
+        speed: baseSpeed + Math.random() * 0.2,
         hitFlash: 0,
         biome: finalBiome,
+        archetype: finalArchetype,
+        damage: stats.damage,
+        knockbackResist: stats.knockbackResist,
         shootTimer: 0,
         bounceSpeed: 0.08 + Math.random() * 0.04,
         bounceTime: Math.random() * Math.PI * 2,
@@ -182,15 +226,17 @@ export function spawnMob(world, x, y, biome = null) {
         bounceAmplitude: 2 + Math.random() * 2,
         scalePulse: 0,
         attackCooldown: 0,
-        // Add these for open world
         state: 'idle',
         patrolPoints: [],
         currentPatrolIndex: 0,
         spawnX: x,
-        spawnY: y
+        spawnY: y,
+        size: size,
+        // Archetype-specific properties
+        archetypeData: {}
     };
 
-    // Generate patrol points for open world
+    // Generate patrol points
     for (let i = 0; i < 4; i++) {
         const angle = (i / 4) * Math.PI * 2;
         mob.patrolPoints.push({
@@ -199,52 +245,33 @@ export function spawnMob(world, x, y, biome = null) {
         });
     }
 
-    // Create the controller AFTER mob is fully defined
+    // Apply archetype visuals
+    applyArchetypeVisuals(mob, finalArchetype, finalBiome);
+
+    // Create controller
     mob.controller = createMobController(mob);
 
     return mob;
 }
 
-
-export function updateMobBar(m, size = 13) {
+export function updateMobHealthBar(m) {
     if (!m || !m.hpBar) return;
+
+    // Get the mob's size from its container or use default
+    let size = m.size || 13;
+
+    // Try to get size from container's userData if available
+    if (m.c && m.c.userData && m.c.userData.size) {
+        size = m.c.userData.size;
+    }
+
     const pct = Math.max(0, m.hp / m.maxHp);
+
     m.hpBar.clear();
+
     if (pct > 0) {
         const col = pct > 0.5 ? 0x44ff88 : pct > 0.25 ? 0xffaa00 : 0xff2222;
-        m.hpBar.rect(-size - 2, -size - 13, (size * 2 + 4) * pct, 3).fill(col);
-    }
-}
-
-export function updateMobBounceAnimation(mobs, deltaTime = 1) {
-    for (const mob of mobs) {
-        if (!mob || !mob.c) continue;
-
-        mob.bounceTime += mob.bounceSpeed * deltaTime;
-        const bounceOffset = Math.sin(mob.bounceTime) * mob.bounceAmplitude;
-        mob.c.y = mob.y + bounceOffset;
-
-        const squashScale = 1 + Math.abs(Math.sin(mob.bounceTime)) * 0.08;
-        const stretchScale = 1 - Math.abs(Math.sin(mob.bounceTime)) * 0.05;
-
-        if (Math.sin(mob.bounceTime) > 0) {
-            mob.c.scale.y = stretchScale;
-            mob.c.scale.x = 1 + (1 - stretchScale) * 0.5;
-        } else {
-            mob.c.scale.y = squashScale;
-            mob.c.scale.x = 1 - (squashScale - 1) * 0.5;
-        }
-
-        if (mob.hitFlash > 0) {
-            mob.hitFlash -= 0.05 * deltaTime;
-            const flashIntensity = Math.min(1, mob.hitFlash);
-            if (mob.body) {
-                mob.body.tint = 0xffffff;
-                mob.body.alpha = 0.5 + flashIntensity * 0.5;
-            }
-        } else if (mob.body && mob.body.tint !== 0xffffff) {
-            mob.body.tint = 0xffffff;
-            mob.body.alpha = 1;
-        }
+        const barY = m.c?.userData?.barY || -size - 13;
+        m.hpBar.rect(-size - 2, barY + 1, (size * 2 + 4) * pct, 3).fill(col);
     }
 }
