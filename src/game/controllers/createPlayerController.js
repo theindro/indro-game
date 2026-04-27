@@ -1,6 +1,6 @@
 import {useGameStore} from "../../stores/gameStore.js";
-import {burst} from "../particles.js";
-import {showFloat} from "../floatText.js";
+import {burst} from "../utils/particles.js";
+import {showFloat} from "../utils/floatText.js";
 import {audioManager} from "../utils/audioManager.js";
 
 export function createPlayerController({hpBar, pBody, shakeRef, world, particles, floats}) {

@@ -1,8 +1,8 @@
 // controllers/subsystems/createDropSystem.js
 import { Container, Sprite, Graphics } from 'pixi.js';
 import { useGameStore } from "../../../stores/gameStore.js";
-import { burst } from "../../particles.js";
-import { showFloat } from "../../floatText.js";
+import { burst } from "../../utils/particles.js";
+import { showFloat } from "../../utils/floatText.js";
 import { ItemDatabase, DropTables, getDropTableForMob } from '../../items.js';
 import { assetManager } from '../../utils/assetManager.js';
 

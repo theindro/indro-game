@@ -1,7 +1,7 @@
 // abilities/FrostArrow.js - Fixed cleanup
 import { Container, Graphics } from 'pixi.js';
-import { showFloat } from '../floatText.js';
-import { burst } from '../particles.js';
+import { showFloat } from '../utils/floatText.js';
+import { burst } from '../utils/particles.js';
 import { useGameStore } from '../../stores/gameStore.js';
 
 export function useFrostArrow(ctx, targetX, targetY) {

@@ -26,6 +26,9 @@ export class MinimapManager {
             poi: 0x00ff00
         };
 
+        this.dotPool = [];
+        this.activeDots = [];
+
         // Performance optimization
         this.lastUpdateFrame = 0;
         this.updateInterval = 2; // Update every 2 frames for smoothness
@@ -172,14 +175,23 @@ export class MinimapManager {
         if (!this.playerRef || this.playerRef.x == null || this.playerRef.y == null) {
             return;
         }
-        
+
         // Throttle updates for performance
         this.frameCount++;
         if (this.frameCount % this.updateInterval !== 0) return;
 
         // Clear only the entity layer (keep background static)
-        this.entityLayer.removeChildren();
-        this.entityLayer.addChild(this.playerIndicator);
+        for (const dot of this.activeDots) {
+            dot.visible = false;
+            this.dotPool.push(dot);
+        }
+
+        this.activeDots.length = 0;
+
+        // keep player indicator
+        if (!this.entityLayer.children.includes(this.playerIndicator)) {
+            this.entityLayer.addChild(this.playerIndicator);
+        }
 
         // Update player direction
         if (this.playerRef.rotation !== undefined) {
@@ -266,7 +278,7 @@ export class MinimapManager {
             // Skip if outside minimap bounds (but still count toward limit if we processed it)
             if (Math.abs(item.pos.x) > this.radius + 10 || Math.abs(item.pos.y) > this.radius + 10) continue;
 
-            const g = new Graphics();
+            const g = this.getDot();
 
             switch(item.type) {
                 case 'mob':
@@ -320,7 +332,7 @@ export class MinimapManager {
                 if (poisDrawn >= this.maxPOIsToShow) break;
                 if (Math.abs(item.pos.x) > this.radius + 10 || Math.abs(item.pos.y) > this.radius + 10) continue;
 
-                const g = new Graphics();
+                const g = this.getDot();
                 const color = item.type === 'boss' ? 0xff0000 :
                     item.type === 'loot' ? 0xffaa44 : 0x44ff44;
                 g.circle(0, 0, 4).fill({ color });
@@ -334,6 +346,21 @@ export class MinimapManager {
 
         // Update distance indicator text
         this.updateDistanceIndicator(entitiesToDraw);
+    }
+
+    getDot() {
+        let g = this.dotPool.pop();
+
+        if (!g) {
+            g = new Graphics();
+            this.entityLayer.addChild(g);
+        }
+
+        g.clear();
+        g.visible = true;
+
+        this.activeDots.push(g);
+        return g;
     }
 
     updateDistanceIndicator(entities) {

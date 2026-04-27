@@ -2,8 +2,8 @@
 import { Graphics } from "pixi.js";
 import { useGameStore } from "../../../stores/gameStore.js";
 import { createArrow, updateArrowParticleAnimation } from "../createProjectileController.js";
-import { burst } from "../../particles.js";
-import { showFloat } from "../../floatText.js";
+import { burst } from "../../utils/particles.js";
+import { showFloat } from "../../utils/floatText.js";
 import { audioManager } from "../../utils/audioManager.js";
 import { BIOME_COLORS, BOSS_RADIUS } from "../../constants.js";
 

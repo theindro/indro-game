@@ -1,5 +1,5 @@
 import {useGameStore} from "../../stores/gameStore.js";
-import {burst} from "../particles.js";
+import {burst} from "../utils/particles.js";
 import {ARROW_TYPES, createArrow} from "../controllers/createProjectileController.js";
 import {audioManager} from "../utils/audioManager.js";
 

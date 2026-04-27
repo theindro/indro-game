@@ -1,6 +1,6 @@
 // abilities/ArrowBarrage.js
 import { createArrow, ARROW_TYPES } from '../controllers/createProjectileController.js';
-import { burst } from '../particles.js';
+import { burst } from '../utils/particles.js';
 import {useGameStore} from "../../stores/gameStore.js";
 
 export function useArrowBarrage(ctx, targetX, targetY) {

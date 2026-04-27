@@ -1,8 +1,8 @@
 import {Application, Container} from 'pixi.js';
 import {createPlayerEntity} from './entities/createPlayerEntity.js';
-import {tickParticles} from './particles.js';
-import {tickFloats} from './floatText.js';
-import {createInputManager} from './input.js';
+import {tickParticles} from './utils/particles.js';
+import {tickFloats} from './utils/floatText.js';
+import {createInputManager} from './controllers/createInputController.js';
 import {createDebugColliderToggle, resolveVsColliders} from './world/collision.js';
 import {createCombatController} from './controllers/createCombatController.js';
 import {GS, PLAYER_SPEED, PLAYER_RADIUS, CAM_SMOOTH} from './constants.js';
@@ -131,9 +131,6 @@ export async function createGame() {
         combat.updateEnemyProjs(px, py, dt);
         combat.updateDrops(px, py, dt);
 
-        // Particles & floats
-        tickParticles(world, particles, dt);
-        tickFloats(floats, camX, camY, app.screen.width, app.screen.height);
 
         // Camera
         const camera = updateCamera(camX, camY, px, py, world, app, openWorld, shakeRef);
@@ -141,6 +138,10 @@ export async function createGame() {
         camY = camera.y;
         world.x = camera.worldX;
         world.y = camera.worldY;
+
+        // Particles & floats
+        tickParticles(world, particles, dt);
+        tickFloats(floats, camX, camY, app.screen.width, app.screen.height);
 
         // Weather
         updateWeather(weatherSystem, dt, camX, camY, openWorld);

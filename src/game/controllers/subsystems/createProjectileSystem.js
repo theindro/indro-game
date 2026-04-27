@@ -1,5 +1,5 @@
 // controllers/subsystems/createProjectileSystem.js
-import {burst} from "../../particles.js";
+import {burst} from "../../utils/particles.js";
 import {useGameStore} from "../../../stores/gameStore.js";
 
 export function createProjectileSystem(ctx) {
