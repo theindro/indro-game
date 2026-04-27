@@ -69,7 +69,7 @@ export class TankArchetype {
             innerColor: 0xffaa66,
             radius: this.slamRadius,
             warningDuration: 300, // frames (~0.5 seconds at 60fps)
-            damage: 4,
+            damage: 25,
             trackPlayer: false, // Tank slam is centered on tank, doesn't track player
             onHit: (hitX, hitY) => {
                 console.log('slam hit palyer');
