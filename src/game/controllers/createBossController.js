@@ -216,6 +216,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         // Add cleanup method for when boss dies
         destroy() {
             if (this.groundAttacks) {
+                console.log('clearing boss attacks');
                 this.groundAttacks.clear();
             }
         }

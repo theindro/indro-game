@@ -23,9 +23,9 @@ export function showFloat(wx, wy, msg, color = '#ff6b8a') {
         'pointer-events:none',
         'font-family:Nunito',
         'font-size:16px',
+        'opacity:0.5',
         `color:${color}`,
         'font-weight: bold',
-        'text-shadow: 1px 1px 0px black',
         'transform:translate(-50%,-50%)',
         'z-index:20',
     ].join(';');

@@ -97,6 +97,7 @@ export class TankArchetype {
     // Cleanup method to prevent memory leaks
     destroy() {
         if (this.groundAttacks) {
+            console.log('checking if ground attacks are cleared')
             this.groundAttacks.clear();
             this.groundAttacks = null;
         }

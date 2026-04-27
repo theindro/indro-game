@@ -114,6 +114,12 @@ export function createArrowSystem(ctx) {
         const isElite = mob.type === 'elite';
         const dropColor = isElite ? 0xffaa44 : 0xffd700;
 
+        // 🔥 CALL DESTROY ON ARCHETYPE HERE 🔥
+        if (mob.controller && mob.controller.archetype && mob.controller.archetype.destroy) {
+            console.log('Calling destroy on archetype:', mob.archetype);
+            mob.controller.archetype.destroy();
+        }
+
         // Visual effects
         VFX.burst(x, y, dropColor, 14, 4);
         VFX.burst(x, y, 0xff4466, 8, 3);
@@ -144,6 +150,11 @@ export function createArrowSystem(ctx) {
      */
     function handleBossDeath(boss, x, y) {
         const biomeCol = BIOME_COLORS[boss.type]?.glow ?? 0x00ccff;
+
+        // 🔥 CALL DESTROY FIRST - This clears ground attacks
+        if (boss.destroy) {
+            boss.destroy();
+        }
 
         VFX.burst(x, y, biomeCol, 50, 6);
         VFX.burst(x, y, 0xffd700, 30, 5);
