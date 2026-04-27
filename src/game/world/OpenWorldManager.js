@@ -7,9 +7,10 @@ import {useGameStore} from "../../stores/gameStore.js";
 import * as PIXI from 'pixi.js';
 
 export class OpenWorldManager {
-    constructor(world, colliders) {
+    constructor(world, colliders, renderer, floats) {
         this.world = world;
         this.colliders = colliders;
+        this.floats = floats;
         this.chunkSize = 32;
         this.tileSize = 64;
         this.renderDistance = 1;
@@ -333,7 +334,7 @@ export class OpenWorldManager {
         return Math.max(1, Math.min(25, base + variation));
     }
 
-    async update(playerX, playerZ) {
+    async update(playerX, playerZ, dt) {
         if (!this.initialized) return;
 
         const now = Date.now();
@@ -449,7 +450,8 @@ export class OpenWorldManager {
                     shakeRef: { value: 0 },
                     mobs: this.entitiesList.mobs,
                     world: this.world,
-                    floats: this.entitiesList.floats
+                    floats: this.floats,
+                    dt: dt  // ADD THIS LINE - pass dt to mob controller
                 });
             }
         }

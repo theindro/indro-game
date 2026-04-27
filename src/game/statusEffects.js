@@ -13,7 +13,6 @@ export function applyStatusEffect(target, effect) {
 
     const now = performance.now();
 
-
     // Refresh same effect instead of stacking (you can change later)
     const existing = target.statusEffects.find(e => e.type === effect.type);
 
@@ -33,11 +32,11 @@ export function applyStatusEffect(target, effect) {
 
     target.statusEffects.push({
         type: effect.type,
-        duration: effect.duration,
-        tickInterval: effect.tickInterval ?? 500,
+        duration: effect.duration, // seconds
+        tickInterval: effect.tickInterval ?? 0.5, // seconds (NOT ms anymore)
         tickDamage: effect.tickDamage ?? 0,
         slow: effect.slow ?? 0,
-        lastTick: now,
+        lastTick: 0,
         onApply: effect.onApply,
         onUpdate: effect.onUpdate,
         onRemove: effect.onRemove
@@ -45,52 +44,43 @@ export function applyStatusEffect(target, effect) {
 }
 
 export function updateStatusEffects(target, deltaTime, now, onDamage) {
-    if (!target.statusEffects || target.statusEffects.length === 0) return;
+    if (!target.statusEffects?.length) return;
 
     let totalSlow = 0;
-    target.isFrozen = false;
+
+    const dt = deltaTime; // seconds per frame
 
     for (let i = target.statusEffects.length - 1; i >= 0; i--) {
         const effect = target.statusEffects[i];
 
-        // APPLY (first frame)
         if (!effect._applied) {
             effect._applied = true;
-            if (effect.onApply) effect.onApply(target);
+            effect.lastTick = 0;
+            effect.onApply?.(target);
         }
 
-        // UPDATE
-        if (effect.onUpdate) {
-            effect.onUpdate(target, deltaTime);
-        }
+        effect.onUpdate?.(target, dt);
 
-        // DOT - Use milliseconds
-        if (effect.tickDamage > 0 && now - effect.lastTick >= effect.tickInterval) {
-            effect.lastTick = now;
+        // ✅ tick system (SECONDS BASED)
+        effect.lastTick += dt;
+
+        if (effect.tickDamage > 0 && effect.lastTick >= effect.tickInterval) {
+            effect.lastTick = 0;
             target.hp -= effect.tickDamage;
-            if (onDamage) onDamage(effect.tickDamage, effect.type);
+            onDamage?.(effect.tickDamage, effect.type);
         }
 
-        // ⭐ FIX: Convert deltaTime to milliseconds if it's frame-based
-        // Assuming deltaTime is frames (1 per frame at 60fps ≈ 16.67ms)
-        const deltaMs = deltaTime * 16.67; // Convert frames to milliseconds
+        // ✅ duration (SECONDS BASED)
+        effect.duration -= dt;
 
-        effect.duration -= deltaMs;
+        if (effect.slow) totalSlow += effect.slow;
 
-        // Slow stacking
-        if (effect.slow) {
-            totalSlow += effect.slow;
-        }
-
-        // REMOVE
         if (effect.duration <= 0) {
-            if (effect.onRemove) effect.onRemove(target);
+            effect.onRemove?.(target);
             target.statusEffects.splice(i, 1);
-            totalSlow = 0;
         }
     }
 
-    // Apply movement modifiers
     target.statusSlow = Math.min(totalSlow, 0.9);
 }
 
@@ -117,7 +107,7 @@ export function createFreezeEffect(duration, slow) {
 
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
-                const radius = 18;
+                const radius = target.size;
                 const x = Math.cos(angle) * radius;
                 const y = Math.sin(angle) * radius;
 
@@ -128,8 +118,8 @@ export function createFreezeEffect(duration, slow) {
                 g.fill({ color: 0x88ccff, alpha: 0.6 });
             }
 
-            g.circle(0, 0, 15).stroke({ color: 0xaaddff, alpha: 0.8, width: 2 });
-            g.circle(0, 0, 12).fill({ color: 0x88ccff, alpha: 0.2 });
+            g.circle(0, 0, target.size).stroke({ color: 0xaaddff, alpha: 0.8, width: 2 });
+            g.circle(0, 0, target.size - 3).fill({ color: 0x88ccff, alpha: 0.2 });
         },
 
         onRemove: (target) => {
@@ -150,7 +140,7 @@ export function createFreezeEffect(duration, slow) {
     };
 }
 
-export function createBurnEffect(duration, tickDamage, tickInterval = 500) {
+export function createBurnEffect(duration, tickDamage, tickInterval = 0.5) {
     return {
         type: STATUS_TYPES.BURN,
         duration,
@@ -232,20 +222,11 @@ export function createBurnEffect(duration, tickDamage, tickInterval = 500) {
                 target.burnGraphics.destroy();
                 target.burnGraphics = null;
             }
-
-            // Restore original body color
-            if (target.body && target._originalBodyColor) {
-                target.body.clear();
-                // Recreate original body - you may need to call the original creation function
-                // For now, just log that it needs restoration
-                console.log('Body color restoration needed');
-                target._originalBodyColor = null;
-            }
         }
     };
 }
 
-export function createPoisonEffect(duration, tickDamage, tickInterval = 1000) {
+export function createPoisonEffect(duration, tickDamage, tickInterval = 1) {
     return {
         type: STATUS_TYPES.POISON,
         duration,
@@ -277,7 +258,7 @@ export function createPoisonEffect(duration, tickDamage, tickInterval = 1000) {
             g.clear();
 
             const time = Date.now() / 200;
-            const radius = (target.radius || 15) + 8;
+            const radius = (target.size || 15) + 8;
 
             // Poison bubbles/droplets
             for (let i = 0; i < 12; i++) {

@@ -119,9 +119,9 @@ export function createDropSystem(ctx) {
             container.y += vy;
 
             // Bobbing animation
-            bob += 0.08;
-            floatOffset += 0.05;
-            container.y += Math.sin(bob) * 0.28;
+            //bob += 0.08;
+            //floatOffset += 0.05;
+            //container.y += Math.sin(bob) * 0.28;
 
             // Rotation for items
             if (drop.type === 'item') {

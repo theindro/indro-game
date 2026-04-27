@@ -3,7 +3,7 @@ import { Container, Graphics } from 'pixi.js';
 import { showFloat } from '../utils/floatText.js';
 import { burst } from '../utils/particles.js';
 import { useGameStore } from '../../stores/gameStore.js';
-import {applyStatusEffect, createFreezeEffect, STATUS_TYPES} from "../statusEffects.js";
+import {applyStatusEffect, createFreezeEffect} from "../statusEffects.js";
 
 export function useFrostArrow(ctx, targetX, targetY) {
     const {particles, floats, mobs, bosses, openWorld, shakeRef} = ctx;
@@ -150,7 +150,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
             const dist = Math.hypot(mob.x - x, mob.y - y);
             if (dist < explosionRadius) {
                 mob.hp -= damage;
-                showFloat(floats, mob.x, mob.y - 30, `❄️ ${Math.floor(damage)}`, '#88ccff');
+                showFloat(floats, mob.x, mob.y - 30, `❄️ ${Math.floor(damage)}`, '#fff');
 
                 applyStatusEffect(mob, createFreezeEffect(freezeDuration, slowAmount));
 
@@ -173,7 +173,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
             if (dist < explosionRadius) {
                 boss.hp -= damage;
 
-                showFloat(floats, boss.x, boss.y - 60, `❄️ ${Math.floor(damage)}`, '#88ccff');
+                showFloat(floats, boss.x, boss.y - 60, `❄️ ${Math.floor(damage)}`, '#fff');
 
                 applyStatusEffect(boss, createFreezeEffect(freezeDuration * 0.5, slowAmount * 0.5));
 

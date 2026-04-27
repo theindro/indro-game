@@ -41,6 +41,15 @@ export const ARROW_TYPES = {
         glowColor: 0x44aaff,
         particleColor: 0x88ccff,
         trailAlpha: 0.6
+    },
+    ICE: {
+        name: 'ice',
+        shaftColor: 0x88aaff,
+        tipColor: 0xaaccff,
+        trailColor: 0x44aaff,
+        glowColor: 0x44aaff,
+        particleColor: 0x88ccff,
+        trailAlpha: 0.6
     }
 };
 

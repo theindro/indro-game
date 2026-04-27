@@ -121,7 +121,7 @@ export const useGameStore = create((set, get) => ({
             description: 'Rapidly fires 10 arrows at the nearest enemy',
             arrowCount: 6,
             damageMultiplier: 0.6, // Each arrow does 60% damage
-            fireDelay: 2, // Frames between shots (2 frames = 30 shots/sec at 60fps)
+            fireDelay: 6, // Frames between shots (2 frames = 30 shots/sec at 60fps)
         },
         // Ability 3 (E/3)
         ability3: {
@@ -143,7 +143,7 @@ export const useGameStore = create((set, get) => ({
             stats: {
                 damageMultiplier: 2.5,
                 explosionRadius: 180,
-                freezeDuration: 3000, // 3 seconds at 60fps
+                freezeDuration: 3, // 3 seconds at 60fps
                 slowAmount: 0.6, // 60% slow
                 arrowCount: 1,
                 projectileSpeed: 8

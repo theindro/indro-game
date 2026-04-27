@@ -27,6 +27,14 @@ export const HP_PER_LEVEL = 25;
 
 export const HEART_COLOR = 0xff2255;
 
+// Add to constants.js
+export const ARROW_CONFIG = {
+    DEFAULT_CHAIN_RANGE: 350,
+    BOSS_BASE_DAMAGE: 18,
+    COLLISION_RADIUS: 16,
+    ARROW_RADIUS: 4
+};
+
 // ── Camera
 export const CAM_SMOOTH = 0.09;
 

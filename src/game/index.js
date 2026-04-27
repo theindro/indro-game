@@ -58,11 +58,10 @@ export async function createGame() {
         arrows: [],
         enemyProjs: [],
         drops: [],
-        floats: []
     };
 
     // ==================== WORLD ====================
-    const openWorld = new OpenWorldManager(world, colliders, app.renderer);
+    const openWorld = new OpenWorldManager(world, colliders, app.renderer, floats);
 
     openWorld.setEntitiesList(entities);
 

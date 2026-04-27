@@ -24,13 +24,14 @@ export function createMobController(mob) {
         update(ctx) {
             if (!mob || !mob.c) return;
 
-            const {px, py, colliders, openWorld, mobs, dt = 1} = ctx;
+            const {px, py, colliders, openWorld, mobs, dt = 1, floats} = ctx;
 
             const m = this.mob;
             const distToPlayer = Math.hypot(px - m.x, py - m.y);
 
             // Every tick update status effect on boss
             updateStatusEffects(m, dt, performance.now(), (damage, type) => {
+                console.log(damage, type);
                 // Show floating damage text for DOT effects
                 let icon = '🔥';
                 let color = '#ff6600';
@@ -44,7 +45,7 @@ export function createMobController(mob) {
                         icon = '💚';
                         color = '#88ff88';
                         break;
-                    case 'freeze':
+                    case 'ice':
                         icon = '❄️';
                         color = '#88ccff';
                         break;
@@ -55,8 +56,7 @@ export function createMobController(mob) {
                 }
 
                 // Use the showFloat function from ctx
-                // showFloat(ctx.floats, m.x, m.y - 20, `${icon} ${Math.floor(damage)}`, color);
-
+                showFloat(floats, m.x, m.y - 20, `${icon} ${Math.floor(damage)}`, color);
             });
 
             // Performance optimization

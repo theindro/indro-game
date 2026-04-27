@@ -23,7 +23,7 @@ export function showFloat(floats, wx, wy, msg, color = '#ff6b8a') {
         'font-family:Nunito',
         'font-size:16px',
         `color:${color}`,
-        `text-shadow:0 0 8px ${color}`,
+        `font-weight: bold`,
         'transform:translate(-50%,-50%)',
         'z-index:20',
     ].join(';');
@@ -43,6 +43,13 @@ export function showFloat(floats, wx, wy, msg, color = '#ff6b8a') {
 export function tickFloats(floats, camX, camY, screenW, screenH) {
     for (let i = floats.length - 1; i >= 0; i--) {
         const f = floats[i];
+
+        if (!f || !f.el || !f.el.style) {
+            console.warn("🧹 Removing broken float:", f);
+            floats.splice(i, 1);
+            continue;
+        }
+
         f.wy  += f.vy;
         f.life--;
         f.el.style.opacity = f.life / 44;
