@@ -169,6 +169,10 @@ export class MinimapManager {
     update() {
         if (!this.visible) return;
 
+        if (!this.playerRef || this.playerRef.x == null || this.playerRef.y == null) {
+            return;
+        }
+        
         // Throttle updates for performance
         this.frameCount++;
         if (this.frameCount % this.updateInterval !== 0) return;
@@ -188,7 +192,8 @@ export class MinimapManager {
         // Process mobs - calculate distance and filter
         if (this.entities.mobs && this.entities.mobs.length > 0) {
             for (const mob of this.entities.mobs) {
-                if (!mob.c || !mob.c.visible) continue;
+                if (!mob || !mob.c || !mob.c.parent || !mob.c.visible) continue;
+                if (mob.x == null || mob.y == null) continue;
 
                 const distance = Math.hypot(mob.x - this.playerRef.x, mob.y - this.playerRef.y);
                 const pos = this.worldToMinimap(mob.x, mob.y);
@@ -206,7 +211,8 @@ export class MinimapManager {
         // Process bosses
         if (this.entities.bosses && this.entities.bosses.length > 0) {
             for (const boss of this.entities.bosses) {
-                if (!boss.c || !boss.c.visible || boss.dead) continue;
+                if (!boss || !boss.c || !boss.c.parent || boss.dead) continue;
+                if (boss.x == null || boss.y == null) continue;
 
                 const distance = Math.hypot(boss.x - this.playerRef.x, boss.y - this.playerRef.y);
                 const pos = this.worldToMinimap(boss.x, boss.y);
@@ -224,7 +230,8 @@ export class MinimapManager {
         // Process drops
         if (this.entities.drops && this.entities.drops.length > 0) {
             for (const drop of this.entities.drops) {
-                if (!drop.container || !drop.container.visible) continue;
+                if (!drop || !drop.container || !drop.container.parent || !drop.container.visible) continue;
+                if (drop.container.x == null || drop.container.y == null) continue;
 
                 const distance = Math.hypot(drop.container.x - this.playerRef.x, drop.container.y - this.playerRef.y);
                 const pos = this.worldToMinimap(drop.container.x, drop.container.y);
@@ -292,7 +299,7 @@ export class MinimapManager {
         if (this.openWorld.spawnedPOIs && this.openWorld.spawnedPOIs.size > 0) {
             const pois = [];
             for (const [key, poi] of this.openWorld.spawnedPOIs) {
-                if (!poi.x || !poi.z) continue;
+                if (poi.x == null || poi.z == null) continue;
 
                 const distance = Math.hypot(poi.x - this.playerRef.x, poi.z - this.playerRef.y);
                 const pos = this.worldToMinimap(poi.x, poi.z);
