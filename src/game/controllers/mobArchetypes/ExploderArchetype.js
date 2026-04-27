@@ -100,10 +100,6 @@ export class ExploderArchetype {
             }
         });
 
-        // Add floating warning text
-        VFX.addFloat('💣 !!!', m.x, m.y - 50, '#ff4400');
-        VFX.addFloat('⚠️ DANGER ⚠️', m.x, m.y - 80, '#ff0000');
-
         // Screen shake for warning
         VFX.shake(3);
     }
@@ -150,10 +146,6 @@ export class ExploderArchetype {
                 VFX.smoke(m.x + (Math.random() - 0.5) * 50, m.y + (Math.random() - 0.5) * 50);
             }, i * 50);
         }
-
-        // Add explosion text
-        VFX.addFloat('💥 EXPLOSION!', m.x, m.y - 40, '#ff6600');
-        VFX.addFloat('💀', m.x, m.y, '#ff0000');
 
         // Damage player if in range (handled by ground attack, but also do immediate check)
         const {px, py} = ctx;

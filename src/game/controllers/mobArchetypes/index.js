@@ -89,6 +89,6 @@ export function applyArchetypeVisuals(mob, archetype, biome) {
     textLabel.x = 0;
     textLabel.y = 16;
 
-    mob.c.addChild(textLabel);
+    //mob.c.addChild(textLabel);
     mob.archetypeLabel = textLabel;
 }

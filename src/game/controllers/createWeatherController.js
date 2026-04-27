@@ -213,8 +213,7 @@ class RainEffect {
                 });
         }
 
-        this.graphics.rect(0, 0, this.app.screen.width, this.app.screen.height)
-            .fill({ color: '#062646', alpha: 0.2 });
+        this.graphics.rect(0, 0, this.app.screen.width, this.app.screen.height).fill({ color: '#062646', alpha: 0.2 });
     }
 
     destroy() {

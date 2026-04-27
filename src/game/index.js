@@ -241,8 +241,8 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
         lastWeatherBiome = info.biome;
 
         const weatherConfig = {
-            forest: {type: 'rain', intensity: 0.6, speed: 1.0},
-            desert: {type: 'sandstorm', intensity: 0.7, speed: 1.2},
+            desert: {type: 'rain', intensity: 0.6, speed: 1.0},
+            forest: {type: 'sandstorm', intensity: 0.7, speed: 1.2},
             ice: {type: 'snow', intensity: 0.6, speed: 0.8},
             lava: {type: 'embers', intensity: 0.8, speed: 0.8}
         };
