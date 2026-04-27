@@ -1,13 +1,12 @@
 // controllers/subsystems/createDropSystem.js
-import { Container, Sprite, Graphics } from 'pixi.js';
-import { useGameStore } from "../../../stores/gameStore.js";
-import { burst } from "../../utils/particles.js";
-import { showFloat } from "../../utils/floatText.js";
-import { ItemDatabase, DropTables, getDropTableForMob } from '../../items.js';
-import { assetManager } from '../../utils/assetManager.js';
+import {Container, Sprite, Graphics} from 'pixi.js';
+import {useGameStore} from "../../../stores/gameStore.js";
+import {ItemDatabase, DropTables, getDropTableForMob} from '../../items.js';
+import {assetManager} from '../../utils/assetManager.js';
+import {VFX} from "../../GlobalEffects.js";
 
 export function createDropSystem(ctx) {
-    const { world, entityLayer, particles, floats, drops } = ctx;
+    const {world, entityLayer, drops} = ctx;
 
     // ─────────────────────────────
     // Drop Rolling Logic
@@ -19,21 +18,21 @@ export function createDropSystem(ctx) {
         // Roll gold
         if (Math.random() * 100 < table.gold.chance) {
             const amount = table.gold.min + Math.floor(Math.random() * (table.gold.max - table.gold.min + 1));
-            drops.push({ type: 'gold', amount });
+            drops.push({type: 'gold', amount});
         }
 
         // Roll heart (healing)
         if (Math.random() < 0.1) { // 10% chance
-            drops.push({ type: 'hp', amount: 20 });
+            drops.push({type: 'hp', amount: 20});
         }
 
         // Roll items
         for (const itemDrop of table.items) {
             if (Math.random() * 100 < itemDrop.chance) {
                 const quantity = itemDrop.minQty + Math.floor(Math.random() * (itemDrop.maxQty - itemDrop.minQty + 1));
-                const item = { ...ItemDatabase[itemDrop.id] };
+                const item = {...ItemDatabase[itemDrop.id]};
                 if (item) {
-                    drops.push({ type: 'item', item, quantity });
+                    drops.push({type: 'item', item, quantity});
                 }
             }
         }
@@ -46,7 +45,7 @@ export function createDropSystem(ctx) {
     // ─────────────────────────────
     function createShadow() {
         const shadow = new Graphics();
-        shadow.ellipse(5, 30, 13, 5).fill({ color: 0, alpha: 0.28 });
+        shadow.ellipse(5, 30, 13, 5).fill({color: 0, alpha: 0.28});
         return shadow;
     }
 
@@ -58,16 +57,16 @@ export function createDropSystem(ctx) {
         if (drop.type === 'gold') {
             // Gold drop visual
             const graphics = new Graphics();
-            graphics.circle(0, 0, 6).fill({ color: 0xffcc44 });
-            graphics.circle(0, 0, 4).fill({ color: 0xffaa00 });
+            graphics.circle(0, 0, 6).fill({color: 0xffcc44});
+            graphics.circle(0, 0, 4).fill({color: 0xffaa00});
             container.addChild(graphics);
 
         } else if (drop.type === 'hp') {
             // Heart drop visual
             const graphics = new Graphics();
-            graphics.circle(-3.5, -2, 5).fill({ color: 0xff2255 });
-            graphics.circle(3.5, -2, 5).fill({ color: 0xff2255 });
-            graphics.moveTo(-8, 1).lineTo(8, 1).lineTo(0, 10).closePath().fill({ color: 0xff2255 });
+            graphics.circle(-3.5, -2, 5).fill({color: 0xff2255});
+            graphics.circle(3.5, -2, 5).fill({color: 0xff2255});
+            graphics.moveTo(-8, 1).lineTo(8, 1).lineTo(0, 10).closePath().fill({color: 0xff2255});
             container.addChild(graphics);
 
         } else if (drop.type === 'item' && drop.item) {
@@ -87,8 +86,8 @@ export function createDropSystem(ctx) {
                 // Fallback
                 const graphics = new Graphics();
                 const rarityColor = drop.item.rarity?.color || '#ffaa44';
-                graphics.rect(-8, -8, 16, 16).fill({ color: rarityColor });
-                graphics.rect(-6, -6, 12, 12).fill({ color: rarityColor });
+                graphics.rect(-8, -8, 16, 16).fill({color: rarityColor});
+                graphics.rect(-6, -6, 12, 12).fill({color: rarityColor});
                 container.addChild(graphics);
             }
         }
@@ -160,13 +159,13 @@ export function createDropSystem(ctx) {
             if (drop.type === 'gold') {
                 // Spawn multiple gold coins
                 for (let i = 0; i < drop.amount; i++) {
-                    dropObjects.push(createDrop(x, y, { type: 'gold', amount: 1 }));
+                    dropObjects.push(createDrop(x, y, {type: 'gold', amount: 1}));
                 }
             } else if (drop.type === 'hp') {
-                dropObjects.push(createDrop(x, y, { type: 'hp', amount: drop.amount }));
+                dropObjects.push(createDrop(x, y, {type: 'hp', amount: drop.amount}));
             } else if (drop.type === 'item') {
                 for (let i = 0; i < drop.quantity; i++) {
-                    dropObjects.push(createDrop(x, y, { type: 'item', item: drop.item }));
+                    dropObjects.push(createDrop(x, y, {type: 'item', item: drop.item}));
                 }
             }
         }
@@ -219,18 +218,22 @@ export function createDropSystem(ctx) {
             if (dist < 22) {
                 if (d.type === 'hp') {
                     useGameStore.getState().healPlayer(d.amount || 20);
-                    burst(entityLayer, particles, d.container.x, d.container.y, 0xff2255, 6, 2);
-                    showFloat(floats, d.container.x, d.container.y, `+${d.amount || 20} HP`, '#ff2255');
-                }
-                else if (d.type === 'gold') {
+
+                    VFX.burst(d.container.x, d.container.y, 0xff2255, 6, 2);
+
+                    VFX.addFloat(`+${d.amount || 20} HP`, d.container.x, d.container.y, '#ff2255');
+
+                } else if (d.type === 'gold') {
                     useGameStore.getState().addGold(d.amount || 1);
-                    showFloat(floats, d.container.x, d.container.y, `+${d.amount || 1}`, '#ffd700');
-                }
-                else if (d.type === 'item' && d.item) {
+
+                    VFX.addFloat(`+${d.amount || 1}`, d.container.x, d.container.y, '#ffd700');
+                } else if (d.type === 'item' && d.item) {
                     const added = useGameStore.getState().addItem(d.item, 1);
+
                     if (added) {
                         const rarityColor = d.item.rarity?.color || '#ffaa44';
-                        showFloat(floats, d.container.x, d.container.y, d.item.name, rarityColor);
+
+                        VFX.addFloat(d.item.name, d.container.x, d.container.y, rarityColor);
                     }
                 }
 
@@ -239,7 +242,7 @@ export function createDropSystem(ctx) {
                     d.container.parent.removeChild(d.container);
                 }
                 if (d.container && !d.container.destroyed) {
-                    d.container.destroy({ children: true });
+                    d.container.destroy({children: true});
                 }
 
                 // Clear references

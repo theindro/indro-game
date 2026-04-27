@@ -1,16 +1,18 @@
-import * as PIXI from 'pixi.js';
 import {useGameStore} from "../../../stores/gameStore.js";
-import {Graphics} from "pixi.js";
+import {GroundAttackController} from '../createGroundAttackController.js'; // Adjust path as needed
 
 export class TankArchetype {
-    constructor(mob, ctx) {
+    constructor(mob, entityLayer) {
         this.mob = mob;
         this.groundSlamCooldown = 0;
-        this.slamRadius = 70;
+        this.slamRadius = 200;
+
+        // Initialize ground attack manager for this mob
+        this.groundAttacks = new GroundAttackController(entityLayer, mob);
     }
 
-    update(ctx) {
-        const { px, py, shakeRef } = ctx;
+    update(entityLayer) {
+        const { px, py, dt } = entityLayer;
         const m = this.mob;
         const distToPlayer = Math.hypot(px - m.x, py - m.y);
 
@@ -25,14 +27,27 @@ export class TankArchetype {
             moveY *= m.speed * 0.4;
         }
 
-        // Ground slam attack
+        // Ground slam attack (using cooldown in seconds)
         if (this.groundSlamCooldown <= 0 && distToPlayer < this.slamRadius + 20) {
-            this.performGroundSlam(ctx);
-            this.groundSlamCooldown = 120; // 2 seconds
+            this.performGroundSlam(entityLayer);
+            this.groundSlamCooldown = 2.0; // 2 seconds (not frames)
         }
 
         if (this.groundSlamCooldown > 0) {
-            this.groundSlamCooldown--;
+            this.groundSlamCooldown -= dt;
+        }
+
+        // Update ground attacks
+        if (this.groundAttacks) {
+            this.groundAttacks.update(px, py, (damage) => {
+                // Damage player when ground attack hits
+                useGameStore.getState().damagePlayer(damage, 'tank slam');
+
+                // Knockback effect
+                const angle = Math.atan2(py - m.y, px - m.x);
+                const knockback = { x: Math.cos(angle) * 120, y: Math.sin(angle) * 120 };
+                if (entityLayer.applyKnockback) entityLayer.applyKnockback(knockback);
+            });
         }
 
         // Visual: size pulsing when angry
@@ -42,66 +57,32 @@ export class TankArchetype {
         return { moveX, moveY, attackOverride: false };
     }
 
-    performGroundSlam(ctx) {
-        const { px, py, shakeRef, floats } = ctx;
+    performGroundSlam(entityLayer) {
+        const { px, py } = entityLayer;
         const m = this.mob;
-        const distToPlayer = Math.hypot(px - m.x, py - m.y);
 
-        if (distToPlayer < this.slamRadius) {
-            // Damage player
-            useGameStore.getState().damagePlayer(4, 'tank slam');
-
-            // Knockback
-            const angle = Math.atan2(py - m.y, px - m.x);
-            const knockback = { x: Math.cos(angle) * 120, y: Math.sin(angle) * 120 };
-            if (ctx.applyKnockback) ctx.applyKnockback(knockback);
-        }
+        // Create ground slam effect using GroundAttackController
+        this.groundAttacks.addAttack(m.x, m.y, {
+            shape: 'circle',
+            color: 0xff8844,
+            warningColor: 0xff4400,
+            innerColor: 0xffaa66,
+            radius: this.slamRadius,
+            warningDuration: 300, // frames (~0.5 seconds at 60fps)
+            damage: 4,
+            trackPlayer: false, // Tank slam is centered on tank, doesn't track player
+            onHit: (hitX, hitY) => {
+                console.log('slam hit palyer');
+                // Optional: add hit effect
+            },
+            onComplete: () => {
+                // Optional: effect when slam finishes
+            }
+        });
 
         // Screen shake
-        if (shakeRef) shakeRef.value = 8;
 
-        // Visual effect
-        if (floats) {
-            floats.push({
-                text: '💥 SLAM!',
-                x: m.x,
-                y: m.y - 30,
-                life: 30
-            });
-        }
-
-        // Create shockwave ring (visual)
-        this.createShockwave(ctx);
-    }
-
-    createShockwave(ctx) {
-        const { world } = ctx;
-        const m = this.mob;
-
-        // Create explosion ring
-        const explosionRing = new Graphics();
-        explosionRing.circle(0, 0, 10).stroke({ color: 0xaaddff, width: 4, alpha: 0.8 });
-        explosionRing.x = m.x;
-        explosionRing.y = m.y;
-        ctx.openWorld.entityLayer.addChild(explosionRing);
-
-        let scale = 1;
-
-        function animateExplosion() {
-            if (explosionRing.destroyed) return;
-            scale += 0.15;
-            explosionRing.scale.set(scale);
-            explosionRing.alpha -= 0.05;
-            if (explosionRing.alpha <= 0) {
-                ctx.openWorld.entityLayer.removeChild(explosionRing);
-                explosionRing.destroy();
-            } else {
-                requestAnimationFrame(animateExplosion);
-            }
-        }
-
-        requestAnimationFrame(animateExplosion);
-
+        // Floating text
     }
 
     onDamage(amount, source) {
@@ -111,5 +92,13 @@ export class TankArchetype {
             damageMult: isRanged ? 0.7 : 1.0,
             knockbackMult: 0.3
         };
+    }
+
+    // Cleanup method to prevent memory leaks
+    destroy() {
+        if (this.groundAttacks) {
+            this.groundAttacks.clear();
+            this.groundAttacks = null;
+        }
     }
 }

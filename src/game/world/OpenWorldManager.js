@@ -7,10 +7,9 @@ import {useGameStore} from "../../stores/gameStore.js";
 import * as PIXI from 'pixi.js';
 
 export class OpenWorldManager {
-    constructor(world, colliders, renderer, floats) {
+    constructor(world, colliders, renderer) {
         this.world = world;
         this.colliders = colliders;
-        this.floats = floats;
         this.chunkSize = 32;
         this.tileSize = 64;
         this.renderDistance = 1;
@@ -447,11 +446,9 @@ export class OpenWorldManager {
                     openWorld: this,
                     enemyProjs: this.entitiesList.enemyProjs,
                     playerState: useGameStore.getState().player,
-                    shakeRef: { value: 0 },
                     mobs: this.entitiesList.mobs,
                     world: this.world,
-                    floats: this.floats,
-                    dt: dt  // ADD THIS LINE - pass dt to mob controller
+                    dt: dt
                 });
             }
         }

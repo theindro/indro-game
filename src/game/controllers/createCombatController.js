@@ -9,7 +9,7 @@ import { useRapidFire } from "../abilities/RapidFire.js";
 import { useFrostArrow } from "../abilities/FrostArrow.js";
 
 export function createCombatController(ctx) {
-    const { world, entities, particles, floats, openWorld, shakeRef, colliders } = ctx;
+    const { world, entities, openWorld, colliders } = ctx;
     const { mobs, bosses, arrows, drops, enemyProjs } = entities;
     const { x, y } = useGameStore.getState().player;
     const entityLayer = openWorld.entityLayer;
@@ -18,8 +18,6 @@ export function createCombatController(ctx) {
     const dropSystem = createDropSystem({
         world,
         entityLayer,
-        particles,
-        floats,
         drops
     });
 
@@ -27,9 +25,6 @@ export function createCombatController(ctx) {
     const arrowSystem = createArrowSystem({
         world,
         entities,
-        particles,
-        floats,
-        shakeRef,
         openWorld,
         colliders,
         spawnDrops: dropSystem.spawnDrops  // Pass the spawn function
@@ -40,7 +35,6 @@ export function createCombatController(ctx) {
         entities,
         openWorld,
         colliders,
-        particles,
         enemyProjs
     });
 

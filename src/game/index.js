@@ -14,6 +14,7 @@ import {CreateWeatherController} from "./controllers/createWeatherController.js"
 import {OpenWorldManager} from "./world/OpenWorldManager.js";
 import {PerformanceMonitor} from './world/PerformanceMonitor.js';
 import {MinimapManager} from "./world/MinimapManager.js";
+import {VFX} from './GlobalEffects.js';
 
 export async function createGame() {
     // ==================== INITIALIZATION ====================
@@ -24,6 +25,9 @@ export async function createGame() {
     const colliders = [];
     const particles = [];
     const floats = [];
+
+    // ==================== GAME STATE ====================
+
     let mouseWorld = {x: 0, y: 0};
     let camX = 0, camY = 0;
     let pBobT = 0;
@@ -32,6 +36,9 @@ export async function createGame() {
     let shakeRef = {value: 0};
     let killsRef = {value: 0};
     let bossActiveRef = {value: null};
+
+    // Initialize global VFX with our arrays
+    VFX.init(world, particles);
 
     // ==================== SYSTEMS ====================
     const weatherSystem = initWeatherSystem(app);
@@ -46,7 +53,7 @@ export async function createGame() {
     let px = 0, py = 0;
 
     const playerController = createPlayerController({
-        pBody, hpBar, shakeRef, world, particles, floats
+        pBody, hpBar, world
     });
 
     const playerState = useGameStore.getState().player;
@@ -61,14 +68,14 @@ export async function createGame() {
     };
 
     // ==================== WORLD ====================
-    const openWorld = new OpenWorldManager(world, colliders, app.renderer, floats);
+    const openWorld = new OpenWorldManager(world, colliders, app.renderer);
 
     openWorld.setEntitiesList(entities);
 
     // ==================== COMBAT ====================
     const combat = createCombatController({
-        world, entities, particles, floats,
-        shakeRef, killsRef, bossActiveRef,
+        world, entities,
+        killsRef, bossActiveRef,
         openWorld, colliders
     });
 
@@ -79,7 +86,7 @@ export async function createGame() {
     const minimap = new MinimapManager(app, openWorld, {x: px, y: py, rotation: 0}, entities);
 
     // ==================== SETUP ====================
-    setupEventListeners(input, dash, combat, playerState.stats, mouseWorld, entities.bosses, shakeRef, openWorld);
+    setupEventListeners(input, dash, combat, playerState.stats, mouseWorld, entities.bosses, openWorld);
     setupChunkChangeHandler(openWorld, weatherSystem);
 
     // Initial player position
@@ -126,7 +133,7 @@ export async function createGame() {
         openWorld.update(px, py, dt);
 
         // boss updates
-        updateBosses(entities.bosses, px, py, colliders, openWorld, entities.enemyProjs, playerState, shakeRef, dt);
+        updateBosses(entities.bosses, px, py, colliders, openWorld, entities.enemyProjs, playerState, dt);
 
         // Combat updates
         combat.updateArrows(px, py, dt);
@@ -134,15 +141,15 @@ export async function createGame() {
         combat.updateDrops(px, py, dt);
 
         // Camera
-        const camera = updateCamera(camX, camY, px, py, world, app, openWorld, shakeRef);
+        const camera = updateCamera(camX, camY, px, py, world, app, openWorld);
         camX = camera.x;
         camY = camera.y;
         world.x = camera.worldX;
         world.y = camera.worldY;
 
         // Particles & floats
-        tickParticles(world, particles, dt);
-        tickFloats(floats, camX, camY, app.screen.width, app.screen.height);
+        tickParticles();  // Modify tickParticles to use VFX.particles
+        tickFloats(camX, camY, app.screen.width, app.screen.height);
 
         // Weather
         updateWeather(weatherSystem, dt, camX, camY, openWorld);
@@ -189,7 +196,7 @@ function initWeatherSystem(app) {
 }
 
 // Key listeners
-function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, shakeRef, openWorld) {
+function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, openWorld) {
 
     window.addEventListener('keydown', (e) => {
         const key = e.key;
@@ -220,7 +227,7 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, sha
         }
 
         if (e.key === 'b' || e.key === 'B') {
-            spawnTestBoss(bosses, shakeRef, openWorld);
+            spawnTestBoss(bosses, openWorld);
         }
     });
 }
@@ -247,7 +254,7 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
     };
 }
 
-async function spawnTestBoss(bosses, shakeRef, openWorld) {
+async function spawnTestBoss(bosses, openWorld) {
     const {x: px, y: py} = useGameStore.getState().player;
     console.log('🎮 Spawning test boss!');
 
@@ -259,7 +266,7 @@ async function spawnTestBoss(bosses, shakeRef, openWorld) {
     bosses.push(boss);
 
     console.log(`🔥 Boss spawned at (${bossX}, ${bossY}) on entityLayer`);
-    shakeRef.value = 10;
+    VFX.shake(10);
 
     if (window.audioManager) {
         window.audioManager.playSFX('/sounds/boss-spawn.ogg', 0.5);
@@ -321,17 +328,17 @@ function updatePlayerVisuals(pCont, pGlow, px, py, moving, pBobT) {
     pGlow.alpha = 0.12 + 0.06 * Math.sin(pBobT * 2);
 }
 
-function updateBosses(bosses, px, py, colliders, openWorld, enemyProjs, playerState, shakeRef, dt) {
+function updateBosses(bosses, px, py, colliders, openWorld, enemyProjs, playerState, dt) {
     for (const boss of bosses) {
         boss.update({
             px, py, colliders, openWorld,
-            enemyProjs, playerState, shakeRef,
+            enemyProjs, playerState,
             dt
         });
     }
 }
 
-function updateCamera(camX, camY, px, py, world, app, openWorld, shakeRef) {
+function updateCamera(camX, camY, px, py, world, app, openWorld) { // Remove shakeRef parameter
     let newCamX = camX + (px - camX) * CAM_SMOOTH;
     let newCamY = camY + (py - camY) * CAM_SMOOTH;
 
@@ -345,11 +352,12 @@ function updateCamera(camX, camY, px, py, world, app, openWorld, shakeRef) {
         newCamY = Math.max(bounds.minY + halfScreenH, Math.min(bounds.maxY - halfScreenH, newCamY));
     }
 
-    const shakeAmt = shakeRef.value;
+    // Use VFX.shakeRef directly
+    const shakeAmt = VFX.shakeRef.value;
     const sx = shakeAmt ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
     const sy = shakeAmt ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
-    shakeRef.value *= 0.82;
-    if (shakeRef.value < 0.08) shakeRef.value = 0;
+    VFX.shakeRef.value *= 0.82;
+    if (VFX.shakeRef.value < 0.08) VFX.shakeRef.value = 0;
 
     return {
         x: newCamX,

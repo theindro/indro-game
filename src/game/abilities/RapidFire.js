@@ -1,7 +1,6 @@
 import {useGameStore} from "../../stores/gameStore.js";
-import {burst} from "../utils/particles.js";
 import {ARROW_TYPES, createArrow} from "../controllers/createProjectileController.js";
-import {audioManager} from "../utils/audioManager.js";
+import {VFX} from "../GlobalEffects.js";
 
 export function useRapidFire(ctx, targetX, targetY) {
     const { world, arrows, openWorld} = ctx;
@@ -28,7 +27,7 @@ export function useRapidFire(ctx, targetX, targetY) {
 
 
     // Visual effect - muzzle flash at player position
-    //burst(world, particles, px, py, 0xffaa44, 5, 2);
+    VFX.burst(px, py, 0xffaa44, 5, 2);
 
     // Calculate angle to target
     const angleToTarget = Math.atan2(targetY - py, targetX - px);

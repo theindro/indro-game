@@ -51,7 +51,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         groundAttacks, // Store reference
 
 
-        update({ px, py, colliders, openWorld, enemyProjs, playerState, shakeRef, deltaTime = 1 }) {
+        update({ px, py, colliders, openWorld, enemyProjs, playerState, deltaTime = 1 }) {
             if (this.dead) return;
 
             // Every tick update status effect on boss

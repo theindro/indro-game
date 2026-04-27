@@ -4,16 +4,16 @@ import {createMobEntity} from "../entities/createMobEntity.js";
 import {resolveVsColliders} from "../world/collision.js";
 import { ARCHETYPES, archetypeMap, ARCHETYPE_STATS, applyArchetypeVisuals } from './mobArchetypes/index.js';
 import {updateStatusEffects} from "../statusEffects.js";
-import {showFloat} from "../utils/floatText.js";
+import {VFX} from '../GlobalEffects.js';
 
-export function createMobController(mob) {
+export function createMobController(mob, entityLayer) {
     let archetypeBehavior = null;
     let archetypeType = mob.archetype || ARCHETYPES.RUSHER;
 
     // Initialize archetype behavior
     const ArchetypeClass = archetypeMap[archetypeType];
     if (ArchetypeClass) {
-        archetypeBehavior = new ArchetypeClass(mob, {});
+        archetypeBehavior = new ArchetypeClass(mob, entityLayer);
     }
 
     return {
@@ -24,7 +24,7 @@ export function createMobController(mob) {
         update(ctx) {
             if (!mob || !mob.c) return;
 
-            const {px, py, colliders, openWorld, mobs, dt = 1, floats} = ctx;
+            const {px, py, colliders, openWorld, mobs, dt = 1} = ctx;
 
             const m = this.mob;
             const distToPlayer = Math.hypot(px - m.x, py - m.y);
@@ -55,8 +55,7 @@ export function createMobController(mob) {
                         break;
                 }
 
-                // Use the showFloat function from ctx
-                showFloat(floats, m.x, m.y - 20, `${icon} ${Math.floor(damage)}`, color);
+                VFX.addFloat(`${icon} ${Math.floor(damage)}`,m.x, m.y - 20, color);
             });
 
             // Performance optimization
@@ -249,7 +248,7 @@ export function spawnMob(world, x, y, biome = null, archetype = null) {
     applyArchetypeVisuals(mob, finalArchetype, finalBiome);
 
     // Create controller
-    mob.controller = createMobController(mob);
+    mob.controller = createMobController(mob, world);
 
     return mob;
 }

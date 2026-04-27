@@ -15,8 +15,8 @@ export const ARROW_TYPES = {
         particleColor: 0x8866ff,
         trailAlpha: 0.32
     },
-    FIRE: {
-        name: 'fire',
+    BURN: {
+        name: 'burn',
         shaftColor: 0xcc6600,
         tipColor: 0xff4400,
         trailColor: 0xff6600,
@@ -104,7 +104,7 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
         const size = 4 + Math.random() * 3;
 
         switch(arrowType.name) {
-            case 'fire':
+            case 'burn':
                 particle.circle(0, 0, size).fill({ color: 0xff6600, alpha: 0.7 });
                 break;
             case 'poison':
@@ -156,7 +156,7 @@ export function updateArrowParticleAnimation(arrow, deltaTime) {
         const p = data.particles[i];
         const offset = Math.sin(data.time * 3 + p.phase) * 3;
 
-        if (data.arrowType.name === 'fire') {
+        if (data.arrowType.name === 'burn') {
             p.graphics.x = p.offsetX + offset;
             p.graphics.alpha = 0.5 + Math.sin(data.time * 5) * 0.3;
         } else if (data.arrowType.name === 'poison') {
@@ -178,7 +178,7 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 2.8, siz
     c.x = ex; c.y = ey;
 
     const elementColors = {
-        fire: { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 },
+        burn: { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 },
         poison: { glow: 0x44ff44, orb: 0x66ff66, core: 0xaaffaa },
         lightning: { glow: 0x44aaff, orb: 0x66ccff, core: 0xaaddff },
         normal: { glow: 0x88aaff, orb: 0xaaccff, core: 0xffffff }
@@ -229,7 +229,7 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 2.8, siz
         elementalType,
         particles,
         rotationSpeed: elementalType === 'lightning' ? 0.1 : 0.05,
-        pulseSpeed: elementalType === 'fire' ? 0.15 : 0.08
+        pulseSpeed: elementalType === 'burn' ? 0.15 : 0.08
     };
 
     return {
@@ -254,7 +254,7 @@ export function updateEnemyProjAnimation(proj, deltaTime) {
     data.particles.rotation += data.rotationSpeed * deltaTime;
 
     // Pulse effect for fire projectiles
-    if (data.elementalType === 'fire') {
+    if (data.elementalType === 'burn') {
         const scale = 1 + Math.sin(Date.now() * 0.01) * 0.1;
         proj.c.scale.set(scale);
     }

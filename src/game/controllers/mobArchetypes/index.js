@@ -1,8 +1,8 @@
 import { RusherArchetype } from './RusherArchetype.js';
 import { TankArchetype } from './TankArchetype.js';
 import { RangedArchetype } from './RangedArchetype.js';
-import * as PIXI from 'pixi.js';
 import {ExploderArchetype} from "./ExploderArchetype.js";
+import * as PIXI from 'pixi.js';
 
 export const ARCHETYPES = {
     RUSHER: 'rusher',

@@ -1,12 +1,11 @@
 // abilities/FrostArrow.js - Fixed cleanup
-import { Container, Graphics } from 'pixi.js';
-import { showFloat } from '../utils/floatText.js';
-import { burst } from '../utils/particles.js';
-import { useGameStore } from '../../stores/gameStore.js';
+import {Container, Graphics} from 'pixi.js';
+import {useGameStore} from '../../stores/gameStore.js';
 import {applyStatusEffect, createFreezeEffect} from "../statusEffects.js";
+import {VFX} from "../GlobalEffects.js";
 
 export function useFrostArrow(ctx, targetX, targetY) {
-    const {particles, floats, mobs, bosses, openWorld, shakeRef} = ctx;
+    const {mobs, bosses, openWorld} = ctx;
 
     const store = useGameStore.getState();
     const stats = store.player.stats;
@@ -27,9 +26,9 @@ export function useFrostArrow(ctx, targetX, targetY) {
     const slowAmount = ability.stats.slowAmount;
 
     let angle;
-        angle = Math.atan2(targetY - py, targetX - px);
+    angle = Math.atan2(targetY - py, targetX - px);
 
-    burst(openWorld.entityLayer, particles, px, py, 0x88ccff, 15, 3);
+    VFX.burst(px, py, 0x88ccff, 15, 3);
 
     const speed = ability.stats.projectileSpeed;
     const vx = Math.cos(angle) * speed;
@@ -41,28 +40,28 @@ export function useFrostArrow(ctx, targetX, targetY) {
     arrowContainer.y = py;
 
     const glow = new Graphics();
-    glow.circle(0, 0, 20).fill({ color: 0x88ccff, alpha: 0.4 });
+    glow.circle(0, 0, 20).fill({color: 0x88ccff, alpha: 0.4});
     arrowContainer.addChild(glow);
 
     const shaft = new Graphics();
-    shaft.rect(-4, -3, 24, 6).fill({ color: 0xaaddff });
+    shaft.rect(-4, -3, 24, 6).fill({color: 0xaaddff});
     arrowContainer.addChild(shaft);
 
     const tip = new Graphics();
-    tip.moveTo(20, 0).lineTo(10, -5).lineTo(10, 5).closePath().fill({ color: 0xffffff });
+    tip.moveTo(20, 0).lineTo(10, -5).lineTo(10, 5).closePath().fill({color: 0xffffff});
     arrowContainer.addChild(tip);
 
     for (let i = 0; i < 3; i++) {
         const crystal = new Graphics();
         crystal.moveTo(5 + i * 5, 0).lineTo(3 + i * 5, -4).lineTo(7 + i * 5, -2).closePath();
-        crystal.fill({ color: 0x88ccff });
+        crystal.fill({color: 0x88ccff});
         arrowContainer.addChild(crystal);
     }
 
     const snowParticles = [];
     for (let i = 0; i < 6; i++) {
         const snow = new Graphics();
-        snow.circle(0, 0, 2).fill({ color: 0xffffff, alpha: 0.7 });
+        snow.circle(0, 0, 2).fill({color: 0xffffff, alpha: 0.7});
         snow.x = (Math.random() - 0.5) * 30;
         snow.y = (Math.random() - 0.5) * 20;
         arrowContainer.addChild(snow);
@@ -95,7 +94,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
 
         // Create explosion ring
         const explosionRing = new Graphics();
-        explosionRing.circle(0, 0, explosionRadius).stroke({ color: 0xaaddff, width: 4, alpha: 0.8 });
+        explosionRing.circle(0, 0, explosionRadius).stroke({color: 0xaaddff, width: 4, alpha: 0.8});
         explosionRing.x = x;
         explosionRing.y = y;
         openWorld.entityLayer.addChild(explosionRing);
@@ -118,7 +117,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
         requestAnimationFrame(animateExplosion);
 
         // Impact burst
-        burst(openWorld.entityLayer, particles, x, y, 0xaaddff, 25, 4);
+        VFX.burst(x, y, 0xaaddff, 25, 4);
 
         // Create ice spikes with auto-cleanup
         const spikes = [];
@@ -127,7 +126,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
             const spike = new Graphics();
             spike.moveTo(x, y);
             spike.lineTo(x + Math.cos(spikeAngle) * explosionRadius, y + Math.sin(spikeAngle) * explosionRadius);
-            spike.stroke({ color: 0x88ccff, width: 3, alpha: 0.2 });
+            spike.stroke({color: 0x88ccff, width: 3, alpha: 0.2});
             openWorld.entityLayer.addChild(spike);
             spikes.push(spike);
         }
@@ -150,14 +149,14 @@ export function useFrostArrow(ctx, targetX, targetY) {
             const dist = Math.hypot(mob.x - x, mob.y - y);
             if (dist < explosionRadius) {
                 mob.hp -= damage;
-                showFloat(floats, mob.x, mob.y - 30, `❄️ ${Math.floor(damage)}`, '#fff');
+                VFX.addFloat(`❄️ ${Math.floor(damage)}`,mob.x, mob.y - 30, '#fff');
 
                 applyStatusEffect(mob, createFreezeEffect(freezeDuration, slowAmount));
 
-                burst(openWorld.entityLayer, particles, mob.x, mob.y, 0x88ddff, 8, 2);
+                VFX.burst(mob.x, mob.y, 0x88ddff, 8, 2);
 
                 if (mob.hp <= 0) {
-                    burst(openWorld.entityLayer, particles, mob.x, mob.y, 0xffd700, 14, 4);
+                    VFX.burst(mob.x, mob.y, 0xffd700, 14, 4);
                     store.addKills(1);
                     openWorld.entityLayer?.removeChild(mob.c);
                     mobs.splice(mi, 1);
@@ -173,29 +172,30 @@ export function useFrostArrow(ctx, targetX, targetY) {
             if (dist < explosionRadius) {
                 boss.hp -= damage;
 
-                showFloat(floats, boss.x, boss.y - 60, `❄️ ${Math.floor(damage)}`, '#fff');
+                VFX.addFloat(`❄️ ${Math.floor(damage)}`, boss.x, boss.y - 60, '#fff');
 
                 applyStatusEffect(boss, createFreezeEffect(freezeDuration * 0.5, slowAmount * 0.5));
 
-                burst(openWorld.entityLayer, particles, boss.x, boss.y, 0x88ddff, 12, 3);
+                VFX.burst(boss.x, boss.y, 0x88ddff, 12, 3);
             }
         }
 
         // Screen shake
-        shakeRef.value = Math.max(shakeRef.value, 12);
+        VFX.shake(12);
 
         // Play sound
         // audioManager.playSFX('/sounds/frost-explosion.ogg', 0.5);
 
         // Frost ground effect that fades out
         const frostGround = new Graphics();
-        frostGround.circle(0, 0, explosionRadius).fill({ color: 0x88ccff, alpha: 0.15 });
+        frostGround.circle(0, 0, explosionRadius).fill({color: 0x88ccff, alpha: 0.15});
         frostGround.x = x;
         frostGround.y = y;
         openWorld.entityLayer.addChild(frostGround);
 
         // Fade out ground effect
         let fadeAlpha = 1;
+
         function fadeFrostGround() {
             if (frostGround.destroyed) return;
             fadeAlpha -= 0.05;
@@ -207,6 +207,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
                 requestAnimationFrame(fadeFrostGround);
             }
         }
+
         setTimeout(() => fadeFrostGround(), 100);
     }
 

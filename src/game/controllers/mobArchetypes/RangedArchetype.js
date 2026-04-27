@@ -73,13 +73,5 @@ export class RangedArchetype {
         if (enemyProjs) enemyProjs.push(proj);
 
         // Visual indicator
-        if (ctx.floats) {
-            ctx.floats.push({
-                text: '⚡',
-                x: m.x,
-                y: m.y - 20,
-                life: 20
-            });
-        }
     }
 }

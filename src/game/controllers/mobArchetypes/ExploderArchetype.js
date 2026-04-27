@@ -16,7 +16,7 @@ export class ExploderArchetype {
     }
 
     update(ctx) {
-        const { px, py, shakeRef, floats, openWorld } = ctx;
+        const { px, py, openWorld } = ctx;
         const m = this.mob;
 
         // Already exploded? do nothing
@@ -73,26 +73,15 @@ export class ExploderArchetype {
         return { moveX, moveY, attackOverride: false };
     }
 
-    startExplosion(ctx) {
+    startExplosion() {
         if (this.priming || this.exploded) return;
 
         this.priming = true;
         this.primeTimer = this.primeDuration;
 
         // Show warning text
-        if (ctx.floats) {
-            ctx.floats.push({
-                text: '💥 !!! 💥',
-                x: this.mob.x,
-                y: this.mob.y - 40,
-                life: 25
-            });
-        }
 
         // Play warning sound effect if available
-        if (window.audioManager) {
-            // window.audioManager.playSFX('/sounds/warning.ogg', 0.3);
-        }
     }
 
     doExplosion(ctx) {
@@ -101,11 +90,10 @@ export class ExploderArchetype {
 
         console.log('💥 EXPLOSION!');
 
-        const { shakeRef, floats, openWorld } = ctx;
+        const { openWorld } = ctx;
         const m = this.mob;
 
         // Screen shake
-        if (shakeRef) shakeRef.value = 12;
 
         // Create explosion visuals
         this.createExplosionVisuals(ctx);
@@ -117,18 +105,8 @@ export class ExploderArchetype {
         if (distToPlayer < this.explosionRadius) {
             const distanceFactor = 1 - (distToPlayer / this.explosionRadius);
             const damage = Math.floor(this.explosionDamage * (0.5 + distanceFactor * 0.5));
-
             console.log('💥 Player damaged:', damage);
             useGameStore.getState().damagePlayer(damage, 'explosion');
-
-            if (floats) {
-                floats.push({
-                    text: `💥 ${damage}!`,
-                    x: m.x,
-                    y: m.y - 20,
-                    life: 30
-                });
-            }
         }
 
         // CRITICAL: Mark as destroyed BEFORE removing

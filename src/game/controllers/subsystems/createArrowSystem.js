@@ -2,8 +2,6 @@
 import {Graphics} from "pixi.js";
 import {useGameStore} from "../../../stores/gameStore.js";
 import {createArrow, updateArrowParticleAnimation} from "../createProjectileController.js";
-import {burst} from "../../utils/particles.js";
-import {showFloat} from "../../utils/floatText.js";
 import {audioManager} from "../../utils/audioManager.js";
 import {BIOME_COLORS, BOSS_RADIUS, ARROW_CONFIG} from "../../constants.js";
 import {
@@ -12,6 +10,7 @@ import {
     createFreezeEffect,
     createPoisonEffect,
 } from "../../statusEffects.js";
+import {VFX} from "../../GlobalEffects.js";
 
 // Constants
 const COLLISION_RADIUS = 16;
@@ -21,11 +20,7 @@ const CHAIN_ALPHA_STEP = 0.1;
 
 export function createArrowSystem(ctx) {
     const {
-        world,
         entities,
-        particles,
-        floats,
-        shakeRef,
         openWorld,
         colliders,
         spawnDrops
@@ -120,9 +115,9 @@ export function createArrowSystem(ctx) {
         const dropColor = isElite ? 0xffaa44 : 0xffd700;
 
         // Visual effects
-        burst(entityLayer, particles, x, y, dropColor, 14, 4);
-        burst(entityLayer, particles, x, y, 0xff4466, 8, 3);
-        shakeRef.value = Math.max(shakeRef.value, 6);
+        VFX.burst(x, y, dropColor, 14, 4);
+        VFX.burst(x, y, 0xff4466, 8, 3);
+        VFX.shake(6)
 
         // Update stats
         useGameStore.getState().addKills(1);
@@ -150,10 +145,9 @@ export function createArrowSystem(ctx) {
     function handleBossDeath(boss, x, y) {
         const biomeCol = BIOME_COLORS[boss.type]?.glow ?? 0x00ccff;
 
-        burst(entityLayer, particles, x, y, biomeCol, 50, 6);
-        burst(entityLayer, particles, x, y, 0xffd700, 30, 5);
-
-        shakeRef.value = 18;
+        VFX.burst(x, y, biomeCol, 50, 6);
+        VFX.burst(x, y, 0xffd700, 30, 5);
+        VFX.shake(18);
 
         // Spawn boss drops
         if (spawnDrops) {
@@ -169,7 +163,7 @@ export function createArrowSystem(ctx) {
             boss.c.destroy();
         }
 
-        showFloat(floats, x, y - 90, 'BOSS DEFEATED!', '#ffd700');
+        VFX.addFloat('BOSS DEFEATED!', x, y - 90, '#ffd700');
         boss.dead = true;
     }
 
@@ -233,9 +227,8 @@ export function createArrowSystem(ctx) {
 
         const damageText = isCrit ? `${parseInt(damage)} CRIT!` : `${parseInt(damage)}`;
 
-        burst(entityLayer, particles, x, y, textColor, particleCount, isBoss ? 3.5 : undefined);
-
-        showFloat(floats, x, y, damageText, textColor);
+        VFX.burst(x, y, textColor, particleCount, isBoss ? 3.5 : undefined);
+        VFX.addFloat(damageText, x, y, textColor);
 
         audioManager.playSFX('/sounds/hit-splat.ogg', 0.3);
     }
@@ -269,7 +262,7 @@ export function createArrowSystem(ctx) {
 
             // Check collision with props
             if (checkCollisionWithProps(arrow.c.x, arrow.c.y)) {
-                burst(world, particles, arrow.c.x, arrow.c.y, 0xaaaaaa, 5, 2);
+                VFX.burst(arrow.c.x, arrow.c.y, 0xaaaaaa, 5, 2);
                 if (arrow.c.parent) {
                     arrow.c.parent.removeChild(arrow.c);
                     arrow.c.destroy();
@@ -294,7 +287,7 @@ export function createArrowSystem(ctx) {
                 applyHitEffects(mob.x, mob.y, finalDamage, isCrit, false, arrow.elementalEffect);
 
                 // Apply elemental effects
-                if (arrow.elementalEffect === 'fire') {
+                if (arrow.elementalEffect === 'burn') {
                     applyStatusEffect(mob, createBurnEffect(2, 4));
                 }
 

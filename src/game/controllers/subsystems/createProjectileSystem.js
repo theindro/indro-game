@@ -1,9 +1,9 @@
 // controllers/subsystems/createProjectileSystem.js
-import {burst} from "../../utils/particles.js";
 import {useGameStore} from "../../../stores/gameStore.js";
+import {VFX} from "../../GlobalEffects.js";
 
 export function createProjectileSystem(ctx) {
-    const { entityLayer, particles, enemyProjs, openWorld } = ctx;
+    const { enemyProjs, openWorld } = ctx;
 
     function updateEnemyProjs(px, py) {
         for (let ei = enemyProjs.length - 1; ei >= 0; ei--) {
@@ -34,7 +34,7 @@ export function createProjectileSystem(ctx) {
 
                         if (dist < (collider.r || 10) + projRadius) {
                             // Projectile hit a prop - create impact effect and remove projectile
-                            burst(entityLayer, particles, ep.c.x, ep.c.y, 0xff6666, 6, 2);
+                            VFX.burst(ep.c.x, ep.c.y, 0xff6666, 6, 2);
                             // Remove from its parent
                             if (ep.c.parent) {
                                 ep.c.parent.removeChild(ep.c);

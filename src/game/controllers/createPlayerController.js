@@ -1,9 +1,8 @@
 import {useGameStore} from "../../stores/gameStore.js";
-import {burst} from "../utils/particles.js";
-import {showFloat} from "../utils/floatText.js";
 import {audioManager} from "../utils/audioManager.js";
+import {VFX} from "../GlobalEffects.js";
 
-export function createPlayerController({hpBar, pBody, shakeRef, world, particles, floats}) {
+export function createPlayerController({hpBar, pBody, world}) {
     let hitTimeout = null;
     let lastHp = null; // Track previous HP to detect damage
 
@@ -41,21 +40,16 @@ export function createPlayerController({hpBar, pBody, shakeRef, world, particles
         }
 
         // Screen shake
-        if (shakeRef) {
-            shakeRef.value = Math.min(15, (shakeRef.value || 0) + damage * 0.3);
-        }
+        VFX.shake(Math.min(15, damage * 0.3))
 
         // Particles burst at player position
-        if (world && particles && pBody) {
+        if (world && pBody) {
             const color = hitType === 'ice' ? 0x00ccff : hitType === 'fire' ? 0xff4400 : hitType === 'poison' ? 0x44ff44 : 0xff6600;
 
-            burst(world, particles, playerX, playerY, color, 8, 2);
+            VFX.burst(playerX, playerY, color, 8, 2);
         }
 
-        // Floating text
-        if (floats) {
-            showFloat(floats, playerX, playerY - 30, `-${damage}`, 'red');
-        }
+        VFX.addFloat(`-${damage}`, playerX, playerY - 30, 'red');
     }
 
     // Initial update
