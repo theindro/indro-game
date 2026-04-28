@@ -1,6 +1,7 @@
 import { Container, Sprite, Graphics, Texture, Text } from 'pixi.js';
 import { BIOME_PROP_CONFIG, PROP_TYPES } from './propConfig.js';
 import { assetManager } from '../utils/assetManager.js';
+import {shadowManager} from "../controllers/createShadowController.js";
 
 export class PropManager {
     constructor(world, colliders, worldSeed = 1) {
@@ -13,6 +14,9 @@ export class PropManager {
 
         // runtime only
         this.activeChunks = new Map();     // visuals only
+
+        // Store shadow registration IDs
+        this.shadowRegistry = new Map(); // prop.id -> shadowId
     }
 
     setPropLayer(layer) {
@@ -207,15 +211,27 @@ export class PropManager {
             if (this.shadowLayer && propVisual instanceof Sprite) {
                 const shadow = new Sprite(propVisual.texture);
                 shadow.anchor.set(0.5, 0.5);
-                shadow.x = propVisual.x + BASE_OFFSET_X * (1 + heightFactor);
-                shadow.y = propVisual.y + BASE_OFFSET_Y;
-                shadow.scale.set(scale * 1.0, -scale * (0.4 + heightFactor * 0.2));
-                shadow.skew.x = -0.3 - heightFactor * 0.4;
                 shadow.tint = 0x000000;
-                shadow.alpha = 0.12;
                 shadow.chunkKey = key;
-                this.shadowLayer.addChild(shadow);
 
+                // Store height factor for shadow updates
+                const heightFactor = Math.min(1.5, propVisual.height / 120);
+
+                // Register with ShadowManager
+                const shadowId = shadowManager.registerShadow(
+                    shadow,
+                    propVisual,
+                    scale,
+                    heightFactor
+                );
+
+                shadow.zIndex = propVisual.zIndex - 10;
+
+                // Store registration for cleanup
+                this.shadowRegistry.set(propVisual, shadowId);
+
+                // Add to shadow layer
+                this.shadowLayer.addChild(shadow);
                 shadowsList.push(shadow);
             }
 
