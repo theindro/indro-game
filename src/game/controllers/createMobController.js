@@ -26,12 +26,14 @@ export function createMobController(mob, entityLayer) {
 
             const {px, py, colliders, openWorld, mobs, dt = 1} = ctx;
 
+            // FIX: Set zIndex on the visual container (mob.c), not on the mob object
+            mob.c.zIndex = mob.y;  // ← THIS IS THE FIX
+
             const m = this.mob;
             const distToPlayer = Math.hypot(px - m.x, py - m.y);
 
             // Every tick update status effect on boss
             updateStatusEffects(m, dt, performance.now(), (damage, type) => {
-                console.log(damage, type);
                 // Show floating damage text for DOT effects
                 let icon = '🔥';
                 let color = '#ff6600';
@@ -202,6 +204,9 @@ export function spawnMob(world, x, y, biome = null, archetype = null) {
     const {c, body, gl, hpBar} = createMobEntity(finalBiome, size);
     c.x = x;
     c.y = y;
+
+    c.sortableChildren = true;
+
     world.addChild(c);
 
     const baseHp = (MOB_HP * DIFFICULTY.mobHp) * stats.hpMultiplier;

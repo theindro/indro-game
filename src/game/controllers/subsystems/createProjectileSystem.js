@@ -10,6 +10,10 @@ export function createProjectileSystem(ctx) {
             const ep = enemyProjs[ei];
             ep.c.x += ep.vx;
             ep.c.y += ep.vy;
+
+            // Update arrow zindex
+            ep.c.zIndex = ep.c.y;
+
             ep.life--;
 
             // Check life and world bounds

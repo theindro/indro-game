@@ -129,6 +129,9 @@ export async function createGame() {
         // Update visuals
         updatePlayerVisuals(pCont, pGlow, px, py, movement.moving, pBobT);
 
+        // Update player depth zindex
+        pCont.zIndex = pCont.y;
+
         // World updates
         openWorld.update(px, py, dt);
 
@@ -185,7 +188,9 @@ async function initApp() {
 
 function createWorldContainer(app) {
     const world = new Container();
+
     world.scale.set(1.25);
+
     app.stage.addChild(world);
     app.stage.roundPixels = true;
     return world;

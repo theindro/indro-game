@@ -197,6 +197,9 @@ export function createDropSystem(ctx) {
             const dy = py - d.container.y;
             const dist = Math.hypot(dx, dy);
 
+            // Update arrow zindex
+            d.container.zIndex = d.container.y;
+
             // Cull far drops for performance
             if (dist > 1000) {
                 if (d.container.parent) d.container.parent.removeChild(d.container);

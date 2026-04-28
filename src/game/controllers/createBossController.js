@@ -17,6 +17,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
     const { c, gl, body, hpBar } = createBossEntity(type);
     c.x = x; c.y = y;
     c.scale.set(scale);
+    c.sortableChildren = true;
     world.addChild(c);
 
     const biome   = BIOME_COLORS[type] ?? {};
@@ -53,6 +54,10 @@ export function spawnBoss(world, type, x, y, scale = 1) {
 
         update({ px, py, colliders, openWorld, enemyProjs, playerState, deltaTime = 1 }) {
             if (this.dead) return;
+
+            // Use the boss's Y position as zIndex for proper depth sorting
+            this.c.zIndex = this.y;  // ← THIS IS THE FIX
+            this.zIndex = this.y;
 
             // Every tick update status effect on boss
             updateStatusEffects(this, deltaTime, performance.now(), (damage, type) => {

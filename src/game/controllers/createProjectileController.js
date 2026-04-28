@@ -60,6 +60,7 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
     const c = new Container();
     c.x = px;
     c.y = py;
+    c.sortableChildren = true;
 
     const dx = tx - px;
     const dy = ty - py;
@@ -176,6 +177,8 @@ export function updateArrowParticleAnimation(arrow, deltaTime) {
 export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 2.8, size = 9, angleOffset = 0, elementalType = null) {
     const c = new Container();
     c.x = ex; c.y = ey;
+
+    c.sortableChildren = true;
 
     const elementColors = {
         burn: { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 },

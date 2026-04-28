@@ -34,7 +34,7 @@ export class OpenWorldManager {
                 minDistance: 3
             },
             biomeSettings: {
-                forest: { mobDensity: 0.3, poiWeight: 1.0 },
+                forest: { mobDensity: 0.05, poiWeight: 1.0 },
                 desert: { mobDensity: 0.5, poiWeight: 0.7 },
                 ice: { mobDensity: 1, poiWeight: 0.8 },
                 lava: { mobDensity: 2, poiWeight: 1.2 }
@@ -60,14 +60,18 @@ export class OpenWorldManager {
         this.entityLayer = new Container();
         this.propLayer = new Container();
 
-        this.propManager.setPropLayer(this.propLayer);
-        this.propManager.setShadowLayer(this.shadowLayer);
+        this.propManager.setPropLayer(this.entityLayer);
+        this.propManager.setShadowLayer(this.entityLayer);
 
         this.world.addChild(this.groundLayer);
         this.world.addChild(this.debugLayer);
         this.world.addChild(this.entityLayer);
-        this.world.addChild(this.shadowLayer);
-        this.world.addChild(this.propLayer);
+        //this.world.addChild(this.shadowLayer);
+        //this.world.addChild(this.propLayer);
+
+        console.log(this.world);
+
+        this.entityLayer.sortableChildren = true;
 
         // For debug
         this._debugTimer = 0;

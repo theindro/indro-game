@@ -257,6 +257,10 @@ export function createArrowSystem(ctx) {
             // Update position
             arrow.c.x += arrow.vx;
             arrow.c.y += arrow.vy;
+
+            // Update arrow zindex
+            arrow.c.zIndex = arrow.c.y;
+
             arrow.life--;
 
             // Check lifetime and bounds

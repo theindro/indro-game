@@ -1,4 +1,4 @@
-import { Container, Sprite, Graphics, Texture } from 'pixi.js';
+import { Container, Sprite, Graphics, Texture, Text } from 'pixi.js';
 import { BIOME_PROP_CONFIG, PROP_TYPES } from './propConfig.js';
 import { assetManager } from '../utils/assetManager.js';
 
@@ -47,20 +47,17 @@ export class PropManager {
         const data = this.activeChunks.get(key);
         if (!data) return;
 
-        const safeRemove = (obj) => {
-            if (!obj) return;
-
-            if (obj.parent) {
-                obj.parent.removeChild(obj);
+        // Remove all props in this chunk from entityLayer
+        if (data.propsList) {
+            for (const prop of data.propsList) {
+                if (prop && prop.parent) {
+                    prop.parent.removeChild(prop);
+                    prop.destroy({ children: true });
+                }
             }
+        }
 
-            obj.destroy({ children: true });
-        };
-
-        safeRemove(data.container);
-        safeRemove(data.shadowContainer);
-
-        // 🔴 Remove colliders with matching chunkKey
+        // Remove colliders with matching chunkKey
         if (this.colliders) {
             for (let i = this.colliders.length - 1; i >= 0; i--) {
                 if (this.colliders[i].chunkKey === key) {
@@ -81,8 +78,8 @@ export class PropManager {
             return this.activeChunks.get(key);
         }
 
-        const container = new Container();
-        const shadowContainer = new Container();
+        // DON'T create a container for props - we'll add directly to propLayer
+        const propsList = []; // Store references to cleanup later
 
         const chunkSizeWorld = chunkSize * tileSize;
         const startX = chunkX * chunkSizeWorld;
@@ -91,7 +88,7 @@ export class PropManager {
         const biomeConfig = BIOME_PROP_CONFIG[biome];
         if (!biomeConfig) {
             console.warn(`No prop config for biome: ${biome}`);
-            return { container, shadowContainer };
+            return { propsList }; // Return empty
         }
 
         // Build prop pool based on weights
@@ -106,11 +103,8 @@ export class PropManager {
         }
 
         const placed = [];
-        const props = [];
-
         const baseSeed = this.hash(chunkX, chunkZ);
         const targetCount = Math.floor((biomeConfig.density || 0.5) * 25);
-
         let actualCount = 0;
 
         for (let i = 0; i < targetCount * 5 && actualCount < targetCount; i++) {
@@ -141,7 +135,6 @@ export class PropManager {
 
             let texture = this.getTexture(assetId);
 
-            // ✅ FIX 1: Create fallback graphics if texture is missing
             if (!texture) {
                 console.log(`Creating fallback graphic for ${assetId}`);
                 texture = this.createFallbackTexture(propType, biome);
@@ -153,7 +146,6 @@ export class PropManager {
                 this.seededRandom(baseSeed + i * 31) *
                 (scaleRange.max - scaleRange.min);
 
-            // ✅ FIX 2: Handle both Sprite and Graphics
             let propVisual;
             if (texture instanceof Texture) {
                 propVisual = new Sprite(texture);
@@ -173,53 +165,42 @@ export class PropManager {
             propVisual.x = x;
             propVisual.y = z;
 
-            propVisual.zIndex = z;
+            const heightFactor = Math.min(1.5, propVisual.height / 120);
+            const BASE_OFFSET_X = -25;
+            const BASE_OFFSET_Y = -0 * heightFactor;
 
-            container.addChild(propVisual);
+            // CRITICAL: Set zIndex to Y position (no offset)
+            propVisual.zIndex = propVisual.y - (40 * heightFactor);
 
-            // Add shadow
+            // Store chunk key for cleanup
+            propVisual.chunkKey = key;
+
+            // ADD DIRECTLY TO PROP LAYER (entityLayer)
+            if (this.propLayer) {
+                this.propLayer.addChild(propVisual);
+            }
+
+            // Add shadow if needed
             if (this.shadowLayer && propVisual instanceof Sprite) {
                 const shadow = new Sprite(propVisual.texture);
-
                 shadow.anchor.set(0.5, 0.5);
-
-                const heightFactor = Math.min(1.5, propVisual.height / 120);
-
-                console.log(heightFactor);
-                // normalize size influence
-
-                // 👇 direction (bottom-left)
-                const BASE_OFFSET_X = -25;
-                const BASE_OFFSET_Y = -0 * heightFactor ;
-
                 shadow.x = propVisual.x + BASE_OFFSET_X * (1 + heightFactor);
                 shadow.y = propVisual.y + BASE_OFFSET_Y;
-
-                // 👇 flatten vertically (ground contact)
-                shadow.scale.set(
-                    scale * 1.0,
-                    -scale * (0.4 + heightFactor * 0.2)
-                );
-
-                // 👇 THIS is the key: increase skew with height
+                shadow.scale.set(scale * 1.0, -scale * (0.4 + heightFactor * 0.2));
                 shadow.skew.x = -0.3 - heightFactor * 0.4;
-
                 shadow.tint = 0x000000;
                 shadow.alpha = 0.12;
-
-                shadowContainer.addChild(shadow);
+                shadow.chunkKey = key;
+                this.shadowLayer.addChild(shadow);
             }
-            // ✅ FIX 3: Create collider synchronously
-            if (propType.collision) {
-                const scale = 0.85; // 85% of visual size
 
+            // Create collider
+            if (propType.collision) {
                 const baseWidth = Math.max(20, propVisual.width || 30);
                 const baseHeight = Math.max(20, propVisual.height || 30);
+                const width = baseWidth * 0.85;
+                const height = baseHeight * 0.85;
 
-                const width = baseWidth * scale;
-                const height = baseHeight * scale;
-
-                // keep bottom aligned at z
                 const collider = {
                     x: x,
                     y: z - height / 2,
@@ -229,7 +210,8 @@ export class PropManager {
                     type: 'prop',
                     propType: propType.type,
                     biome: biome,
-                    chunkKey: key
+                    chunkKey: key,
+                    visual: propVisual // Store reference for cleanup
                 };
 
                 if (this.colliders) {
@@ -237,37 +219,16 @@ export class PropManager {
                 }
             }
 
-
-            props.push({
-                x,
-                z,
-                propType,
-                texture,
-                scale,
-                assetId
-            });
-
-
+            propsList.push(propVisual);
             placed.push({ x, z });
             actualCount++;
         }
 
-        container.sortableChildren = true;
-
-        // Add to layers
-        if (this.propLayer) {
-            this.propLayer.addChild(container);
-        } else {
-            console.error("❌ propLayer is null!");
-        }
-
-        if (this.shadowLayer && shadowContainer.children.length > 0) {
-            this.shadowLayer.addChild(shadowContainer);
-        }
-
-        const result = { container, shadowContainer };
-
+        // Store just the list of props for this chunk
+        const result = { propsList };
         this.activeChunks.set(key, result);
+
+        console.log(`Chunk ${chunkX},${chunkZ} added ${actualCount} props directly to entityLayer`);
 
         return result;
     }

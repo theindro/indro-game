@@ -35,8 +35,8 @@ export function showFloat(wx, wy, msg, color = '#ff6b8a') {
     VFX.floats.push({
         el: d,
         wx, wy,
-        vy: -1.3,
-        life: 200  // Changed to frames (60 = 1 sec at 60fps)
+        vy: -0.3,
+        life: 100  // Changed to frames (60 = 1 sec at 60fps)
     });
 }
 
