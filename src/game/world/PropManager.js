@@ -45,10 +45,17 @@ export class PropManager {
 
     unloadChunkProps(key) {
         const data = this.activeChunks.get(key);
-        if (!data) return;
+        if (!data) {
+            console.warn(`No props data found for chunk ${key}`);
+            return;
+        }
+
+        let propsRemoved = 0;
+        let shadowsRemoved = 0;
 
         // Remove all props in this chunk from entityLayer
         if (data.propsList) {
+            propsRemoved = data.propsList.length;
             for (const prop of data.propsList) {
                 if (prop && prop.parent) {
                     prop.parent.removeChild(prop);
@@ -57,14 +64,29 @@ export class PropManager {
             }
         }
 
+        // Remove all shadows in this chunk from shadowLayer
+        if (data.shadowsList) {
+            shadowsRemoved = data.shadowsList.length;
+            for (const shadow of data.shadowsList) {
+                if (shadow && shadow.parent) {
+                    shadow.parent.removeChild(shadow);
+                    shadow.destroy({ children: true });
+                }
+            }
+        }
+
         // Remove colliders with matching chunkKey
+        let collidersRemoved = 0;
         if (this.colliders) {
             for (let i = this.colliders.length - 1; i >= 0; i--) {
                 if (this.colliders[i].chunkKey === key) {
                     this.colliders.splice(i, 1);
+                    collidersRemoved++;
                 }
             }
         }
+
+        console.log(`Unloaded chunk ${key}: removed ${propsRemoved} props, ${shadowsRemoved} shadows, ${collidersRemoved} colliders`);
 
         this.activeChunks.delete(key);
     }
@@ -80,6 +102,7 @@ export class PropManager {
 
         // DON'T create a container for props - we'll add directly to propLayer
         const propsList = []; // Store references to cleanup later
+        const shadowsList = []; // Store references to cleanup later
 
         const chunkSizeWorld = chunkSize * tileSize;
         const startX = chunkX * chunkSizeWorld;
@@ -192,6 +215,8 @@ export class PropManager {
                 shadow.alpha = 0.12;
                 shadow.chunkKey = key;
                 this.shadowLayer.addChild(shadow);
+
+                shadowsList.push(shadow);
             }
 
             // Create collider
@@ -225,10 +250,10 @@ export class PropManager {
         }
 
         // Store just the list of props for this chunk
-        const result = { propsList };
+        const result = { propsList , shadowsList };
         this.activeChunks.set(key, result);
 
-        console.log(`Chunk ${chunkX},${chunkZ} added ${actualCount} props directly to entityLayer`);
+        console.log(`Chunk ${chunkX},${chunkZ} added ${actualCount} props and ${shadowsList.length} shadows directly to entityLayer`);
 
         return result;
     }

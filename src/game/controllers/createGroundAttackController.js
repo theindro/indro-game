@@ -7,6 +7,7 @@ export class GroundAttackController {
         this.attacks = [];
         this.owner = owner; // Store reference to boss/mob
         this.active = true;
+        this.world.sortableChildren = true;
     }
 
     addAttack(x, y, config = {}) {
@@ -73,6 +74,8 @@ export class GroundAttack {
         // ✅ CHANGE 2: Apply squash effect (add this line)
         this.container.scale.set(1, 0.6);  // squash vertically
 
+        this.container.sortableChildren = true;
+
         // Position
         this.x = x;
         this.y = y;
@@ -135,6 +138,8 @@ export class GroundAttack {
         // ✅ CHANGE 3: Position the container
         this.container.x = this.x;
         this.container.y = this.y;
+
+        this.container.zIndex = this.y
 
         this.timer++;
         this.g.clear();
