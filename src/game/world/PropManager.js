@@ -183,18 +183,32 @@ export class PropManager {
 
                 shadow.anchor.set(0.5, 0.5);
 
-                shadow.x = propVisual.x;
-                shadow.y = propVisual.y;
+                const heightFactor = Math.min(1.5, propVisual.height / 120);
 
-                shadow.scale.set(scale, -scale);
+                console.log(heightFactor);
+                // normalize size influence
+
+                // 👇 direction (bottom-left)
+                const BASE_OFFSET_X = -25;
+                const BASE_OFFSET_Y = -0 * heightFactor ;
+
+                shadow.x = propVisual.x + BASE_OFFSET_X * (1 + heightFactor);
+                shadow.y = propVisual.y + BASE_OFFSET_Y;
+
+                // 👇 flatten vertically (ground contact)
+                shadow.scale.set(
+                    scale * 1.0,
+                    -scale * (0.4 + heightFactor * 0.2)
+                );
+
+                // 👇 THIS is the key: increase skew with height
+                shadow.skew.x = -0.3 - heightFactor * 0.4;
 
                 shadow.tint = 0x000000;
-                shadow.alpha = 0.15;
-
+                shadow.alpha = 0.12;
 
                 shadowContainer.addChild(shadow);
             }
-
             // ✅ FIX 3: Create collider synchronously
             if (propType.collision) {
                 const scale = 0.85; // 85% of visual size

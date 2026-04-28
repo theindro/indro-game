@@ -1,4 +1,4 @@
-import { Graphics } from 'pixi.js';
+import {Container, Graphics} from 'pixi.js';
 
 // In GroundAttack.js - Updated GroundAttackManager
 export class GroundAttackController {
@@ -58,11 +58,20 @@ export class GroundAttackController {
         return this.owner && this.owner.dead;
     }
 }
+
 export class GroundAttack {
     constructor(world, x, y, config = {}) {
         this.world = world;
+
+        // ✅ CHANGE 1: Create container and move graphics into it
+        this.container = new Container();
         this.g = new Graphics();
-        world.addChild(this.g);
+
+        this.container.addChild(this.g);
+        this.world.addChild(this.container);
+
+        // ✅ CHANGE 2: Apply squash effect (add this line)
+        this.container.scale.set(1, 0.6);  // squash vertically
 
         // Position
         this.x = x;
@@ -123,12 +132,16 @@ export class GroundAttack {
             }
         }
 
+        // ✅ CHANGE 3: Position the container
+        this.container.x = this.x;
+        this.container.y = this.y;
+
         this.timer++;
         this.g.clear();
 
         const progress = Math.min(1, this.timer / this.config.warningDuration);
 
-        // Draw based on shape
+        // Draw based on shape (using 0,0 local coordinates)
         switch(this.config.shape) {
             case 'circle':
                 this._drawCircle(progress);
@@ -166,27 +179,28 @@ export class GroundAttack {
         const R = this.config.radius;
         const waveRadius = R * progress;
 
-        this.g.circle(this.x, this.y, R)
+        // ✅ CHANGE 4: Use 0,0 instead of this.x, this.y
+        this.g.circle(0, 0, R)
             .stroke({
                 color: this.config.warningColor,
                 alpha: 0.6 + Math.sin(this.timer * 0.2) * 0.3,
                 width: 3
             });
 
-        this.g.circle(this.x, this.y, R - 2)
+        this.g.circle(0, 0, R - 2)
             .fill({ color: this.config.warningColor, alpha: 0.1 });
 
-        this.g.circle(this.x, this.y, waveRadius)
+        this.g.circle(0, 0, waveRadius)
             .stroke({ color: this.config.color, alpha: 0.9, width: 4 });
 
-        this.g.circle(this.x, this.y, waveRadius - 3)
+        this.g.circle(0, 0, waveRadius - 3)
             .stroke({ color: this.config.innerColor, alpha: 0.7, width: 2 });
 
         const particleCount = Math.min(12, Math.floor(progress * 20));
         for (let i = 0; i < particleCount; i++) {
             const angle = (i / particleCount) * Math.PI * 2 + this.timer * 0.1;
-            const x = this.x + Math.cos(angle) * waveRadius;
-            const y = this.y + Math.sin(angle) * waveRadius;
+            const x = Math.cos(angle) * waveRadius;
+            const y = Math.sin(angle) * waveRadius;
             this.g.circle(x, y, 2).fill({ color: this.config.color, alpha: 0.8 });
         }
     }
@@ -197,26 +211,27 @@ export class GroundAttack {
         const waveProgress = progress;
         const borderOffset = Math.min(w/2, h/2) * waveProgress;
 
-        this.g.rect(this.x - w/2, this.y - h/2, w, h)
+        // ✅ CHANGE 5: Use 0,0 as center
+        this.g.rect(-w/2, -h/2, w, h)
             .stroke({
                 color: this.config.warningColor,
                 alpha: 0.6 + Math.sin(this.timer * 0.2) * 0.3,
                 width: 3
             });
 
-        this.g.rect(this.x - w/2 + 2, this.y - h/2 + 2, w - 4, h - 4)
+        this.g.rect(-w/2 + 2, -h/2 + 2, w - 4, h - 4)
             .fill({ color: this.config.warningColor, alpha: 0.1 });
 
         this.g.rect(
-            this.x - w/2 + borderOffset,
-            this.y - h/2 + borderOffset,
+            -w/2 + borderOffset,
+            -h/2 + borderOffset,
             w - borderOffset * 2,
             h - borderOffset * 2
         ).stroke({ color: this.config.color, alpha: 0.9, width: 4 });
 
         this.g.rect(
-            this.x - w/2 + borderOffset + 2,
-            this.y - h/2 + borderOffset + 2,
+            -w/2 + borderOffset + 2,
+            -h/2 + borderOffset + 2,
             w - borderOffset * 2 - 4,
             h - borderOffset * 2 - 4
         ).stroke({ color: this.config.innerColor, alpha: 0.7, width: 2 });
@@ -230,29 +245,30 @@ export class GroundAttack {
         const endAngle = angle + arcAngle/2;
         const waveRadius = R * progress;
 
-        this.g.moveTo(this.x, this.y);
+        // ✅ CHANGE 6: Use 0,0 as center
+        this.g.moveTo(0, 0);
         for (let a = startAngle; a <= endAngle; a += 0.05) {
-            const x = this.x + Math.cos(a) * R;
-            const y = this.y + Math.sin(a) * R;
+            const x = Math.cos(a) * R;
+            const y = Math.sin(a) * R;
             this.g.lineTo(x, y);
         }
         this.g.closePath();
         this.g.stroke({ color: this.config.warningColor, alpha: 0.6, width: 3 });
         this.g.fill({ color: this.config.warningColor, alpha: 0.1 });
 
-        this.g.moveTo(this.x, this.y);
+        this.g.moveTo(0, 0);
         for (let a = startAngle; a <= endAngle; a += 0.05) {
-            const x = this.x + Math.cos(a) * waveRadius;
-            const y = this.y + Math.sin(a) * waveRadius;
+            const x = Math.cos(a) * waveRadius;
+            const y = Math.sin(a) * waveRadius;
             this.g.lineTo(x, y);
         }
         this.g.closePath();
         this.g.stroke({ color: this.config.color, alpha: 0.9, width: 4 });
 
-        this.g.moveTo(this.x, this.y);
+        this.g.moveTo(0, 0);
         for (let a = startAngle; a <= endAngle; a += 0.05) {
-            const x = this.x + Math.cos(a) * (waveRadius - 3);
-            const y = this.y + Math.sin(a) * (waveRadius - 3);
+            const x = Math.cos(a) * (waveRadius - 3);
+            const y = Math.sin(a) * (waveRadius - 3);
             this.g.lineTo(x, y);
         }
         this.g.closePath();
@@ -265,14 +281,15 @@ export class GroundAttack {
         const halfLength = w / 2;
         const waveOffset = halfLength * progress;
 
-        const startX = this.x - Math.cos(angle) * halfLength;
-        const startY = this.y - Math.sin(angle) * halfLength;
-        const endX = this.x + Math.cos(angle) * halfLength;
-        const endY = this.y + Math.sin(angle) * halfLength;
-        const waveStartX = this.x - Math.cos(angle) * waveOffset;
-        const waveStartY = this.y - Math.sin(angle) * waveOffset;
-        const waveEndX = this.x + Math.cos(angle) * waveOffset;
-        const waveEndY = this.y + Math.sin(angle) * waveOffset;
+        // ✅ CHANGE 7: Use 0,0 as center
+        const startX = -Math.cos(angle) * halfLength;
+        const startY = -Math.sin(angle) * halfLength;
+        const endX = Math.cos(angle) * halfLength;
+        const endY = Math.sin(angle) * halfLength;
+        const waveStartX = -Math.cos(angle) * waveOffset;
+        const waveStartY = -Math.sin(angle) * waveOffset;
+        const waveEndX = Math.cos(angle) * waveOffset;
+        const waveEndY = Math.sin(angle) * waveOffset;
 
         this.g.moveTo(startX, startY).lineTo(endX, endY)
             .stroke({ color: this.config.warningColor, alpha: 0.6, width: 8 });
@@ -289,27 +306,29 @@ export class GroundAttack {
         const h = this.config.height;
         const borderOffset = Math.min(w/2, h/2) * progress;
 
-        this.g.rect(this.x - w/2, this.y - 15, w, 30)
+        // ✅ CHANGE 8: Use 0,0 as center
+        this.g.rect(-w/2, -15, w, 30)
             .stroke({ color: this.config.warningColor, alpha: 0.6, width: 3 });
-        this.g.rect(this.x - 15, this.y - h/2, 30, h)
+        this.g.rect(-15, -h/2, 30, h)
             .stroke({ color: this.config.warningColor, alpha: 0.6, width: 3 });
 
         this.g.rect(
-            this.x - w/2 + borderOffset,
-            this.y - 15 + borderOffset * 0.3,
+            -w/2 + borderOffset,
+            -15 + borderOffset * 0.3,
             w - borderOffset * 2,
             30 - borderOffset * 0.6
         ).stroke({ color: this.config.color, alpha: 0.9, width: 4 });
 
         this.g.rect(
-            this.x - 15 + borderOffset * 0.3,
-            this.y - h/2 + borderOffset,
+            -15 + borderOffset * 0.3,
+            -h/2 + borderOffset,
             30 - borderOffset * 0.6,
             h - borderOffset * 2
         ).stroke({ color: this.config.color, alpha: 0.9, width: 4 });
     }
 
     _checkHit(px, py) {
+        // ✅ Hit detection stays EXACTLY the same (uses world coordinates)
         switch(this.config.shape) {
             case 'circle': {
                 const dist = Math.hypot(px - this.x, py - this.y);
@@ -368,9 +387,10 @@ export class GroundAttack {
     }
 
     destroy() {
-        if (this.g && !this.g.destroyed) {
-            if (this.g.parent) this.g.parent.removeChild(this.g);
-            this.g.destroy();
+        // ✅ CHANGE 9: Destroy the container (which destroys the graphics too)
+        if (this.container && !this.container.destroyed) {
+            if (this.container.parent) this.container.parent.removeChild(this.container);
+            this.container.destroy({ children: true });
         }
     }
 }
