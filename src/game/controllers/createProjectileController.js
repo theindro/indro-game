@@ -184,7 +184,7 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
         burn:     { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 },
         poison:   { glow: 0x44ff44, orb: 0x66ff66, core: 0xaaffaa },
         lightning:{ glow: 0x44aaff, orb: 0x66ccff, core: 0xaaddff },
-        normal:   { glow: 0x88aaff, orb: 0xaaccff, core: 0xffffff }
+        normal:   { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 }
     };
 
     const colors = elementColors[elementalType] || elementColors.normal;
@@ -208,7 +208,6 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
     const particles = new Container();
     c.addChild(particles);
 
-    if (elementalType) {
         for (let i = 0; i < 4; i++) {
             const p = new Graphics();
             p.circle(0, 0, 2).fill({ color: colors.glow, alpha: 0.6 });
@@ -216,7 +215,6 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
             p.y = Math.sin(i * Math.PI * 2 / 4) * (size * 0.9);
             particles.addChild(p);
         }
-    }
 
     world.addChild(c);
 

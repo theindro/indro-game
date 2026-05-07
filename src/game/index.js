@@ -15,7 +15,7 @@ import {OpenWorldManager} from "./world/OpenWorldManager.js";
 import {PerformanceMonitor} from './world/PerformanceMonitor.js';
 import {MinimapManager} from "./world/MinimapManager.js";
 import {VFX} from './GlobalEffects.js';
-import {createLightingFilter} from "./controllers/createLightingController.js";
+import {ChunkMonitor} from "./world/ChunkMonitor.js";
 
 export async function createGame() {
     // ==================== INITIALIZATION ====================
@@ -78,6 +78,8 @@ export async function createGame() {
 
     openWorld.setEntitiesList(entities);
 
+    const chunkMonitor = new ChunkMonitor(openWorld);
+
     // ==================== COMBAT ====================
     const combat = createCombatController({
         world, entities,
@@ -90,6 +92,13 @@ export async function createGame() {
 
     // ==================== UI ====================
     const minimap = new MinimapManager(app, openWorld, {x: px, y: py, rotation: 0}, entities);
+
+    // Debug
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'F2') {
+            useGameStore.getState().toggleDebug();
+        }
+    });
 
     // ==================== SETUP ====================
     setupEventListeners(input, dash, combat, playerState.stats, mouseWorld, entities.bosses, openWorld);
@@ -169,6 +178,9 @@ export async function createGame() {
         // Shader lighting just testing
         // lighting.updateLighting([{ x: pCont.x, y: pCont.y, radius: 1000 }], camX, camY);
 
+        // Chunk monitor
+        chunkMonitor.update(px, py);
+
         // Debug
         debug.tickUpdate();
 
@@ -176,7 +188,7 @@ export async function createGame() {
         checkDeath(playerState, gameState, killsRef);
     });
 
-    return () => cleanup(input, debug, app);
+    return () => cleanup(input, debug, app, chunkMonitor);
 }
 
 // ==================== HELPER FUNCTIONS ====================
@@ -256,15 +268,15 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
     let isTransitioning = false;
 
     openWorld.onChunkChangeCallback = (info) => {
+        console.log(info);
         if (info.biome === lastWeatherBiome && !isTransitioning) return;
 
         const weatherConfig = {
-            desert: { type: 'rain', intensity: 0.7, speed: 1.0 },
-            forest: { type: 'sandstorm', intensity: 0.1, speed: 1.0 },
+            desert: { type: 'sandstorm', intensity: 0.7, speed: 1.0 },
+            forest: { type: 'rain', intensity: 0.7, speed: 1.0 },
             ice: { type: 'snow', intensity: 0.6, speed: 0.8 },
             lava: { type: 'embers', intensity: 0.8, speed: 0.8 }
         };
-
 
         const weather = weatherConfig[info.biome];
         
@@ -417,8 +429,9 @@ function checkDeath(playerState, gameState, killsRef) {
     }
 }
 
-function cleanup(input, debug, app) {
+function cleanup(input, debug, app, chunkMonitor) {
     input.destroy();
     debug.destroy();
+    chunkMonitor.destroy();
     app.destroy(true, {children: true});
 }

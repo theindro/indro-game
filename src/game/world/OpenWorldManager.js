@@ -6,6 +6,14 @@ import {PropManager} from "./PropManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import * as PIXI from 'pixi.js';
 
+const weatherConfig = {
+    forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
+    desert: {type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44'},
+    ice: {type: '❄️ Snow', intensity: 0.6, color: '#88ccff'},
+    lava: {type: '🔥 Embers', intensity: 0.8, color: '#ff4400'}
+};
+
+
 export class OpenWorldManager {
     constructor(world, colliders, renderer) {
         this.world = world;
@@ -43,6 +51,7 @@ export class OpenWorldManager {
 
         this.biomeTextures = new Map();
         this.spawnedPOIs = new Map();
+        this.chunkData = new Map();
 
         this.lastChunkUpdate = 0;
         this.chunkUpdateInterval = 100; // Only update chunks every 100ms
@@ -73,9 +82,117 @@ export class OpenWorldManager {
 
         this.entityLayer.sortableChildren = true;
 
+        this.chunkTypes = {
+            empty: 0.25,
+            mob_pack: 0.45,
+            dense_pack: 0.15,
+            poi: 0.10,
+            elite: 0.04,
+            boss: 0.01
+        };
+
         // For debug
         this._debugTimer = 0;
         this._debugInterval = 5000; // 5 seconds
+    }
+
+    generateChunkData(chunkX, chunkZ) {
+        const key = `${chunkX},${chunkZ}`;
+
+        if (this.chunkData.has(key)) {
+            return this.chunkData.get(key);
+        }
+
+        const biome = this.getBiomeAtChunk(chunkX, chunkZ);
+        const weather = weatherConfig[biome];
+
+        const seed =
+            this.worldSeed ^
+            (chunkX * 73856093) ^
+            (chunkZ * 19349663);
+
+        const rand = this.seededRandom(seed);
+
+        let cumulative = 0;
+        let type = 'empty';
+
+        for (const [k, weight] of Object.entries(this.chunkTypes)) {
+            cumulative += weight;
+
+            if (rand <= cumulative) {
+                type = k;
+                break;
+            }
+        }
+
+        const chunkLevel = Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
+        const difficulty = Math.pow(1.08, chunkLevel);
+
+        const data = {
+            biome,
+            type,
+            seed,
+            weather,
+            difficulty,
+            packs: [],
+            poi: null,
+        };
+
+        // Generate encounters
+        if (type === 'mob_pack') {
+            data.packs = this.generateMobPacks(chunkX, chunkZ, 1, seed, difficulty);
+        }
+
+        if (type === 'dense_pack') {
+            data.packs = this.generateMobPacks(chunkX, chunkZ, 3, seed, difficulty);
+        }
+
+        if (type === 'elite') {
+            //data.packs = this.generateElitePack(chunkX, chunkZ, seed);
+        }
+
+        if (type === 'poi') {
+            //data.poi = this.generatePOI(chunkX, chunkZ, biome, seed);
+        }
+
+        this.chunkData.set(key, data);
+
+        console.log(this.chunkData);
+
+        return data;
+    }
+
+    generateMobPacks(chunkX, chunkZ, packCount, seed, difficulty) {
+        const packs = [];
+
+        const defaultPackSize = difficulty;
+        const chunkSizeWorld = this.chunkSize * this.tileSize;
+
+        const startX = chunkX * chunkSizeWorld;
+        const startZ = chunkZ * chunkSizeWorld;
+
+        for (let i = 0; i < packCount; i++) {
+
+            const packSeed = seed + i * 9999;
+
+            const centerX =
+                startX +
+                this.seededRandom(packSeed) * chunkSizeWorld;
+
+            const centerZ =
+                startZ +
+                this.seededRandom(packSeed + 5555) * chunkSizeWorld;
+
+            packs.push({
+                x: centerX,
+                z: centerZ,
+                radius: 120 + this.seededRandom(packSeed + 888) * 120,
+                mobCount: defaultPackSize + Math.floor(this.seededRandom(packSeed + 999) * 5),
+                archetype: 'melee'
+            });
+        }
+
+        return packs;
     }
 
     setEntitiesList(entities) {
@@ -153,21 +270,6 @@ export class OpenWorldManager {
         return biomeData?.base || 0x333333;
     }
 
-    getBiomeAtWorldPosition(worldX, worldZ) {
-        const x = worldX / this.tileSize;
-        const z = worldZ / this.tileSize;
-        const scale = this.config.biomeScale;
-        const seed = this.worldSeed;
-        const value = Math.sin((x + seed) * scale) * Math.cos((z - seed) * scale);
-        if (value > 0.5) return 'forest';
-        if (value < -0.5) return 'desert';
-        const iceCheck = Math.sin((x + seed * 2) * scale * 1.5) * Math.cos((z - seed * 2) * scale * 1.5);
-        if (iceCheck > 0.6) return 'ice';
-        const lavaCheck = Math.sin((x - seed * 3) * scale * 0.7) * Math.cos((z + seed * 3) * scale * 0.7);
-        if (lavaCheck < -0.6) return 'lava';
-        return 'lava';
-    }
-
     async generateChunk(chunkX, chunkZ) {
         const chunkContainer = new Container();
         const startX = chunkX * this.chunkSize * this.tileSize;
@@ -201,159 +303,47 @@ export class OpenWorldManager {
         return this.getBiomeAt(centerX, centerZ);
     }
 
-    async spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, biome) {
+    async spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData) {
         const key = `${chunkX},${chunkZ}`;
         const chunkLevel = Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
         const difficulty = Math.pow(1.08, chunkLevel);
 
-        if (this.spawnedEntities.has(key)) {
-            const entities = this.spawnedEntities.get(key);
-            for (const mob of entities.mobs) {
-                mob.c.visible = true;
-                if (!this.entitiesList.mobs.includes(mob)) {
+        if (this.spawnedEntities.has(key)) return;
+
+        const entities = { mobs: [] };
+
+        for (const pack of chunkData.packs) {
+
+            for (let i = 0; i < pack.mobCount; i++) {
+
+                const angle = Math.random() * Math.PI * 2;
+
+                const dist = Math.random() * pack.radius;
+
+                const x = pack.x + Math.cos(angle) * dist;
+                const z = pack.z + Math.sin(angle) * dist;
+
+                const mob = spawnMob(
+                    this.entityLayer,
+                    x,
+                    z,
+                    chunkData.biome,
+                    '',
+                    difficulty
+                );
+
+                if (mob) {
+                    mob.spawnChunk = key;
+                    mob.packId = `${key}_${pack.x}_${pack.z}`;
+
+                    entities.mobs.push(mob);
+
                     this.entitiesList.mobs.push(mob);
                 }
-            }
-            return;
-        }
-
-        if (!this.entitiesList?.mobs) return;
-        const entities = {mobs: []};
-        const chunkSizeWorld = this.chunkSize * this.tileSize;
-        const startX = chunkX * chunkSizeWorld;
-        const startZ = chunkZ * chunkSizeWorld;
-        const seed = this.worldSeed ^ (chunkX * 73856093) ^ (chunkZ * 19349663);
-        const mobCount = this.getMobCountForBiome(difficulty, seed);
-
-        console.log(mobCount);
-
-        // Get all colliders in this chunk
-        const props = this.colliders.filter(c => c.chunkKey === key && c.type === 'prop');
-
-        for (let i = 0; i < mobCount; i++) {
-            // Use a different seed for EACH mob and EACH attempt
-            let x, z, foundPosition = false;
-
-            // Generate random position with better distribution
-            for (let attempt = 0; attempt < 30; attempt++) {
-                // Create unique seed for each attempt
-                const attemptSeed = seed + (i * 10000) + (attempt * 37);
-
-                // Generate random position within chunk bounds (not just center)
-                const randomX = this.seededRandom(attemptSeed);
-                const randomZ = this.seededRandom(attemptSeed + 12345);
-
-                // Spread mobs across the entire chunk, not clustered in center
-                const testX = startX + randomX * chunkSizeWorld;
-                const testZ = startZ + randomZ * chunkSizeWorld;
-
-                // Check distance from player (avoid spawning too close)
-                if (Math.hypot(testX - playerX, testZ - playerZ) < 200) continue;
-
-                // Check world bounds
-                if (!this.isInsideWorld(testX, testZ)) continue;
-
-                // Check collision with props
-                let collidesWithProp = false;
-
-                for (const p of props) {
-                    if (p.width && p.height) {
-                        const halfW = p.width * 0.5;
-                        const halfH = p.height * 0.5;
-                        const left = p.x - halfW;
-                        const right = p.x + halfW;
-                        const top = p.y - halfH;
-                        const bottom = p.y + halfH;
-
-                        const closestX = Math.max(left, Math.min(testX, right));
-                        const closestY = Math.max(top, Math.min(testZ, bottom));
-                        const dx = testX - closestX;
-                        const dy = testZ - closestY;
-                        const distSq = dx * dx + dy * dy;
-
-                        if (distSq < MOB_RADIUS * MOB_RADIUS * 4) { // Add margin
-                            collidesWithProp = true;
-                            break;
-                        }
-                    } else if (p.r) {
-                        const dx = testX - p.x;
-                        const dy = testZ - p.y;
-                        const dist = Math.hypot(dx, dy);
-
-                        if (dist < (p.r || 40) + MOB_RADIUS * 2) { // Add margin
-                            collidesWithProp = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Also check distance from other mobs in same spawn batch
-                if (!collidesWithProp && entities.mobs.length > 0) {
-                    for (const existingMob of entities.mobs) {
-                        const distToExisting = Math.hypot(testX - existingMob.x, testZ - existingMob.z);
-                        if (distToExisting < MOB_RADIUS * 3) { // Keep mobs spread out
-                            collidesWithProp = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!collidesWithProp) {
-                    x = testX;
-                    z = testZ;
-                    foundPosition = true;
-                    break;
-                }
-            }
-
-            if (!foundPosition) {
-                // Last resort: place at random edge of chunk
-                const fallbackSeed = seed + i * 999999;
-                x = startX + this.seededRandom(fallbackSeed) * chunkSizeWorld;
-                z = startZ + this.seededRandom(fallbackSeed + 777777) * chunkSizeWorld;
-
-                // Clamp to world bounds
-                x = Math.max(50, Math.min(x, this.worldWidth - 50));
-                z = Math.max(50, Math.min(z, this.worldHeight - 50));
-            }
-
-            const mob = spawnMob(this.entityLayer, x, z, biome, null, difficulty);
-            if (mob) {
-                mob.spawnChunk = key;
-                entities.mobs.push(mob);
             }
         }
 
         this.spawnedEntities.set(key, entities);
-        for (const mob of entities.mobs) {
-            if (!this.entitiesList.mobs.includes(mob)) this.entitiesList.mobs.push(mob);
-        }
-    }
-
-    getMobCountForBiome(difficulty, seed) {
-        // difficulty starts at ~1 near spawn and grows with distance
-        console.log(difficulty);
-
-        // Base scaling - more generous at low difficulty
-        let count = Math.floor(1 + difficulty);   // ← Main change
-
-        // Add controlled randomness
-        const rand = this.seededRandom(seed + 777);
-        const variation = Math.floor(rand * 4) - 1;     // -1 to +3 variation
-        count += variation;
-
-        // Minimums by difficulty stage
-        if (difficulty < 1.5) {
-            count = Math.max(1, count);      // Early game: 0-2 mobs
-        } else if (difficulty < 3) {
-            count = Math.max(5, count);      // Mid game: at least 2–5
-        } else {
-            count = Math.max(7, count);      // Late game: at least 5+
-        }
-
-        // Hard cap
-        const maxMobs = 20;
-        return Math.min(maxMobs, count);
     }
 
     async update(playerX, playerZ, dt) {
@@ -382,12 +372,6 @@ export class OpenWorldManager {
             const propCount = propsInChunk.length;
 
             // Get weather info based on biome
-            const weatherConfig = {
-                forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
-                desert: {type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44'},
-                ice: {type: '❄️ Snow', intensity: 0.6, color: '#88ccff'},
-                lava: {type: '🔥 Embers', intensity: 0.8, color: '#ff4400'}
-            };
             const weather = weatherConfig[newBiome] || {type: '☀️ Clear', intensity: 0, color: '#ffffff'};
 
             this.debugCountScene();
@@ -582,9 +566,25 @@ export class OpenWorldManager {
         chunk.chunkX = chunkX;
         chunk.chunkZ = chunkZ;
 
+        // Chunk ground
         this.groundLayer.addChild(chunk);
+
+        // Chunk props
         await this.propManager.generateChunkProps(chunkX, chunkZ, chunk.biome, this.chunkSize, this.tileSize);
-        await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunk.biome);
+
+        // Chunk mobs
+        const chunkData = this.generateChunkData(chunkX, chunkZ);
+
+        chunk.chunkData = chunkData;
+
+        await this.spawnMobsInChunk(
+            chunkX,
+            chunkZ,
+            playerX,
+            playerZ,
+            chunkData
+        );
+
         this.loadedChunks.set(key, chunk);
     }
 

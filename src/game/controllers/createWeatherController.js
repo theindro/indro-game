@@ -295,7 +295,7 @@ class EmberEffect extends BaseWeatherEffect {
                 y: Math.random() * this.screenHeight,
                 vx: (Math.random() - 0.5) * 120 * this.speed,
                 vy: (-50 - Math.random() * 150) * this.speed,
-                size: 2 + Math.random() * 4,
+                size: 2 + Math.random() * 1,
                 alpha: 0.4 + Math.random() * 0.6,
                 color: colors[Math.floor(Math.random() * colors.length)],
                 wobble: Math.random() * Math.PI * 2,

@@ -91,6 +91,7 @@ export function createMobController(mob, entityLayer) {
                 // Prop collision
                 if (colliders?.length) {
                     const validColliders = colliders.filter(c => c?.collision && c.width && c.height);
+
                     if (validColliders.length) {
                         const resolved = resolveVsColliders(newX, newY, MOB_RADIUS, validColliders);
                         newX = resolved.x;

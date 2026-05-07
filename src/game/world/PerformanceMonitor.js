@@ -15,7 +15,7 @@ export class PerformanceMonitor {
     createDisplay() {
         this.display = document.createElement('div');
         this.display.style.position = 'fixed';
-        this.display.style.bottom = '10px';
+        this.display.style.top = '10px';
         this.display.style.left = '10px';
         this.display.style.backgroundColor = 'rgba(0,0,0,0.7)';
         this.display.style.color = '#0f0';
@@ -42,7 +42,6 @@ export class PerformanceMonitor {
 
             this.display.innerHTML = `
                 FPS: ${this.fps} | Frame: ${this.frameTime.toFixed(2)}ms<br>
-                Mobs: ${this.mobCount} | Draw: ${this.drawCalls}
             `;
         }
     }

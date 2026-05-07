@@ -1,4 +1,5 @@
-import { Graphics } from 'pixi.js';
+import {Graphics} from 'pixi.js';
+import {useGameStore} from "../../stores/gameStore.js";
 
 // SIMPLE RECTANGLE COLLISION ONLY
 export function resolveVsColliders(nx, ny, radius, colliders) {
@@ -36,7 +37,7 @@ export function resolveVsColliders(nx, ny, radius, colliders) {
         }
     }
 
-    return { x: rx, y: ry };
+    return {x: rx, y: ry};
 }
 
 export function drawDebugColliders(world, colliders) {
@@ -53,11 +54,11 @@ export function drawDebugColliders(world, colliders) {
 
         // Draw rectangle
         g.rect(x, y, col.width, col.height)
-            .stroke({ width: 2, color: 0xff0000, alpha: 0.8 });
+            .stroke({width: 2, color: 0xff0000, alpha: 0.8});
         g.rect(x, y, col.width, col.height)
-            .fill({ color: 0xff0000, alpha: 0.1 });
+            .fill({color: 0xff0000, alpha: 0.1});
         // Draw center point
-        g.circle(col.x, col.y, 3).fill({ color: 0x00ff00, alpha: 0.8 });
+        g.circle(col.x, col.y, 3).fill({color: 0x00ff00, alpha: 0.8});
     });
     world.addChild(g);
     window._debugGraphics = g;
@@ -67,25 +68,53 @@ export function drawDebugColliders(world, colliders) {
 export function createDebugColliderToggle(world, colliders) {
     let debugGraphics = null;
 
-    function toggle() {
+    function draw() {
         if (debugGraphics) {
             world.removeChild(debugGraphics);
-            debugGraphics = null;
-        } else {
-            debugGraphics = drawDebugColliders(world, colliders);
+            debugGraphics.destroy();
         }
-    }
 
-    const handler = e => { if (e.key === 'F2') toggle(); };
-    window.addEventListener('keydown', handler);
+        debugGraphics = new Graphics();
+
+        colliders.forEach(col => {
+            if (!col.collision) return;
+
+            const x = col.x - col.width / 2;
+            const y = col.y - col.height / 2;
+
+            debugGraphics
+                .rect(x, y, col.width, col.height)
+                .stroke({ width: 2, color: 0xff0000, alpha: 0.8 });
+
+            debugGraphics
+                .rect(x, y, col.width, col.height)
+                .fill({ color: 0xff0000, alpha: 0.1 });
+
+            debugGraphics.circle(col.x, col.y, 3)
+                .fill({ color: 0x00ff00, alpha: 0.8 });
+        });
+
+        world.addChild(debugGraphics);
+    }
 
     return {
         tickUpdate() {
-            if (debugGraphics) {
-                world.removeChild(debugGraphics);
-                debugGraphics = drawDebugColliders(world, colliders);
+            const enabled = useGameStore.getState().debug.enabled;
+
+            if (!enabled) {
+                if (debugGraphics) {
+                    world.removeChild(debugGraphics);
+                    debugGraphics.destroy();
+                    debugGraphics = null;
+                }
+                return;
             }
+
+            draw();
         },
-        destroy() { window.removeEventListener('keydown', handler); }
+
+        destroy() {
+            if (debugGraphics) debugGraphics.destroy();
+        }
     };
 }

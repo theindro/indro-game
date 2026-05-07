@@ -7,6 +7,9 @@ export const useGameStore = create((set, get) => ({
     app: null,            // PixiJS Application
     colliders: [],
     kills: 0,
+    debug: {
+        enabled: false,
+    },
 
     // ===== GAME STATE =====
     gameState: {
@@ -205,6 +208,19 @@ export const useGameStore = create((set, get) => ({
 
         return true;
     },
+
+    toggleDebug: () => set(state => ({
+        debug: {
+            enabled: !state.debug.enabled
+        }
+    })),
+
+    setDebug: (value) => set(state => ({
+        debug: {
+            enabled: value
+        }
+    })),
+
     // Audio Actions - ONLY update the store, don't call audioManager
     setMuted: (muted) => {
         set(state => ({

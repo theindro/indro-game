@@ -29,27 +29,33 @@ export function createProjectileSystem(ctx) {
 
             // === NEW: Check collision with props ===
             let hitProp = false;
-            if (ctx.colliders && ctx.colliders.length) {
-                for (const collider of ctx.colliders) {
-                    // Check if collider is a prop (has radius)
-                    if (collider.type === 'prop' || collider.r) {
-                        const dist = Math.hypot(ep.c.x - collider.x, ep.c.y - collider.y);
-                        const projRadius = 6; // Enemy projectile hit radius
 
-                        if (dist < (collider.r || 10) + projRadius) {
-                            // Projectile hit a prop - create impact effect and remove projectile
-                            VFX.burst(ep.c.x, ep.c.y, 0xff6666, 6, 2);
-                            // Remove from its parent
-                            if (ep.c.parent) {
-                                ep.c.parent.removeChild(ep.c);
-                            }
-                            enemyProjs.splice(ei, 1);
-                            hitProp = true;
-                            break;
+            if (ctx.colliders?.length && ep?.c && ep.c.parent) {
+                for (const collider of ctx.colliders) {
+                    if (!collider?.collision || !collider.width || !collider.height) continue;
+
+                    const hit =
+                        ep.c.x >= collider.x - collider.width / 2 &&
+                        ep.c.x <= collider.x + collider.width / 2 &&
+                        ep.c.y >= collider.y - collider.height / 2 &&
+                        ep.c.y <= collider.y + collider.height / 2;
+
+                    if (hit) {
+                        VFX.burst(ep.c.x, ep.c.y, 0xff6666, 6, 2);
+
+                        if (ep.c.parent) {
+                            ep.c.parent.removeChild(ep.c);
                         }
+                        ep.c.destroy();
+
+                        enemyProjs.splice(ei, 1);
+
+                        hitProp = true;
+                        break;
                     }
                 }
             }
+
             if (hitProp) continue;
 
             // Check collision with player

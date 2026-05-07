@@ -15,7 +15,7 @@ export class MinimapManager {
         this.centerY = this.radius + 20;
 
         this.colors = {
-            background: 0x000000,
+            background: 'rgba(0,0,0,0.75)',
             border: 0x444444,
             player: 0x44ff88,
             playerGlow: 0x88ffaa,
