@@ -4,8 +4,10 @@ import {GroundAttackController} from '../createGroundAttackController.js'; // Ad
 export class TankArchetype {
     constructor(mob, entityLayer) {
         this.mob = mob;
-        this.groundSlamCooldown = 0;
         this.slamRadius = 200;
+
+        // random initial offset so they NEVER sync
+        this.groundSlamCooldown = Math.random() * 1.0;
 
         // Initialize ground attack manager for this mob
         this.groundAttacks = new GroundAttackController(entityLayer, mob);
@@ -23,14 +25,14 @@ export class TankArchetype {
             moveX = (px - m.x) / distToPlayer;
             moveY = (py - m.y) / distToPlayer;
             // 80% of normal speed
-            moveX *= m.speed * 0.8;
-            moveY *= m.speed * 0.8;
+            moveX *= m.speed;
+            moveY *= m.speed;
         }
 
         // Ground slam attack (using cooldown in seconds)
-        if (this.groundSlamCooldown <= 0 && distToPlayer < this.slamRadius + 20) {
+        if (this.groundSlamCooldown <= 0 && distToPlayer < this.slamRadius + 300) {
             this.performGroundSlam(entityLayer);
-            this.groundSlamCooldown = 2.0; // 2 seconds (not frames)
+            this.groundSlamCooldown = 2.0 + Math.random() * 1.0;
         }
 
         if (this.groundSlamCooldown > 0) {
@@ -57,15 +59,14 @@ export class TankArchetype {
         const m = this.mob;
 
         // Create ground slam effect using GroundAttackController
-        this.groundAttacks.addAttack(m.x, m.y, {
+        this.groundAttacks.addAttack(px, py, {
             shape: 'circle',
             color: 0xff8844,
             warningColor: 0xff4400,
             innerColor: 0xffaa66,
             radius: this.slamRadius,
-            warningDuration: 300, // frames (~0.5 seconds at 60fps)
+            warningDuration: 200, // frames (~0.5 seconds at 60fps)
             damage: 25,
-            trackPlayer: false, // Tank slam is centered on tank, doesn't track player
             onHit: (hitX, hitY) => {
                 console.log('slam hit palyer');
                 // Optional: add hit effect

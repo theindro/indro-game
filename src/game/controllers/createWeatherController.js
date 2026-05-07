@@ -1,5 +1,6 @@
 import { Graphics, Container } from 'pixi.js';
 import { shadowManager } from "./createShadowController.js";
+import {audioManager} from "../utils/audioManager.js";
 
 export class CreateWeatherController {
     constructor(app) {
@@ -27,18 +28,18 @@ export class CreateWeatherController {
 
         this.ambientOverlay = new Graphics();
         this.container.addChild(this.ambientOverlay);
-        this.currentAmbient = { color: 'black', alpha: 0.3 };
-        this.targetAmbient = { color: 'black', alpha: 0.3 };
+        this.currentAmbient = { color: 'black', alpha: 0 };
+        this.targetAmbient = { color: 'black', alpha: 0 };
     }
 
     getAmbientForWeather(weatherType, intensity) {
         const ambients = {
-            rain: { color: 'black', alpha: 0.3 * intensity },
+            rain: { color: 'black', alpha: 0.1 * intensity },
             snow: { color: 0x1a2a4a, alpha: 0.15 * intensity },
             embers: { color: 0x262626, alpha: 0.5 * intensity },
             sandstorm: { color: 0x461f06, alpha: 0.2 * intensity },
             fog: { color: 0x88aaff, alpha: 0.05 * intensity },
-            default: { color: 'black', alpha: 0.3 * intensity },
+            default: { color: 'black', alpha: 0.1 * intensity },
         };
         return ambients[weatherType] || ambients.default;
     }
@@ -46,6 +47,8 @@ export class CreateWeatherController {
     setWeather(type, intensity = 1, speed = 1, transitionTime = 2.0) {
         // ✅ FIX: Compare with targetWeatherType when transitioning
         console.log(`🌤️ Changing weather from ${this.currentWeatherType} to ${type}`);
+
+            //audioManager.play('/sounds/bg-music.wav')
 
         this.targetAmbient = this.getAmbientForWeather(type, intensity);
 
@@ -219,7 +222,6 @@ export class CreateWeatherController {
     }
 
     updateAmbientOverlay(intensity = 1) {
-        console.log('updating ambient');
         this.ambientOverlay.clear();
 
         if (this.currentAmbient.alpha > 0) {

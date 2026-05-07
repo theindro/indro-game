@@ -43,9 +43,13 @@ export class AudioManager {
         }
 
         const audio = new Audio(path);
+        console.log(audio);
         audio.loop = true;
         audio.volume = this.musicVolume;
-        audio.play().catch(() => {});
+
+        audio.play().catch((err) => {
+            console.warn("Audio blocked:", err);
+        });
 
         this.current = audio;
         this.currentPath = path;
@@ -57,6 +61,8 @@ export class AudioManager {
 
     playSFX(path, volume = null) {
         if (this.isMuted) return;
+
+        console.log(path);
 
         const now = Date.now();
         const lastTime = this.lastPlayed.get(path) || 0;

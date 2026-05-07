@@ -18,6 +18,7 @@ export class OpenWorldManager {
     constructor(world, colliders, renderer) {
         this.world = world;
         this.colliders = colliders;
+        this.renderer = renderer;
         this.chunkSize = 32;
         this.tileSize = 64;
         this.renderDistance = 1;
@@ -77,8 +78,6 @@ export class OpenWorldManager {
         this.world.addChild(this.entityLayer);
         //this.world.addChild(this.shadowLayer);
         //this.world.addChild(this.propLayer);
-
-        console.log(this.world);
 
         this.entityLayer.sortableChildren = true;
 
@@ -157,8 +156,6 @@ export class OpenWorldManager {
 
         this.chunkData.set(key, data);
 
-        console.log(this.chunkData);
-
         return data;
     }
 
@@ -196,7 +193,6 @@ export class OpenWorldManager {
     }
 
     setEntitiesList(entities) {
-        console.log("OpenWorld: setEntitiesList called");
         this.entitiesList = entities;
         if (!this.initialized) {
             this.initialized = true;
@@ -324,6 +320,7 @@ export class OpenWorldManager {
                 const z = pack.z + Math.sin(angle) * dist;
 
                 const mob = spawnMob(
+                    this.renderer,
                     this.entityLayer,
                     x,
                     z,
@@ -375,9 +372,6 @@ export class OpenWorldManager {
             const weather = weatherConfig[newBiome] || {type: '☀️ Clear', intensity: 0, color: '#ffffff'};
 
             this.debugCountScene();
-
-            // Optional: More compact single-line log
-            console.log(`📊 [CHUNK ${centerChunkX},${centerChunkZ}] Biome: ${newBiome} | Mobs: ${mobCount} | Weather: ${weather.type}`);
 
             // 🔥 TRIGGER THE CALLBACK HERE 🔥
             if (this.onChunkChangeCallback) {

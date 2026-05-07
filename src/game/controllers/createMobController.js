@@ -10,6 +10,8 @@ export function createMobController(mob, entityLayer) {
     let archetypeBehavior = null;
     const archetypeType = mob.archetype || ARCHETYPES.RUSHER;
 
+    const animTime = performance.now() * 0.003;
+
     // Initialize archetype behavior
     const ArchetypeClass = archetypeMap[archetypeType];
     if (ArchetypeClass) {
@@ -112,6 +114,13 @@ export function createMobController(mob, entityLayer) {
 
             // Health bar
             updateMobHealthBar(m);
+
+            // Animate
+            applyBreathing(mob, animTime);
+
+            // Face towards player when moving
+            setFacingDirection(mob, moveX);
+
         },
 
         handleAttack({ distToPlayer, dt }) {
@@ -126,13 +135,13 @@ export function createMobController(mob, entityLayer) {
     };
 }
 
-export function spawnMob(world, x, y, biome = 'forest', archetype = null, difficulty = 1) {
+export function spawnMob(renderer,world, x, y, biome = 'forest', archetype = null, difficulty = 1) {
     const finalArchetype = archetype || Object.values(ARCHETYPES)[Math.floor(Math.random() * Object.values(ARCHETYPES).length)];
 
     const stats = ARCHETYPE_STATS[finalArchetype];
     const size = stats.size;
 
-    const { c, body, gl, hpBar } = createMobEntity(biome, size);
+    const { c, body, gl, hpBar } = createMobEntity(renderer,biome, size);
     c.x = x;
     c.y = y;
     c.sortableChildren = true;
@@ -155,7 +164,7 @@ export function spawnMob(world, x, y, biome = 'forest', archetype = null, diffic
         attackSpeed: baseAtkSpeed,
         attackCooldown: 0,
         exp: stats.exp,
-
+        animOffset: Math.random() * 1000,
         // Core identifiers
         archetype: finalArchetype,
         biome,
@@ -183,5 +192,36 @@ export function updateMobHealthBar(m) {
         const barY = m.c?.userData?.barY || -size - 13;
 
         m.hpBar.rect(-size - 2, barY + 1, (size * 2 + 4) * pct, 3).fill(color);
+    }
+}
+
+export function applyBreathing(mob, globalTime) {
+    const c = mob.c;
+    if (!c) return;
+
+    // unique offset per mob
+    const offset = mob.animOffset || 0;
+
+    // ONE sin calculation
+    const breath = Math.sin(globalTime + offset) * 0.15;
+
+    // preserve facing
+    const facing = c.scale.x < 0 ? -1 : 1;
+
+    // tiny squash/stretch
+    c.scale.x = facing * (1 + breath * 0.15);
+    c.scale.y = 1 - breath * 0.08;
+}
+
+export function setFacingDirection(mob, vx) {
+    const c = mob.c;
+    if (!c) return;
+
+    // avoid unnecessary writes
+    if (vx < -0.01 && c.scale.x > 0) {
+        c.scale.x *= -1;
+    }
+    else if (vx > 0.01 && c.scale.x < 0) {
+        c.scale.x *= -1;
     }
 }
