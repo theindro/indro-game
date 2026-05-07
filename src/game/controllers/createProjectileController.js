@@ -65,7 +65,7 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
     const dx = tx - px;
     const dy = ty - py;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    const spd = ARROW_SPEED * GS;
+    const spd = ARROW_SPEED;
     const angle = Math.atan2(dy, dx) + angleOffset;
 
     // Elemental glow effect
@@ -174,22 +174,22 @@ export function updateArrowParticleAnimation(arrow, deltaTime) {
 /**
  * Creates an enemy orb with elemental effects
  */
-export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 2.8, size = 9, angleOffset = 0, elementalType = null) {
+export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size = 9, angleOffset = 0, elementalType = null) {
     const c = new Container();
-    c.x = ex; c.y = ey;
-
+    c.x = ex;
+    c.y = ey;
     c.sortableChildren = true;
 
     const elementColors = {
-        burn: { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 },
-        poison: { glow: 0x44ff44, orb: 0x66ff66, core: 0xaaffaa },
-        lightning: { glow: 0x44aaff, orb: 0x66ccff, core: 0xaaddff },
-        normal: { glow: 0x88aaff, orb: 0xaaccff, core: 0xffffff }
+        burn:     { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 },
+        poison:   { glow: 0x44ff44, orb: 0x66ff66, core: 0xaaffaa },
+        lightning:{ glow: 0x44aaff, orb: 0x66ccff, core: 0xaaddff },
+        normal:   { glow: 0x88aaff, orb: 0xaaccff, core: 0xffffff }
     };
 
     const colors = elementColors[elementalType] || elementColors.normal;
 
-    // Glow effect
+    // Glow
     const gl = new Graphics();
     gl.circle(0, 0, size + 7).fill({ color: colors.glow, alpha: 0.22 });
     c.addChild(gl);
@@ -198,67 +198,49 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 2.8, siz
     const orb = new Graphics();
     orb.circle(0, 0, size).fill({ color: colors.orb, alpha: 0.9 });
 
-    // Inner core
+    // Core
     const core = new Graphics();
     core.circle(-3, -3, size * 0.4).fill({ color: colors.core, alpha: 0.5 });
     orb.addChild(core);
-
     c.addChild(orb);
 
-    // Elemental particles
+    // Particles for elemental types
     const particles = new Container();
     c.addChild(particles);
 
     if (elementalType) {
         for (let i = 0; i < 4; i++) {
-            const particle = new Graphics();
-            particle.circle(0, 0, 2).fill({ color: colors.glow, alpha: 0.6 });
-            particle.x = Math.cos(i * Math.PI * 2 / 4) * size;
-            particle.y = Math.sin(i * Math.PI * 2 / 4) * size;
-            particles.addChild(particle);
+            const p = new Graphics();
+            p.circle(0, 0, 2).fill({ color: colors.glow, alpha: 0.6 });
+            p.x = Math.cos(i * Math.PI * 2 / 4) * (size * 0.9);
+            p.y = Math.sin(i * Math.PI * 2 / 4) * (size * 0.9);
+            particles.addChild(p);
         }
     }
 
     world.addChild(c);
 
-    // FIX: Use dx and dy correctly
+    // Direction calculation
     const dx = px - ex;
     const dy = py - ey;
-    const baseAngle = Math.atan2(dy, dx) + angleOffset;
-    const sv = spd * GS;
+    const angle = Math.atan2(dy, dx) + angleOffset;
+    const speed = spd;
 
-    // Store animation data
     c.userData = {
         elementalType,
         particles,
-        rotationSpeed: elementalType === 'lightning' ? 0.1 : 0.05,
-        pulseSpeed: elementalType === 'burn' ? 0.15 : 0.08
+        rotationSpeed: elementalType === 'lightning' ? 0.12 : 0.06,
+        pulseSpeed: elementalType === 'burn' ? 0.18 : 0.09
     };
 
     return {
         c,
-        vx: Math.cos(baseAngle) * sv,
-        vy: Math.sin(baseAngle) * sv,
-        life: 240,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 500,
         dmg,
         type,
-        elementalType
+        elementalType,
+        size
     };
-}
-
-// Update enemy projectile animation (call this in your combat ticker)
-export function updateEnemyProjAnimation(proj, deltaTime) {
-    if (!proj.c.userData) return;
-
-    const data = proj.c.userData;
-    if (!data.particles) return;
-
-    // Rotate particles
-    data.particles.rotation += data.rotationSpeed * deltaTime;
-
-    // Pulse effect for fire projectiles
-    if (data.elementalType === 'burn') {
-        const scale = 1 + Math.sin(Date.now() * 0.01) * 0.1;
-        proj.c.scale.set(scale);
-    }
 }

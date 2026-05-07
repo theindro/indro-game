@@ -59,9 +59,4 @@ export class RusherArchetype {
 
         return { moveX, moveY, attackOverride: this.dashing };
     }
-
-    onDamage(amount, source) {
-        // Rushers take extra knockback
-        return { knockbackMult: 1.5 };
-    }
 }

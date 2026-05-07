@@ -17,7 +17,7 @@ export default function LevelUpEffect() {
         }
         setDisplayLevel(playerLevel);
         setVisible(true);
-        const t = setTimeout(() => setVisible(false), 2500);
+        const t = setTimeout(() => setVisible(false), 5000);
         return () => clearTimeout(t);
     }, [playerLevel]);
 
@@ -39,7 +39,7 @@ export default function LevelUpEffect() {
                 flexDirection: "column",
                 alignItems: "center",
                 gap: 6,
-                animation: "lvlup 2.5s ease forwards",
+                animation: "lvlup 5s ease forwards",
             }}>
                 <div style={{
                     fontSize: 11,

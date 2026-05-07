@@ -1,4 +1,4 @@
-import {DIFFICULTY, GS, ICE_MOB_SHOOT_INTERVAL_BASE, MOB_HP, MOB_RADIUS} from "../constants.js";
+import {DIFFICULTY, GS, MOB_HP, MOB_RADIUS} from "../constants.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
 import {resolveVsColliders} from "../world/collision.js";
@@ -8,7 +8,7 @@ import {VFX} from '../GlobalEffects.js';
 
 export function createMobController(mob, entityLayer) {
     let archetypeBehavior = null;
-    let archetypeType = mob.archetype || ARCHETYPES.RUSHER;
+    const archetypeType = mob.archetype || ARCHETYPES.RUSHER;
 
     // Initialize archetype behavior
     const ArchetypeClass = archetypeMap[archetypeType];
@@ -22,72 +22,51 @@ export function createMobController(mob, entityLayer) {
         archetypeType,
 
         update(ctx) {
-            if (!mob || !mob.c) return;
+            if (!mob?.c) return;
 
-            const {px, py, colliders, openWorld, mobs, dt = 1} = ctx;
+            const { px, py, colliders, openWorld, mobs, dt = 1 } = ctx;
 
-            // FIX: Set zIndex on the visual container (mob.c), not on the mob object
-            mob.c.zIndex = mob.y;  // ← THIS IS THE FIX
+            // Update zIndex for correct rendering order
+            mob.c.zIndex = mob.y;
 
             const m = this.mob;
             const distToPlayer = Math.hypot(px - m.x, py - m.y);
 
-            // Every tick update status effect on boss
+            // Status effects (DOTs, etc.)
             updateStatusEffects(m, dt, performance.now(), (damage, type) => {
-                // Show floating damage text for DOT effects
                 let icon = '🔥';
                 let color = '#ff6600';
 
-                switch(type) {
-                    case 'burn':
-                        icon = '🔥';
-                        color = '#ff6600';
-                        break;
-                    case 'poison':
-                        icon = '💚';
-                        color = '#88ff88';
-                        break;
-                    case 'ice':
-                        icon = '❄️';
-                        color = '#88ccff';
-                        break;
-                    case 'bleed':
-                        icon = '🩸';
-                        color = '#ff4444';
-                        break;
-                }
+                if (type === 'poison') { icon = '💚'; color = '#88ff88'; }
+                else if (type === 'ice') { icon = '❄️'; color = '#88ccff'; }
+                else if (type === 'bleed') { icon = '🩸'; color = '#ff4444'; }
 
-                VFX.addFloat(`${icon} ${Math.floor(damage)}`,m.x, m.y - 20, color);
+                VFX.addFloat(`${icon} ${Math.floor(damage)}`, m.x, m.y - 20, color);
             });
 
-            // Performance optimization
+            // Performance culling
             if (distToPlayer > 1500) return;
 
-            // Get archetype-specific movement
+            // Archetype movement
             let moveX = 0, moveY = 0;
             let attackOverride = false;
 
-            if (archetypeBehavior && archetypeBehavior.update) {
-                const archetypeResult = archetypeBehavior.update({...ctx, dt});
-                moveX = archetypeResult.moveX || 0;
-                moveY = archetypeResult.moveY || 0;
-                attackOverride = archetypeResult.attackOverride || false;
-            } else {
-                // Fallback to original movement logic
-                // ... (keep your existing movement code as fallback)
+            if (archetypeBehavior?.update) {
+                const result = archetypeBehavior.update({ ...ctx, dt });
+                moveX = result.moveX || 0;
+                moveY = result.moveY || 0;
+                attackOverride = result.attackOverride || false;
             }
 
-            // Apply movement with collision (same as before)
+            // Apply movement
             if (moveX !== 0 || moveY !== 0) {
-
-                // 🔥 APPLY SLOW HERE
                 const slow = m.statusSlow || 0;
-                const speedMultiplier = 1 - slow;
+                const speedMult = 1 - slow;
 
-                let newX = m.x + moveX * speedMultiplier;
-                let newY = m.y + moveY * speedMultiplier;
+                let newX = m.x + moveX * speedMult;
+                let newY = m.y + moveY * speedMult;
 
-                // 1. world bounds
+                // World bounds
                 if (openWorld) {
                     const bounds = openWorld.getCurrentBounds();
                     if (bounds) {
@@ -96,13 +75,11 @@ export function createMobController(mob, entityLayer) {
                     }
                 }
 
-                // 2. mob vs mob collision
-                if (mobs && mobs.length) {
+                // Mob vs Mob collision
+                if (mobs?.length) {
                     for (const other of mobs) {
                         if (other === m) continue;
-
                         const dist = Math.hypot(newX - other.x, newY - other.y);
-
                         if (dist < MOB_RADIUS * 2) {
                             const angle = Math.atan2(newY - other.y, newX - other.x);
                             newX = other.x + Math.cos(angle) * MOB_RADIUS * 2;
@@ -111,19 +88,11 @@ export function createMobController(mob, entityLayer) {
                     }
                 }
 
-                // 3. ⭐ PROP COLLISION - FIXED VERSION
-                if (colliders && colliders.length) {
-                    // Make sure we're using the imported resolveVsColliders
-                    // Ensure colliders have the right format (x, y, width, height)
-                    const validColliders = colliders.filter(col => col && col.collision && col.width && col.height);
-
+                // Prop collision
+                if (colliders?.length) {
+                    const validColliders = colliders.filter(c => c?.collision && c.width && c.height);
                     if (validColliders.length) {
-                        const resolved = resolveVsColliders(
-                            newX,
-                            newY,
-                            MOB_RADIUS,
-                            validColliders
-                        );
+                        const resolved = resolveVsColliders(newX, newY, MOB_RADIUS, validColliders);
                         newX = resolved.x;
                         newY = resolved.y;
                     }
@@ -131,82 +100,49 @@ export function createMobController(mob, entityLayer) {
 
                 m.x = newX;
                 m.y = newY;
-                m.c.x = m.x;
-                m.c.y = m.y;
+                m.c.x = newX;
+                m.c.y = newY;
             }
 
-            // Attack handling based on archetype
+            // Attack
             if (!attackOverride) {
-                this.handleAttack({...ctx, distToPlayer});
+                this.handleAttack({ distToPlayer, dt });
             }
 
-            // Bounce animation (modified for archetypes)
-            this.updateAnimation(dt);
-
-            // Update mob health bar every update
+            // Health bar
             updateMobHealthBar(m);
         },
 
-        handleAttack(ctx) {
-            const { distToPlayer, dt } = ctx;
+        handleAttack({ distToPlayer, dt }) {
             const m = this.mob;
-
-            // reduce cooldown using delta time
-            const delta = dt; // convert to seconds (if dt = frames)
-            m.attackCooldown = Math.max(0, m.attackCooldown - delta);
+            m.attackCooldown = Math.max(0, m.attackCooldown - dt);
 
             if (distToPlayer < 26 && m.attackCooldown <= 0) {
-
-                useGameStore
-                    .getState()
-                    .damagePlayer(m.damage, `${this.archetypeType} atk`);
-
-                // convert attacks/sec into cooldown
+                useGameStore.getState().damagePlayer(m.damage, `${this.archetypeType} atk`);
                 m.attackCooldown = Math.max(0.2, 1 / m.attackSpeed);
             }
         },
-        updateAnimation(dt) {
-            const m = this.mob;
-            if (!m.c) return;
-
-            m.bounceTime += (m.bounceSpeed || 0.08) * dt;
-            const bounceY = Math.sin(m.bounceTime) * (m.bounceAmplitude || 2);
-            m.c.y = m.y + bounceY;
-
-            // Archetype-specific animations handled in their own classes
-        },
-        onDamage(amount, source, direction) {
-            if (archetypeBehavior && archetypeBehavior.onDamage) {
-                return archetypeBehavior.onDamage(amount, source);
-            }
-            return { damageMult: 1, knockbackMult: 1 };
-        }
     };
 }
 
-// Updated spawnMob function
-export function spawnMob(world, x, y, biome = null, archetype = null, difficulty = 1) {
-    const finalBiome = biome || 'forest';
-    // Random archetype selection if not specified
-    const archetypesList = Object.values(ARCHETYPES);
-    const finalArchetype = archetype || archetypesList[Math.floor(Math.random() * archetypesList.length)];
+export function spawnMob(world, x, y, biome = 'forest', archetype = null, difficulty = 1) {
+    const finalArchetype = archetype || Object.values(ARCHETYPES)[Math.floor(Math.random() * Object.values(ARCHETYPES).length)];
 
     const stats = ARCHETYPE_STATS[finalArchetype];
     const size = stats.size;
 
-    const {c, body, gl, hpBar} = createMobEntity(finalBiome, size);
+    const { c, body, gl, hpBar } = createMobEntity(biome, size);
     c.x = x;
     c.y = y;
-
     c.sortableChildren = true;
 
     world.addChild(c);
 
+    // Base stats
     const baseHp = MOB_HP * stats.hpMultiplier * difficulty;
     const baseSpeed = 0.78 * stats.speedMultiplier * (1 + Math.min(difficulty * 0.05, 0.5));
     const baseAtkSpeed = DIFFICULTY.attackCooldown * (1 + difficulty * 0.1);
     const damageScale = 1 + Math.log2(difficulty + 1) * 0.35;
-    const baseDamage = Math.round(stats.damage * damageScale);
 
     const mob = {
         c, body, gl, hpBar,
@@ -214,66 +150,37 @@ export function spawnMob(world, x, y, biome = null, archetype = null, difficulty
         hp: baseHp,
         maxHp: baseHp,
         speed: baseSpeed,
-        hitFlash: 0,
-        exp: stats.exp,
-        biome: finalBiome,
-        archetype: finalArchetype,
-        damage: baseDamage,
-        knockbackResist: stats.knockbackResist,
-        shootTimer: 0,
-        bounceSpeed: 0.08 + Math.random() * 0.04,
-        bounceTime: Math.random() * Math.PI * 2,
-        originalY: y,
-        bounceAmplitude: 2 + Math.random() * 2,
-        scalePulse: 0,
+        damage: Math.round(stats.damage * damageScale),
         attackSpeed: baseAtkSpeed,
         attackCooldown: 0,
-        state: 'idle',
-        patrolPoints: [],
-        currentPatrolIndex: 0,
-        spawnX: x,
-        spawnY: y,
-        size: size,
-        // Archetype-specific properties
+        exp: stats.exp,
+
+        // Core identifiers
+        archetype: finalArchetype,
+        biome,
+        size,
         archetypeData: {}
     };
 
-    // Generate patrol points
-    for (let i = 0; i < 4; i++) {
-        const angle = (i / 4) * Math.PI * 2;
-        mob.patrolPoints.push({
-            x: mob.spawnX + Math.cos(angle) * 80,
-            y: mob.spawnY + Math.sin(angle) * 80
-        });
-    }
+    applyArchetypeVisuals(mob, finalArchetype, biome);
 
-    // Apply archetype visuals
-    applyArchetypeVisuals(mob, finalArchetype, finalBiome);
-
-    // Create controller
     mob.controller = createMobController(mob, world);
 
     return mob;
 }
 
 export function updateMobHealthBar(m) {
-    if (!m || !m.hpBar) return;
+    if (!m?.hpBar) return;
 
-    // Get the mob's size from its container or use default
-    let size = m.size || 13;
-
-    // Try to get size from container's userData if available
-    if (m.c && m.c.userData && m.c.userData.size) {
-        size = m.c.userData.size;
-    }
-
+    const size = m.size || 13;
     const pct = Math.max(0, m.hp / m.maxHp);
 
     m.hpBar.clear();
 
     if (pct > 0) {
-        const col = pct > 0.5 ? 0x44ff88 : pct > 0.25 ? 0xffaa00 : 0xff2222;
+        const color = pct > 0.5 ? 0x44ff88 : pct > 0.25 ? 0xffaa00 : 0xff2222;
         const barY = m.c?.userData?.barY || -size - 13;
-        m.hpBar.rect(-size - 2, barY + 1, (size * 2 + 4) * pct, 3).fill(col);
+
+        m.hpBar.rect(-size - 2, barY + 1, (size * 2 + 4) * pct, 3).fill(color);
     }
 }

@@ -14,7 +14,7 @@ export const BOSS_SPEED = 0.48;
 export const BOSS_SHOOT_INTERVAL = 250;
 
 // ── Projectiles
-export const ARROW_SPEED = 6;
+export const ARROW_SPEED = 3;
 export const ICE_MOB_SHOOT_INTERVAL_BASE = 140;
 
 // ── XP

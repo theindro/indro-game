@@ -42,11 +42,6 @@ export class TankArchetype {
             this.groundAttacks.update(px, py, (damage) => {
                 // Damage player when ground attack hits
                 useGameStore.getState().damagePlayer(damage, 'tank slam');
-
-                // Knockback effect
-                const angle = Math.atan2(py - m.y, px - m.x);
-                const knockback = { x: Math.cos(angle) * 120, y: Math.sin(angle) * 120 };
-                if (entityLayer.applyKnockback) entityLayer.applyKnockback(knockback);
             });
         }
 
@@ -83,15 +78,6 @@ export class TankArchetype {
         // Screen shake
 
         // Floating text
-    }
-
-    onDamage(amount, source) {
-        // Tanks take reduced damage from front
-        const isRanged = source === 'ranged';
-        return {
-            damageMult: isRanged ? 0.7 : 1.0,
-            knockbackMult: 0.3
-        };
     }
 
     // Cleanup method to prevent memory leaks

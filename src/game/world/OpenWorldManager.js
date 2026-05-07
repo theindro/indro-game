@@ -34,10 +34,10 @@ export class OpenWorldManager {
                 minDistance: 3
             },
             biomeSettings: {
-                forest: { mobDensity: 0.05, poiWeight: 1.0 },
-                desert: { mobDensity: 0.5, poiWeight: 0.7 },
-                ice: { mobDensity: 1, poiWeight: 0.8 },
-                lava: { mobDensity: 2, poiWeight: 1.2 }
+                forest: {mobDensity: 0.05, poiWeight: 1.0},
+                desert: {mobDensity: 0.5, poiWeight: 0.7},
+                ice: {mobDensity: 1, poiWeight: 0.8},
+                lava: {mobDensity: 2, poiWeight: 1.2}
             }
         };
 
@@ -112,7 +112,7 @@ export class OpenWorldManager {
         g.x = x;
         g.y = z;
         this.world.addChild(g);
-        this.spawnedPOIs.set(key, { type, x, z, biome });
+        this.spawnedPOIs.set(key, {type, x, z, biome});
     }
 
     seededRandom(seed) {
@@ -223,7 +223,9 @@ export class OpenWorldManager {
         const startX = chunkX * chunkSizeWorld;
         const startZ = chunkZ * chunkSizeWorld;
         const seed = this.worldSeed ^ (chunkX * 73856093) ^ (chunkZ * 19349663);
-        const mobCount = this.getMobCountForBiome(biome, seed);
+        const mobCount = this.getMobCountForBiome(difficulty, seed);
+
+        console.log(mobCount);
 
         // Get all colliders in this chunk
         const props = this.colliders.filter(c => c.chunkKey === key && c.type === 'prop');
@@ -273,8 +275,7 @@ export class OpenWorldManager {
                             collidesWithProp = true;
                             break;
                         }
-                    }
-                    else if (p.r) {
+                    } else if (p.r) {
                         const dx = testX - p.x;
                         const dy = testZ - p.y;
                         const dist = Math.hypot(dx, dy);
@@ -329,14 +330,30 @@ export class OpenWorldManager {
         }
     }
 
-    getMobCountForBiome(biome, seed) {
-        const biomeConfig = this.config.biomeSettings[biome];
-        const density = biomeConfig?.mobDensity || 0.5;
-        const maxMobs = 15 // Reduced from 8
-        const base = Math.floor(density * maxMobs);
-        const variation = Math.floor(this.seededRandom(seed + 9999) * 2) - 0;
+    getMobCountForBiome(difficulty, seed) {
+        // difficulty starts at ~1 near spawn and grows with distance
+        console.log(difficulty);
 
-        return Math.max(1, Math.min(25, base + variation));
+        // Base scaling - more generous at low difficulty
+        let count = Math.floor(1 + difficulty);   // ← Main change
+
+        // Add controlled randomness
+        const rand = this.seededRandom(seed + 777);
+        const variation = Math.floor(rand * 4) - 1;     // -1 to +3 variation
+        count += variation;
+
+        // Minimums by difficulty stage
+        if (difficulty < 1.5) {
+            count = Math.max(1, count);      // Early game: 0-2 mobs
+        } else if (difficulty < 3) {
+            count = Math.max(5, count);      // Mid game: at least 2–5
+        } else {
+            count = Math.max(7, count);      // Late game: at least 5+
+        }
+
+        // Hard cap
+        const maxMobs = 20;
+        return Math.min(maxMobs, count);
     }
 
     async update(playerX, playerZ, dt) {
@@ -366,12 +383,12 @@ export class OpenWorldManager {
 
             // Get weather info based on biome
             const weatherConfig = {
-                forest: { type: '🌧️ Rain', intensity: 5, color: '#44aaff' },
-                desert: { type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44' },
-                ice: { type: '❄️ Snow', intensity: 0.6, color: '#88ccff' },
-                lava: { type: '🔥 Embers', intensity: 0.8, color: '#ff4400' }
+                forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
+                desert: {type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44'},
+                ice: {type: '❄️ Snow', intensity: 0.6, color: '#88ccff'},
+                lava: {type: '🔥 Embers', intensity: 0.8, color: '#ff4400'}
             };
-            const weather = weatherConfig[newBiome] || { type: '☀️ Clear', intensity: 0, color: '#ffffff' };
+            const weather = weatherConfig[newBiome] || {type: '☀️ Clear', intensity: 0, color: '#ffffff'};
 
             this.debugCountScene();
 
@@ -468,7 +485,7 @@ export class OpenWorldManager {
         if (chunk.parent) {
             this.groundLayer.removeChild(chunk);
         }
-        chunk.destroy({ children: true });
+        chunk.destroy({children: true});
 
         // Unload props (this is handled correctly)
         this.propManager.unloadChunkProps(key);
@@ -488,7 +505,7 @@ export class OpenWorldManager {
                 }
                 // Destroy mob
                 if (mob.c) {
-                    mob.c.destroy({ children: true });
+                    mob.c.destroy({children: true});
                 }
                 // Kill controller reference
                 mob.controller = null;

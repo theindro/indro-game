@@ -156,10 +156,6 @@ export class ExploderArchetype {
             const damage = Math.floor(this.explosionDamage * (0.5 + distanceFactor * 0.5));
             useGameStore.getState().damagePlayer(damage, 'explosion');
 
-            // Knockback from explosion
-            const angle = Math.atan2(py - m.y, px - m.x);
-            const knockback = {x: Math.cos(angle) * 180, y: Math.sin(angle) * 180};
-            if (ctx.applyKnockback) ctx.applyKnockback(knockback);
         }
 
         // CRITICAL: Mark as destroyed and remove mob
@@ -177,14 +173,6 @@ export class ExploderArchetype {
         }
 
         m.c = null;
-    }
-
-    onDamage(amount, source) {
-        // Return damage modifiers
-        return {
-            damageMult: 1,
-            knockbackMult: 1.2
-        };
     }
 
     // Cleanup method

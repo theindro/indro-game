@@ -5,7 +5,6 @@ export function createMobEntity(biome, size = 13) {
     const c = new Container();
     const biomeData = BIOME_COLORS[biome] || {};
 
-
     const sh = new Graphics();
     sh.ellipse(0, size + 10, size, 6).fill({ color: 0, alpha: 0.28 });
     c.addChild(sh);
