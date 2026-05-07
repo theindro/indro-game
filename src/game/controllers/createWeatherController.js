@@ -27,18 +27,18 @@ export class CreateWeatherController {
 
         this.ambientOverlay = new Graphics();
         this.container.addChild(this.ambientOverlay);
-        this.currentAmbient = { color: 0x000000, alpha: 0 };
-        this.targetAmbient = { color: 0x000000, alpha: 0 };
+        this.currentAmbient = { color: 'black', alpha: 0.3 };
+        this.targetAmbient = { color: 'black', alpha: 0.3 };
     }
 
     getAmbientForWeather(weatherType, intensity) {
         const ambients = {
-            rain: { color: 0x062646, alpha: 0.2 * intensity },
+            rain: { color: 'black', alpha: 0.3 * intensity },
             snow: { color: 0x1a2a4a, alpha: 0.15 * intensity },
             embers: { color: 0x262626, alpha: 0.5 * intensity },
             sandstorm: { color: 0x461f06, alpha: 0.2 * intensity },
             fog: { color: 0x88aaff, alpha: 0.05 * intensity },
-            default: { color: 0x000000, alpha: 0 }
+            default: { color: 'black', alpha: 0.3 * intensity },
         };
         return ambients[weatherType] || ambients.default;
     }
@@ -223,8 +223,7 @@ export class CreateWeatherController {
         this.ambientOverlay.clear();
 
         if (this.currentAmbient.alpha > 0) {
-            this.ambientOverlay.rect(0, 0, this.app.screen.width, this.app.screen.height)
-                .fill({ color: this.currentAmbient.color, alpha: this.currentAmbient.alpha * intensity });
+            this.ambientOverlay.rect(0, 0, this.app.screen.width, this.app.screen.height).fill({ color: this.currentAmbient.color, alpha: this.currentAmbient.alpha * intensity });
         }
     }
 
