@@ -2,68 +2,139 @@
 import { theme } from 'antd';
 
 export const cartoonTheme = {
-    token: {
-        colorPrimary: '#ffaa44',
-        colorSuccess: '#52c41a',
-        colorWarning: '#faad14',
-        colorError: '#ff4d4f',
-        colorInfo: '#1677ff',
+    algorithm: theme.darkAlgorithm,
 
-        colorBgBase: '#1a1a2e',
-        colorBgContainer: '#16213e',
+    token: {
+        colorPrimary: '#ffffff',
+        colorSuccess: '#3b9e75',
+        colorWarning: '#e8a825',
+        colorError: '#e06b6b',
+        colorInfo: '#7f77dd',
+
+        colorBgBase: '#0a0c10',
+        colorBgContainer: '#0d0f14',
+        colorBgElevated: '#13161c',
+        colorBgSpotlight: '#13161c',
 
         colorTextBase: '#ffffff',
-        colorText: '#ffffff',
+        colorText: 'rgba(255,255,255,0.85)',
+        colorTextSecondary: 'rgba(255,255,255,0.4)',
+        colorTextTertiary: 'rgba(255,255,255,0.2)',
 
-        borderRadius: 16,
-        fontSize: 16,
-        fontFamily: 'Nunito',
+        colorBorder: 'rgba(255,255,255,0.08)',
+        colorBorderSecondary: 'rgba(255,255,255,0.05)',
+        colorSplit: 'rgba(255,255,255,0.06)',
 
-        boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
+        borderRadius: 10,
+        borderRadiusLG: 14,
+        borderRadiusSM: 6,
+
+        fontSize: 13,
+        fontFamily: 'Nunito, system-ui, sans-serif',
+
+        boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+        boxShadowSecondary: '0 4px 16px rgba(0,0,0,0.3)',
+
+        motionDurationMid: '0.15s',
+        motionDurationSlow: '0.2s',
     },
 
     components: {
         Button: {
-            borderRadius: 20,
-            controlHeight: 40,
-            fontWeight: 'bold',
-            boxShadow: '0 4px 0 #8b6914',
+            borderRadius: 8,
+            controlHeight: 34,
+            fontSize: 12,
+            fontWeight: 600,
+            colorBgContainer: 'rgba(255,255,255,0.05)',
+            colorBorder: 'rgba(255,255,255,0.08)',
+            colorText: 'rgba(255,255,255,0.7)',
+            boxShadow: 'none',
+            boxShadowPrimary: 'none',
         },
 
         Card: {
-            borderRadius: 20,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: 12,
+            colorBgContainer: 'rgba(255,255,255,0.03)',
+            colorBorderSecondary: 'rgba(255,255,255,0.06)',
+            boxShadow: 'none',
+            paddingLG: 12,
+        },
+
+        Drawer: {
+            colorBgElevated: '#0d0f14',
+            colorBorder: 'rgba(255,255,255,0.06)',
+            borderRadius: 0,
         },
 
         Modal: {
-            borderRadius: 24,
+            borderRadius: 14,
+            colorBgElevated: '#0d0f14',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.7)',
         },
 
         Input: {
-            borderRadius: 20,
+            borderRadius: 8,
+            colorBgContainer: 'rgba(255,255,255,0.04)',
+            colorBorder: 'rgba(255,255,255,0.08)',
+            colorText: 'rgba(255,255,255,0.8)',
+            colorTextPlaceholder: 'rgba(255,255,255,0.2)',
         },
 
         Select: {
-            borderRadius: 20,
+            borderRadius: 8,
+            colorBgContainer: 'rgba(255,255,255,0.04)',
+            colorBorder: 'rgba(255,255,255,0.08)',
         },
 
-        // 🔥 FIX TOOLTIP
         Tooltip: {
-            colorBgSpotlight: '#16213e', // background
-            colorTextLightSolid: '#ffffff', // text
-            borderRadius: 12,
+            colorBgSpotlight: '#13161c',
+            colorTextLightSolid: 'rgba(255,255,255,0.85)',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.08)',
+            fontSize: 12,
         },
 
-        // 🔥 ALSO FIX POPOVER / DROPDOWN (same issue)
         Popover: {
-            colorBgElevated: '#16213e',
-            colorText: '#ffffff',
-            borderRadius: 12,
+            colorBgElevated: '#13161c',
+            colorText: 'rgba(255,255,255,0.85)',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.08)',
         },
 
         Dropdown: {
-            colorBgElevated: '#16213e',
-            colorText: '#ffffff',
+            colorBgElevated: '#13161c',
+            colorText: 'rgba(255,255,255,0.8)',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            controlItemBgHover: 'rgba(255,255,255,0.05)',
+        },
+
+        Badge: {
+            colorBgContainer: 'rgba(255,255,255,0.08)',
+            colorText: 'rgba(255,255,255,0.6)',
+            borderRadius: 6,
+            fontSize: 10,
+        },
+
+        Message: {
+            colorBgElevated: '#13161c',
+            colorText: 'rgba(255,255,255,0.8)',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.08)',
+            fontSize: 12,
+        },
+
+        Typography: {
+            colorText: 'rgba(255,255,255,0.85)',
+            colorTextSecondary: 'rgba(255,255,255,0.4)',
+            colorTextHeading: '#ffffff',
+            titleMarginBottom: '0.4em',
+            titleMarginTop: 0,
+        },
+
+        Divider: {
+            colorSplit: 'rgba(255,255,255,0.06)',
+            marginLG: 12,
         },
     },
 };

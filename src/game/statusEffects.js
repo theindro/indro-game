@@ -1,12 +1,23 @@
 import {Graphics} from "pixi.js";
 
 export const STATUS_TYPES = {
+    NORMAL: 'normal',
     BURN: 'burn',
     POISON: 'poison',
     FREEZE: 'freeze',
     BLEED: 'bleed',
     SLOW: 'slow'
 };
+
+export const STATUS_COLORS_RGBA = {
+    normal: 'rgba(255, 255, 255, 1)',
+    burn: 'rgba(204, 51, 51, 1)',
+    poison: 'rgba(68, 255, 68, 1)',
+    freeze: 'rgb(0,89,255)',
+    bleed: 'rgba(204, 51, 51, 1)',
+    slow: 'rgba(170, 170, 255, 1)'
+};
+
 
 export function applyStatusEffect(target, effect) {
     if (!target.statusEffects) target.statusEffects = [];

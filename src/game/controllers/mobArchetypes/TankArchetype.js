@@ -22,9 +22,9 @@ export class TankArchetype {
         if (distToPlayer > 30) {
             moveX = (px - m.x) / distToPlayer;
             moveY = (py - m.y) / distToPlayer;
-            // 40% of normal speed
-            moveX *= m.speed * 0.4;
-            moveY *= m.speed * 0.4;
+            // 80% of normal speed
+            moveX *= m.speed * 0.8;
+            moveY *= m.speed * 0.8;
         }
 
         // Ground slam attack (using cooldown in seconds)

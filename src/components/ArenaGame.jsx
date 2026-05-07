@@ -10,7 +10,8 @@ import PauseScreen from './PauseScreen.jsx';
 import { cartoonTheme } from '../styles/cartoonTheme';
 import '../styles/global.css';
 import DeathScreen from "./DeathScreen.jsx";
-import PlayerStatsBar from "./PlayerStatsBar.jsx";
+import AbilityBar from "./PlayerStatsBar.jsx";
+import LevelUpEffect from "./LevelUpEffect.jsx";
 
 export default function ArenaGame() {
     const [messageApi, contextHolder] = message.useMessage();
@@ -33,12 +34,13 @@ export default function ArenaGame() {
                 </div>
             </div>
 
-            <PlayerStatsBar />
-            <Inventory />
             <Shop />
-            <PauseScreen />
             <DeathScreen />
+            <PauseScreen />
             */}
+            <Inventory />
+            <AbilityBar />
+            <LevelUpEffect />
         </ConfigProvider>
     );
 }

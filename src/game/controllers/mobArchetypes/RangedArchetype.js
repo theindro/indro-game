@@ -49,29 +49,48 @@ export class RangedArchetype {
             else m.gl.scale.set(1, 1);
         }
 
-        return { moveX, moveY, attackOverride: false };
+        return { moveX, moveY, attackOverride: true };
     }
 
     shoot(ctx) {
-        const { world, px, py, enemyProjs } = ctx;
+        const { world, px, py, enemyProjs, openWorld } = ctx;
         const m = this.mob;
 
-        // Different projectile types based on biome
-        let projectileType = 'magic';
-        switch(m.biome) {
-            case 'ice': projectileType = 'ice'; break;
-            case 'lava': projectileType = 'fire'; break;
-            case 'desert': projectileType = 'sand'; break;
-            default: projectileType = 'magic';
+        let elementalType = 'normal';
+
+        switch (m.biome) {
+            case 'ice':
+                elementalType = 'lightning';
+                break;
+
+            case 'lava':
+                elementalType = 'burn';
+                break;
+
+            case 'desert':
+                elementalType = 'poison';
+                break;
+
+            default:
+                elementalType = 'normal';
         }
 
         const proj = createEnemyProj(
-            world, m.x, m.y, px, py,
-            projectileType, 6, 3.5, 8
+            openWorld.entityLayer,
+            m.x,
+            m.y,
+            px,
+            py,
+            'enemy_orb', // projectile type
+            m.damage,           // damage
+            3.5,         // speed
+            8,           // size
+            0,           // angle offset
+            elementalType
         );
 
-        if (enemyProjs) enemyProjs.push(proj);
-
-        // Visual indicator
+        if (enemyProjs) {
+            enemyProjs.push(proj);
+        }
     }
 }

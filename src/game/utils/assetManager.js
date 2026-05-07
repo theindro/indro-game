@@ -1,10 +1,11 @@
 // utils/assetManager.js
-import * as PIXI from 'pixi.js';
+import {Rectangle, Texture, Assets} from "pixi.js";
 
 class AssetManager {
     constructor() {
         this.textures = new Map();
         this.propTextures = new Map(); // Store props by type
+        this.animationFrames = new Map();
         this.loaded = false;
     }
 
@@ -122,6 +123,11 @@ class AssetManager {
             { file: '/gameprops/tree3.png', id: 'tree3', type: 'tree', itemId: null },
         ];
 
+        const VFX = [
+            { file: '/vfx/burst.png', id: 'burst', type: 'vfx', itemId: null },
+            { file: '/vfx/explosion.png', id: 'explosion', type: 'vfx', itemId: null },
+        ];
+
         // ============= DROP TEXTURES =============
         const dropFiles = [
             { file: 'drops_drop_gold', id: 'drops_drop_gold', type: 'drop', itemId: null },
@@ -138,6 +144,7 @@ class AssetManager {
             ...groundFiles,
             ...propFiles,
             ...dropFiles,
+            ...VFX
         ];
 
         const loadPromises = [];
@@ -170,6 +177,8 @@ class AssetManager {
             }
         }
 
+        this.preloadAnimations();
+
         this.loaded = true;
         console.log('✓ All assets loaded successfully');
         console.log(`Total textures loaded: ${this.textures.size}`);
@@ -185,6 +194,75 @@ class AssetManager {
         return textures[Math.floor(Math.random() * textures.length)];
     }
 
+
+    /**
+     * 🆕 Get or create cached animation frames
+     * This prevents re-slicing the same spritesheet repeatedly
+     */
+    getAnimationFrames(textureId, frameWidth, frameHeight, cols, rows) {
+        const cacheKey = `${textureId}_${frameWidth}_${frameHeight}_${cols}_${rows}`;
+
+        // Return cached frames if available
+        if (this.animationFrames.has(cacheKey)) {
+            return this.animationFrames.get(cacheKey);
+        }
+
+        const texture = this.textures.get(textureId);
+        if (!texture || !texture.source) {
+            console.error(`Texture "${textureId}" not ready for animation frames`);
+            return null;
+        }
+
+        // Create and cache frames
+        const frames = [];
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const frame = new Rectangle(
+                    col * frameWidth,
+                    row * frameHeight,
+                    frameWidth,
+                    frameHeight
+                );
+
+                const frameTexture = new Texture({
+                    source: texture.source,
+                    frame: frame
+                });
+
+                frames.push(frameTexture);
+            }
+        }
+
+        // Cache the frames
+        this.animationFrames.set(cacheKey, frames);
+        console.log(`📦 Cached ${frames.length} frames for: ${textureId}`);
+
+        return frames;
+    }
+
+    /**
+     * 🆕 Preload common animations
+     * Call this after loading assets
+     */
+    preloadAnimations() {
+        // Pre-cache burst animation frames
+        const burstTexture = this.textures.get('burst');
+        if (burstTexture) {
+            // Cache different sizes if needed
+            this.getAnimationFrames('burst', 256, 256, 4, 4);
+        }
+
+        // 🆕 Pre-cache explosion animation frames (8x8 grid, 2048x2048 spritesheet)
+        const explosionTexture = this.textures.get('explosion');
+        if (explosionTexture) {
+            // 2048 / 8 = 256px per frame
+            this.getAnimationFrames('explosion', 256, 256, 8, 8); // 64 frames total
+        }
+
+
+        console.log('⚡ Animations preloaded and cached');
+    }
+
     async loadTexture(name, path, type = null, itemId = null) {
         try {
             // Skip if already loaded
@@ -193,7 +271,7 @@ class AssetManager {
             }
 
             console.log(`Loading texture "${name}" from ${path}`);
-            const texture = await PIXI.Assets.load(path);
+            const texture = await Assets.load(path);
             this.textures.set(name, texture);
 
             // If this is an item texture, also store by itemId for easy lookup

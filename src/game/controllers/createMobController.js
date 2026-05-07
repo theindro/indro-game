@@ -148,28 +148,21 @@ export function createMobController(mob, entityLayer) {
         },
 
         handleAttack(ctx) {
-            const { distToPlayer, playerState } = ctx;
+            const { distToPlayer, dt } = ctx;
             const m = this.mob;
 
-            // Archetype-specific damage
-            let damage = 2; // base damage
-            if (this.archetypeType === ARCHETYPES.RUSHER) damage = 3;
-            if (this.archetypeType === ARCHETYPES.TANK) damage = 4;
-            if (this.archetypeType === ARCHETYPES.EXPLODER) damage = 5;
+            // reduce cooldown using delta time
+            const delta = dt; // convert to seconds (if dt = frames)
+            m.attackCooldown = Math.max(0, m.attackCooldown - delta);
 
             if (distToPlayer < 26 && m.attackCooldown <= 0) {
-                useGameStore.getState().damagePlayer(damage, `${this.archetypeType} atk`);
-                m.attackCooldown = this.getAttackCooldown();
-            }
 
-            if (m.attackCooldown > 0) m.attackCooldown--;
-        },
-        getAttackCooldown() {
-            switch(this.archetypeType) {
-                case ARCHETYPES.RUSHER: return 20;
-                case ARCHETYPES.TANK: return 45;
-                case ARCHETYPES.EXPLODER: return 60;
-                default: return 30;
+                useGameStore
+                    .getState()
+                    .damagePlayer(m.damage, `${this.archetypeType} atk`);
+
+                // convert attacks/sec into cooldown
+                m.attackCooldown = Math.max(0.2, 1 / m.attackSpeed);
             }
         },
         updateAnimation(dt) {
@@ -192,7 +185,7 @@ export function createMobController(mob, entityLayer) {
 }
 
 // Updated spawnMob function
-export function spawnMob(world, x, y, biome = null, archetype = null) {
+export function spawnMob(world, x, y, biome = null, archetype = null, difficulty = 1) {
     const finalBiome = biome || 'forest';
     // Random archetype selection if not specified
     const archetypesList = Object.values(ARCHETYPES);
@@ -209,19 +202,23 @@ export function spawnMob(world, x, y, biome = null, archetype = null) {
 
     world.addChild(c);
 
-    const baseHp = (MOB_HP * DIFFICULTY.mobHp) * stats.hpMultiplier;
-    const baseSpeed = (0.78 * DIFFICULTY.mobSpeed) * stats.speedMultiplier;
+    const baseHp = MOB_HP * stats.hpMultiplier * difficulty;
+    const baseSpeed = 0.78 * stats.speedMultiplier * (1 + Math.min(difficulty * 0.05, 0.5));
+    const baseAtkSpeed = DIFFICULTY.attackCooldown * (1 + difficulty * 0.1);
+    const damageScale = 1 + Math.log2(difficulty + 1) * 0.35;
+    const baseDamage = Math.round(stats.damage * damageScale);
 
     const mob = {
         c, body, gl, hpBar,
         x, y,
         hp: baseHp,
         maxHp: baseHp,
-        speed: baseSpeed + Math.random() * 0.2,
+        speed: baseSpeed,
         hitFlash: 0,
+        exp: stats.exp,
         biome: finalBiome,
         archetype: finalArchetype,
-        damage: stats.damage,
+        damage: baseDamage,
         knockbackResist: stats.knockbackResist,
         shootTimer: 0,
         bounceSpeed: 0.08 + Math.random() * 0.04,
@@ -229,6 +226,7 @@ export function spawnMob(world, x, y, biome = null, archetype = null) {
         originalY: y,
         bounceAmplitude: 2 + Math.random() * 2,
         scalePulse: 0,
+        attackSpeed: baseAtkSpeed,
         attackCooldown: 0,
         state: 'idle',
         patrolPoints: [],

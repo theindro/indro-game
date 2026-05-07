@@ -8,7 +8,7 @@ import {
     applyStatusEffect,
     createBurnEffect,
     createFreezeEffect,
-    createPoisonEffect,
+    createPoisonEffect, STATUS_COLORS_RGBA,
 } from "../../statusEffects.js";
 import {VFX} from "../../GlobalEffects.js";
 
@@ -121,12 +121,21 @@ export function createArrowSystem(ctx) {
         }
 
         // Visual effects
-        VFX.burst(x, y, dropColor, 14, 4);
-        VFX.burst(x, y, 0xff4466, 8, 3);
-        VFX.shake(6)
+        //VFX.burst(x, y, dropColor, 14, 4);
+        //VFX.burst(x, y, 0xff4466, 8, 3);
+        //VFX.shake(6)
 
         // Update stats
         useGameStore.getState().addKills(1);
+
+        VFX.addFloat(
+            `+${mob.exp} XP`,
+            mob.x,
+            mob.y - 30,
+            'orange'
+        );
+
+        useGameStore.getState().addXP(mob.exp);
 
         // Spawn drops
         if (spawnDrops) {
@@ -156,8 +165,8 @@ export function createArrowSystem(ctx) {
             boss.destroy();
         }
 
-        VFX.burst(x, y, biomeCol, 50, 6);
-        VFX.burst(x, y, 0xffd700, 30, 5);
+        //VFX.burst(x, y, biomeCol, 50, 6);
+        //VFX.burst(x, y, 0xffd700, 30, 5);
         VFX.shake(18);
 
         // Spawn boss drops
@@ -235,10 +244,12 @@ export function createArrowSystem(ctx) {
     function applyHitEffects(x, y, damage, isCrit, isBoss = false, elementalType = 'normal') {
         const particleCount = isCrit ? (isBoss ? 15 : 12) : (isBoss ? 10 : 7);
         const textColor = '#fff';
-
+        const burstColor = STATUS_COLORS_RGBA[elementalType];
         const damageText = isCrit ? `${parseInt(damage)} CRIT!` : `${parseInt(damage)}`;
 
-        VFX.burst(x, y, textColor, particleCount, isBoss ? 3.5 : undefined);
+
+        VFX.burst(x, y, burstColor);
+
         VFX.addFloat(damageText, x, y, textColor);
 
         audioManager.playSFX('/sounds/hit-splat.ogg', 0.3);
@@ -277,7 +288,7 @@ export function createArrowSystem(ctx) {
 
             // Check collision with props
             if (checkCollisionWithProps(arrow.c.x, arrow.c.y)) {
-                VFX.burst(arrow.c.x, arrow.c.y, 0xaaaaaa, 5, 2);
+                VFX.burst(arrow.c.x, arrow.c.y, 'white');
                 if (arrow.c.parent) {
                     arrow.c.parent.removeChild(arrow.c);
                     arrow.c.destroy();

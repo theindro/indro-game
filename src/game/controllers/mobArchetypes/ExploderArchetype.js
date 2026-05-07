@@ -8,7 +8,7 @@ export class ExploderArchetype {
         this.mob = mob;
         this.exploded = false;
         this.explosionRadius = 75;
-        this.explosionDamage = 20;
+        this.explosionDamage = mob.damage + 20;
         this.explodeDistance = 45;
         this.priming = false;
         this.primeTimer = 0;

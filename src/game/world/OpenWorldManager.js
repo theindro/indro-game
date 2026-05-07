@@ -203,6 +203,8 @@ export class OpenWorldManager {
 
     async spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, biome) {
         const key = `${chunkX},${chunkZ}`;
+        const chunkLevel = Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
+        const difficulty = Math.pow(1.08, chunkLevel);
 
         if (this.spawnedEntities.has(key)) {
             const entities = this.spawnedEntities.get(key);
@@ -314,7 +316,7 @@ export class OpenWorldManager {
                 z = Math.max(50, Math.min(z, this.worldHeight - 50));
             }
 
-            const mob = spawnMob(this.entityLayer, x, z, biome);
+            const mob = spawnMob(this.entityLayer, x, z, biome, null, difficulty);
             if (mob) {
                 mob.spawnChunk = key;
                 entities.mobs.push(mob);

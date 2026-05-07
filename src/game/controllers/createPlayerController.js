@@ -46,7 +46,7 @@ export function createPlayerController({hpBar, pBody, world}) {
         if (world && pBody) {
             const color = hitType === 'ice' ? 0x00ccff : hitType === 'fire' ? 0xff4400 : hitType === 'poison' ? 0x44ff44 : 0xff6600;
 
-            VFX.burst(playerX, playerY, color, 8, 2);
+            VFX.burst(playerX, playerY, color);
         }
 
         VFX.addFloat(`-${damage}`, playerX, playerY - 30, 'red');

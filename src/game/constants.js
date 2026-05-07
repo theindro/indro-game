@@ -70,6 +70,6 @@ export const BIOME_COLORS = {
 
 export const DIFFICULTY = {
     mobHp: 1,
-    mobSpeed: 0.7,
-    attackCooldown: 0.2,
+    mobSpeed: 0.2,
+    attackCooldown: 0.7,
 };

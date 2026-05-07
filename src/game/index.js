@@ -15,11 +15,16 @@ import {OpenWorldManager} from "./world/OpenWorldManager.js";
 import {PerformanceMonitor} from './world/PerformanceMonitor.js';
 import {MinimapManager} from "./world/MinimapManager.js";
 import {VFX} from './GlobalEffects.js';
+import {createLightingFilter} from "./controllers/createLightingController.js";
 
 export async function createGame() {
     // ==================== INITIALIZATION ====================
     const app = await initApp();
     const world = createWorldContainer(app);
+
+    // Shader lighting just testing
+    // const lighting = createLightingFilter(app);
+    // world.filters = [lighting.filter];
 
     // ==================== GAME STATE ====================
     const colliders = [];
@@ -42,6 +47,7 @@ export async function createGame() {
 
     // ==================== SYSTEMS ====================
     const weatherSystem = initWeatherSystem(app);
+
     const input = createInputManager(app.canvas);
     const debug = createDebugColliderToggle(world, colliders);
     const perfMonitor = new PerformanceMonitor();
@@ -160,6 +166,9 @@ export async function createGame() {
         // Minimap
         updateMinimap(minimap, px, py, input, world, mouseWorld);
 
+        // Shader lighting just testing
+        // lighting.updateLighting([{ x: pCont.x, y: pCont.y, radius: 1000 }], camX, camY);
+
         // Debug
         debug.tickUpdate();
 
@@ -221,15 +230,19 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, ope
                 combat.useArrowBarrage(mouseWorld.x, mouseWorld.y);
                 break;
             case '2':
-                combat.useRapidFire(mouseWorld.x, mouseWorld.y);
+                if (useGameStore.getState().player.pLevel >= 5)
+                    combat.useRapidFire(mouseWorld.x, mouseWorld.y);
                 break;
             case '3':
-                console.log('Ability 3 used!');
+                if (useGameStore.getState().player.pLevel >= 10)
+                    console.log('Ability 3 used!');
                 break;
             case '4':
-                combat.useFrostArrow(mouseWorld.x, mouseWorld.y);
+                if (useGameStore.getState().player.pLevel >= 20)
+                    combat.useFrostArrow(mouseWorld.x, mouseWorld.y);
                 break;
         }
+
 
         if (e.key === 'b' || e.key === 'B') {
             spawnTestBoss(bosses, openWorld);

@@ -1,359 +1,510 @@
-// components/Inventory.jsx
-import {useEffect, useState} from 'react';
-import {Drawer, Card, Row, Col, Tooltip, Badge, Button, Space, Typography, Divider, message} from 'antd';
-import {
-    ShoppingCartOutlined,
-    GoldOutlined,
-    CloseOutlined,
-    UserOutlined,
-} from '@ant-design/icons';
-import {useGameStore} from '../stores/gameStore';
+import { useEffect, useState } from 'react';
+import { Tooltip, message } from 'antd';
+import { useGameStore } from '../stores/gameStore';
 
-const {Text, Title} = Typography;
+const STAT_LABELS = {
+    damage:      { label: 'DMG',  color: '#e8a825' },
+    chest:       { label: 'ARM',  color: '#7f77dd' },
+    attackSpeed: { label: 'ASPD', color: '#3b9e75' },
+    critChance:  { label: 'CRIT', color: '#e06b6b' },
+    moveSpeed:   { label: 'SPD',  color: '#4fc3f7' },
+    projectiles: { label: 'PROJ', color: '#ce93d8' },
+    health:      { label: 'HP',   color: '#3b9e75' },
+};
+
+const EQUIPMENT_LAYOUT = [
+    [null,      'helmet',  null   ],
+    ['gloves',  'chest',   'weapon'],
+    [null,      'pants',   null   ],
+    ['amulet',  'boots',   'ring' ],
+];
+
+const styles = {
+    panel: {
+        display: 'flex',
+        gap: 1,
+        borderRadius: 16,
+        overflow: 'hidden',
+        border: '0.5px solid rgba(255,255,255,0.10)',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.7), inset 0 0.5px 0 rgba(255,255,255,0.07)',
+    },
+    col: {
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    colHeader: {
+        padding: '12px 16px 8px',
+        fontSize: 9,
+        fontWeight: 700,
+        letterSpacing: 1.5,
+        color: 'rgba(255,255,255,0.2)',
+        textTransform: 'uppercase',
+        borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+    },
+    dividerV: {
+        width: '0.5px',
+        background: 'rgba(255,255,255,0.06)',
+        flexShrink: 0,
+    },
+    closeBtn: {
+        position: 'absolute',
+        top: 12,
+        right: 14,
+        background: 'none',
+        border: 'none',
+        color: 'rgba(255,255,255,0.25)',
+        fontSize: 16,
+        cursor: 'pointer',
+        lineHeight: 1,
+        padding: 0,
+    },
+};
+
+function StatPill({ statKey, value }) {
+    const def = STAT_LABELS[statKey];
+    if (!def || !value) return null;
+    const display = statKey === 'moveSpeed'
+        ? `+${Math.floor(value * 100)}%`
+        : `+${value}`;
+    return (
+        <span style={{
+            fontSize: 9,
+            fontWeight: 600,
+            color: def.color,
+            background: `${def.color}18`,
+            borderRadius: 4,
+            padding: '1px 4px',
+            letterSpacing: 0.3,
+        }}>
+            {display} {def.label}
+        </span>
+    );
+}
+
+function ItemTooltip({ item, sellPrice, showSell }) {
+    if (!item) return null;
+    const statEntries = Object.entries(item.stats || {}).filter(([, v]) => v);
+    return (
+        <div style={{ minWidth: 150 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: item?.rarity?.color || '#fff', marginBottom: 3 }}>
+                {item.name}
+            </div>
+            {item.description && (
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 8, lineHeight: 1.4 }}>
+                    {item.description}
+                </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: showSell ? 8 : 0 }}>
+                {statEntries.map(([k, v]) => (
+                    <StatPill key={k} statKey={k} value={v} />
+                ))}
+            </div>
+            {showSell && (
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', borderTop: '0.5px solid rgba(255,255,255,0.08)', paddingTop: 6, marginTop: 4 }}>
+                    Click to equip · Right-click to sell for <span style={{ color: '#e8a825' }}>{sellPrice}g</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function EquipSlot({ slotKey, item, onUnequip }) {
+    const isEmpty = !item;
+    const accentColor = item?.rarity?.color || 'rgba(255,255,255,0.08)';
+
+    const content = (
+        <div
+            onContextMenu={(e) => { e.preventDefault(); if (item) onUnequip(slotKey); }}
+            style={{
+                width: 52,
+                height: 52,
+                borderRadius: 10,
+                background: item ? `${accentColor}14` : 'rgba(255,255,255,0.02)',
+                border: `0.5px solid ${item ? accentColor : 'rgba(255,255,255,0.06)'}`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: item ? 'pointer' : 'default',
+                transition: 'all 0.15s',
+                position: 'relative',
+                overflow: 'hidden',
+            }}
+        >
+            {item ? (
+                item.texture ? (
+                    <img src={item.texture} alt={item.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                ) : (
+                    <span style={{ fontSize: 22 }}>?</span>
+                )
+            ) : (
+                <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.08)' }}>·</span>
+            )}
+            {item && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0, left: 0, right: 0,
+                    height: 2,
+                    background: accentColor,
+                    opacity: 0.6,
+                }} />
+            )}
+        </div>
+    );
+
+    if (!item) return content;
+
+    return (
+        <Tooltip
+            title={<ItemTooltip item={item} showSell={false} />}
+            placement="right"
+            arrow={false}
+            overlayStyle={{ zIndex: 10002 }}
+        >
+            {content}
+        </Tooltip>
+    );
+}
+
+function InventorySlot({ item, index, onEquip, onSell }) {
+    const accentColor = item?.rarity?.color || 'rgba(255,255,255,0.08)';
+    const sellPrice = item ? Math.floor((item.price || 0) * 0.5) : 0;
+
+    const content = (
+        <div
+            onClick={() => item && onEquip(index)}
+            onContextMenu={(e) => { e.preventDefault(); if (item) onSell(index); }}
+            style={{
+                width: 48,
+                height: 48,
+                borderRadius: 8,
+                background: item ? `${accentColor}12` : 'rgba(255,255,255,0.02)',
+                border: `0.5px solid ${item ? accentColor : 'rgba(255,255,255,0.05)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: item ? 'pointer' : 'default',
+                transition: 'border-color 0.15s, background 0.15s',
+                position: 'relative',
+                overflow: 'hidden',
+                flexShrink: 0,
+            }}
+        >
+            {item ? (
+                item.texture ? (
+                    <img src={item.texture} alt={item.name} style={{ width: 30, height: 30, objectFit: 'contain' }} />
+                ) : (
+                    <span style={{ fontSize: 18 }}>?</span>
+                )
+            ) : (
+                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.06)' }}>·</span>
+            )}
+            {item?.quantity > 1 && (
+                <span style={{
+                    position: 'absolute', bottom: 2, right: 3,
+                    fontSize: 8, fontWeight: 700,
+                    color: 'rgba(255,255,255,0.5)',
+                    lineHeight: 1,
+                }}>
+                    {item.quantity}
+                </span>
+            )}
+            {item && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0, left: 0, right: 0,
+                    height: 1.5,
+                    background: accentColor,
+                    opacity: 0.5,
+                }} />
+            )}
+        </div>
+    );
+
+    if (!item) return content;
+
+    return (
+        <Tooltip
+            title={<ItemTooltip item={item} sellPrice={sellPrice} showSell />}
+            placement="top"
+            arrow={false}
+            overlayStyle={{ zIndex: 10002 }}
+        >
+            {content}
+        </Tooltip>
+    );
+}
+
+function StatRow({ icon, label, value }) {
+    return (
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11 }}>{icon}</span>
+                <span style={{
+                    fontSize: 10,
+                    color: 'rgba(255,255,255,0.3)',
+                    letterSpacing: 0.3,
+                }}>
+                    {label}
+                </span>
+            </div>
+            <span style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.75)',
+                fontVariantNumeric: 'tabular-nums',
+            }}>
+                {value ?? 0}
+            </span>
+        </div>
+    );
+}
 
 export default function Inventory() {
     const [isOpen, setIsOpen] = useState(false);
     const [messageApi, contextHolder] = message.useMessage();
-    const inventory = useGameStore((state) => state.inventory);
-    const equipItem = useGameStore((state) => state.equipItem);
-    const sellItem = useGameStore((state) => state.sellItem);
-    const unequipItem = useGameStore((state) => state.unequipItem);
+
+    const inventory = useGameStore((s) => s.inventory);
+    const playerStats    = useGameStore((s) => s.player?.stats);
+    const playerHp    = useGameStore((s) => s.player?.maxHp);
+    const playerLevel    = useGameStore((s) => s.player?.pLevel);
+    const equipItem   = useGameStore((s) => s.equipItem);
+    const sellItem    = useGameStore((s) => s.sellItem);
+    const unequipItem = useGameStore((s) => s.unequipItem);
 
     console.log(inventory);
 
-    const handleKeyPress = (e) => {
-        if (e.key === 'i' || e.key === 'I') {
-            setIsOpen(!isOpen);
-        }
-    };
-
     useEffect(() => {
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [isOpen]);
-
-    // Equipment slots in grid order (3x4 grid)
-    const equipmentGrid = [
-        // Row 1
-        { key: '25', label: '', icon: '', row: 0, col: 0 },
-        { key: 'helmet', label: 'Helmet', icon: '', row: 0, col: 1 },
-        { key: '123', label: '', icon: '', row: 0, col: 2 },
-
-        // Row 2
-        { key: 'gloves', label: 'Gloves', icon: '', row: 1, col: 0 },
-        { key: 'armor', label: 'Armor', icon: '', row: 1, col: 1 },
-        { key: 'weapon', label: 'Weapon', icon: '', row: 1, col: 2 },
-
-        // Row 3
-        { key: '66', label: '', icon: '', row: 2, col: 0 },
-        { key: 'pants', label: 'Pants', icon: '', row: 2, col: 1 },
-        { key: '632', label: '', icon: '', row: 2, col: 2 },
-        // Row 4
-        { key: 'amulet', label: 'Amulet', icon: '', row: 2, col: 0 },
-        { key: 'boots', label: 'Boots', icon: '', row: 2, col: 1 },
-        { key: 'ring', label: 'Ring', icon: '', row: 2, col: 2 },
-    ];
-
-
-    const renderEquipmentSlot = (slot) => {
-        const item = inventory?.equipment?.[slot.key];
-
-        const handleUnequip = () => {
-            if (item) {
-                const success = unequipItem(slot.key);
-                if (success) {
-                    messageApi.success(`Unequipped ${item.name}`);
-                } else {
-                    messageApi.warning('Inventory full! Cannot unequip.');
-                }
-            }
+        const onKey = (e) => {
+            if (e.key === 'i' || e.key === 'I') setIsOpen(o => !o);
+            if (e.key === 'Escape') setIsOpen(false);
         };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
 
-        return (
-            <div
-                style={{
-                    width: '100%',
-                    aspectRatio: '1 / 1',
-                    background: item ? `${item?.rarity?.color}1a` : 'rgba(0,0,0,0.3)',
-                    border: `1px solid ${item ? item?.rarity?.color : '#333'}`,
-                    borderRadius: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: item ? 'pointer' : 'default',
-                    transition: 'all 0.2s',
-                    position: 'relative',
-                }}
-                onContextMenu={(e) => {
-                    e.preventDefault();
-                    if (item) handleUnequip();
-                }}
-            >
-                {getItemImage(item) && (
-                    <img
-                        src={getItemImage(item)}
-                        alt={item.name}
-                        style={{
-                            width: 48,
-                            height: 48,
-                            marginBottom: 4,
-                            objectFit: 'contain'
-                        }}
-                    />
-                )}
-                {item && (
-                    <Tooltip title={
-                        <div>
-                            <div><strong>{item.name}</strong></div>
-                            <div style={{fontSize: 11}}>{item.description}</div>
-                            {item.stats?.damage && <div>⚔️ +{item.stats.damage} DMG</div>}
-                            {item.stats?.armor && <div>🛡️ +{item.stats.armor} ARM</div>}
-                            {item.stats?.attackSpeed && <div>⚡ +{item.stats.attackSpeed} ASPD</div>}
-                            {item.stats?.critChance && <div>🎯 +{item.stats.critChance}% CRIT</div>}
-                            {item.stats?.moveSpeed && <div>💨 +{Math.floor(item.stats.moveSpeed * 100)}% SPD</div>}
-                            {item.stats?.projectiles && <div>🏹 +{item.stats.projectiles} PROJ</div>}
-                            <div style={{marginTop: 8, color: '#ffaa44'}}>Right-click to unequip</div>
-                        </div>
-                    }>
-                        <div style={{
-                            fontSize: 9,
-                            color: item?.rarity?.color,
-                            marginTop: 2,
-                            textAlign: 'center',
-                            maxWidth: '90%',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        }}>
-                            {item.name}
-                        </div>
-                    </Tooltip>
-                )}
-            </div>
-        );
-    };
-
-    const handleEquipItem = (index) => {
+    const handleEquip = (index) => {
         const item = inventory?.slots?.[index];
-
-        if (item && item.equipSlot) {
+        if (!item) return;
+        if (item.equipSlot) {
             equipItem(index);
-            messageApi.success(`Equipped ${item.name}`);
-        } else if (item) {
-            messageApi.warning(`${item.name} cannot be equipped`);
+            messageApi.open({ type: 'success', content: `Equipped ${item.name}`, duration: 1.5 });
+        } else {
+            messageApi.open({ type: 'warning', content: `${item.name} can't be equipped`, duration: 1.5 });
         }
     };
 
-    const handleSellItem = (index) => {
+    const handleSell = (index) => {
         const item = inventory?.slots?.[index];
-        if (item) {
-            const sellPrice = Math.floor(item.price * 0.5);
-            sellItem(index);
-            messageApi.success(`Sold ${item.name} for ${sellPrice} gold`);
+        if (!item) return;
+        const sellPrice = Math.floor((item.price || 0) * 0.5);
+        sellItem(index);
+        messageApi.open({ type: 'success', content: `Sold ${item.name} for ${sellPrice}g`, duration: 1.5 });
+    };
+
+    const handleUnequip = (slotKey) => {
+        const item = inventory?.equipment?.[slotKey];
+        if (!item) return;
+        const success = unequipItem(slotKey);
+        if (success) {
+            messageApi.open({ type: 'error', content: `Unequipped ${item.name}`, duration: 1.5 });
+        } else {
+            messageApi.open({ type: 'warning', content: 'Inventory full', duration: 1.5 });
         }
     };
 
-    // Inside your component, add a function to get item image
-    const getItemImage = (item) => {
-        if (!item) return null;
+    if (!isOpen) return <>{contextHolder}</>;
 
-        // Use the texture URL directly if it exists
-        if (item.texture) {
-            // Ensure the path starts with /assets if needed
-            const imageUrl = item.texture;
+    const slots = inventory?.slots || Array(20).fill(null);
+    const equipment = inventory?.equipment || {};
 
-            return imageUrl;
-        }
-
-        return null;
-    };
-
-    console.log('rerenderrr inventory')
-
-    const inventoryItems = inventory?.slots || [];
 
     return (
         <>
             {contextHolder}
+            <style>{`
+            @keyframes slideUp { from { opacity: 0; transform: translateY(10px) scale(0.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
+        `}</style>
 
-            <Button
-                className="inventory-toggle"
-                style={{display: 'none'}}
-                onClick={() => setIsOpen(true)}
-            />
+            <div style={{
+                position: 'fixed',
+                bottom: 80,        // sits above the ability bar
+                right: 20,
+                zIndex: 10000,
+                animation: 'slideUp 0.18s ease',
+                display: 'flex',
+                gap: 1,
+                borderRadius: 16,
+                overflow: 'hidden',
+                background: 'rgba(10, 12, 16, 0.82)',
+                border: '0.5px solid rgba(255,255,255,0.10)',
+                boxShadow: '0 24px 64px rgba(0,0,0,0.7), inset 0 0.5px 0 rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+            }}>
+                {/* rest of the panel contents unchanged */}
+                <div style={{...styles.panel, animation: 'slideUp 0.18s ease', position: 'relative'}}>
 
-            <Drawer
-                title={
-                    <Space>
-                        <ShoppingCartOutlined style={{color: '#ffaa44'}}/>
-                        <span style={{color: '#ffaa44'}}>Inventory</span>
-                        <Badge
-                            count={inventory?.slots?.filter(s => s !== null).length || 0}
-                            style={{backgroundColor: '#ffaa44'}}
-                        />
-                    </Space>
-                }
-                placement="right"
-                open={isOpen}
-                onClose={() => setIsOpen(false)}
-                width={520}
-                styles={{
-                    body: {
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                        padding: '16px',
-                    },
-                    header: {
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                        borderBottom: '2px solid #ffaa44',
-                    },
-                }}
-                closeIcon={<CloseOutlined style={{color: '#ffaa44'}}/>}
-            >
-                {/* Equipment Grid */}
-                <Title level={5} style={{color: '#ffaa44', marginBottom: 8}}>
-                    ⚔️ Equipment
-                </Title>
-                <div style={{
-                    margin: "auto",
-                    maxWidth: 280,
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 10,
-                    marginBottom: 20,
-                    background: 'rgba(0,0,0,0.2)',
-                    borderRadius: 12,
-                    padding: 12,
-                }}>
-                    {equipmentGrid.map((slot) => (
-                        <div key={slot.key}>
-                            {renderEquipmentSlot(slot)}
-                            <Text style={{
-                                color: '#aaa',
-                                fontSize: 9,
-                                marginTop: 4,
-                                display: 'block',
-                                textAlign: 'center'
-                            }}>
-                                {slot.label}
-                            </Text>
+
+                    <div style={{...styles.col, width: 160}}>
+                        <div style={styles.colHeader}>Stats</div>
+                        <div style={{padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8}}>
+                            <StatRow icon="⚔" label="Damage" value={playerStats?.damage}/>
+                            <StatRow icon="❤" label="Health" value={playerHp}/>
+                            <StatRow icon="⚡" label="Atk Speed" value={playerStats?.attackSpeed?.toFixed(2)}/>
+                            <StatRow icon="👟" label="Move Speed" value={playerStats?.moveSpeed}/>
+                            <StatRow icon="🎯" label="Crit Chance" value={`${playerStats?.critChance}%`}/>
+                            <StatRow icon="💥" label="Crit Dmg" value={`${playerStats?.critDamage}%`}/>
+                            <StatRow icon="🏹" label="Projectiles" value={playerStats?.projectiles}/>
+                            <StatRow icon="🛡" label="Armor" value={playerStats?.armor ?? 0}/>
                         </div>
-                    ))}
-                </div>
+                    </div>
 
-                <Divider style={{borderColor: 'rgba(255,170,68,0.3)', margin: '12px 0'}}/>
+                    <div style={styles.dividerV}/>
 
-                {/* Inventory Grid - 6 columns */}
-                <Row gutter={[8, 8]}>
-                    {inventoryItems.map((item, index) => (
-                        <Col span={4} key={index}>
-                            <Card
-                                hoverable={!!item}
-                                size="small"
-                                style={{
-                                    background: item ? `${item?.rarity?.color}1a` : 'rgba(0,0,0,0.3)',
-                                    border: `1px solid ${item ? item?.rarity?.color : '#333'}`,
-                                    cursor: item ? 'pointer' : 'default',
-                                    transition: 'all 0.2s',
-                                    position: 'relative',
-                                    height: 120
-                                }}
-                                bodyStyle={{padding: '8px 4px', textAlign: 'center'}}
-                                onClick={() => item && handleEquipItem(index)}
-                                onContextMenu={(e) => {
-                                    e.preventDefault();
-                                    if (item) handleSellItem(index);
-                                }}
-                            >
-                                {item ? (
-                                    <div>
-                                        {getItemImage(item) ? (
-                                            <img
-                                                src={getItemImage(item)}
-                                                alt={item.name}
-                                                style={{
-                                                    width: 48,
-                                                    height: 48,
-                                                    marginBottom: 4,
-                                                    objectFit: 'contain'
-                                                }}
-                                            />
-                                        ) : (
-                                            <div style={{ fontSize: 28, marginBottom: 4 }}>
-                                                {'X'}
-                                            </div>
-                                        )}
-                                        <Tooltip title={
-                                            <div>
-                                                <div><strong>{item.name}</strong></div>
-                                                <div style={{fontSize: 11, color: '#aaa'}}>{item.description}</div>
-                                                {item.stats?.damage && <div>⚔️ +{item.stats.damage} DMG</div>}
-                                                {item.stats?.armor && <div>🛡️ +{item.stats.armor} ARM</div>}
-                                                {item.stats?.attackSpeed && <div>⚡ +{item.stats.attackSpeed} ASPD</div>}
-                                                {item.stats?.critChance && <div>🎯 +{item.stats.critChance}% CRIT</div>}
-                                                {item.stats?.moveSpeed &&
-                                                    <div>💨 +{Math.floor(item.stats.moveSpeed * 100)}% SPD</div>}
-                                                {item.stats?.projectiles && <div>🏹 +{item.stats.projectiles} PROJ</div>}
-                                                <div style={{marginTop: 8, color: '#ffaa44'}}>
-                                                    Sell: 💰 {Math.floor(item.price * 0.5)}
+                    {/* ── LEFT: Equipment ── */}
+                    <div style={{...styles.col, width: 200}}>
+                        <div style={styles.colHeader}>Equipment</div>
+
+                        {/* Player summary */}
+                        <div style={{
+                            padding: '10px 14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+                        }}>
+                            <div style={{
+                                width: 36, height: 36, borderRadius: '50%',
+                                border: '0.5px solid rgba(255,255,255,0.12)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 16, flexShrink: 0,
+                            }}>⚔
+                            </div>
+                            <div>
+                                <div style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: 'rgba(255,255,255,0.8)',
+                                    lineHeight: 1.2
+                                }}>
+                                    Level {playerLevel}
+                                </div>
+                                <div style={{fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1}}>
+                                    {playerStats?.damage} dmg · {playerHp} hp
+                                </div>
+                            </div>
+                            <div style={{
+                                marginLeft: 'auto',
+                                fontSize: 12, fontWeight: 700,
+                                color: '#e8a825',
+                            }}>
+                                {inventory?.gold ?? 0}g
+                            </div>
+                        </div>
+
+                        {/* Equipment grid */}
+                        <div style={{padding: '10px 14px', flex: 1}}>
+                            {EQUIPMENT_LAYOUT.map((row, ri) => (
+                                <div key={ri}
+                                     style={{display: 'flex', gap: 6, marginBottom: 6, justifyContent: 'center'}}>
+                                    {row.map((slotKey, ci) => (
+                                        <div key={ci}>
+                                            {slotKey ? (
+                                                <div>
+                                                    <EquipSlot
+                                                        slotKey={slotKey}
+                                                        item={equipment[slotKey] || null}
+                                                        onUnequip={handleUnequip}
+                                                    />
+                                                    <div style={{
+                                                        fontSize: 8, color: 'rgba(255,255,255,0.18)',
+                                                        textAlign: 'center', marginTop: 2,
+                                                        textTransform: 'uppercase', letterSpacing: 0.5,
+                                                    }}>
+                                                        {slotKey}
+                                                    </div>
                                                 </div>
-                                                <div style={{marginTop: 4, fontSize: 10, color: '#888'}}>
-                                                    Click to equip
-                                                </div>
-                                            </div>
-                                        }>
-                                            <Text strong style={{color: item?.rarity?.color, fontSize: 10}}>
-                                                {item.name.length > 10 ? item.name.slice(0, 8) + '..' : item.name}
-                                            </Text>
-                                        </Tooltip>
-                                        {item.quantity > 1 && (
-                                            <Badge
-                                                count={`x${item.quantity}`}
-                                                style={{
-                                                    backgroundColor: '#ffaa44',
-                                                    position: 'absolute',
-                                                    top: 2,
-                                                    right: 2,
-                                                    fontSize: 9,
-                                                    minWidth: 18,
-                                                    height: 18,
-                                                    lineHeight: '18px',
-                                                }}
-                                            />
-                                        )}
-                                        {item.stats?.damage && (
-                                            <div style={{fontSize: 9, color: '#ff8866', marginTop: 2}}>
-                                                ⚔️ +{item.stats.damage}
-                                            </div>
-                                        )}
-                                        {item.stats?.armor && (
-                                            <div style={{fontSize: 9, color: '#88aaff', marginTop: 2}}>
-                                                🛡️ +{item.stats.armor}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div style={{color: '#555', padding: '12px 0'}}>
-                                        <div style={{fontSize: 20}}>⬚</div>
-                                    </div>
-                                )}
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
+                                            ) : (
+                                                <div style={{width: 52, height: 52 + 14}}/>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
 
-                {/* Footer */}
-                <div style={{
-                    marginTop: 16,
-                    paddingTop: 12,
-                    borderTop: '1px solid rgba(255,170,68,0.3)',
-                    textAlign: 'center',
-                }}>
-                    <Text type="secondary" style={{fontSize: 10}}>
-                        💡 Click to equip • Right-click to sell
-                    </Text>
+                        <div style={{
+                            padding: '8px 14px',
+                            fontSize: 9,
+                            color: 'rgba(255,255,255,0.15)',
+                            borderTop: '0.5px solid rgba(255,255,255,0.06)',
+                            textAlign: 'center',
+                        }}>
+                            Right-click to unequip
+                        </div>
+                    </div>
+
+                    <div style={styles.dividerV}/>
+
+                    {/* ── RIGHT: Bag ── */}
+                    <div style={{...styles.col, width: 280}}>
+                        <div style={{
+                            ...styles.colHeader,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
+                        }}>
+                            <span>Bag</span>
+                            <span style={{color: 'rgba(255,255,255,0.15)', fontWeight: 400, letterSpacing: 0}}>
+                                {slots.filter(Boolean).length} / {slots.length}
+                            </span>
+                        </div>
+
+                        <div style={{
+                            padding: '10px 12px',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(5, 48px)',
+                            gap: 6,
+                            flex: 1,
+                        }}>
+                            {slots.map((item, i) => (
+                                <InventorySlot
+                                    key={i}
+                                    item={item}
+                                    index={i}
+                                    onEquip={handleEquip}
+                                    onSell={handleSell}
+                                />
+                            ))}
+                        </div>
+
+                        <div style={{
+                            padding: '8px 14px',
+                            fontSize: 9,
+                            color: 'rgba(255,255,255,0.15)',
+                            borderTop: '0.5px solid rgba(255,255,255,0.06)',
+                            textAlign: 'center',
+                        }}>
+                            Click to equip · Right-click to sell
+                        </div>
+                    </div>
+
+                    {/* Close button */}
+                    <button
+                        onClick={() => setIsOpen(false)}
+                        style={styles.closeBtn}
+                        aria-label="Close inventory"
+                    >
+                        ✕
+                    </button>
                 </div>
-            </Drawer>
+            </div>
         </>
     );
 }

@@ -1,7 +1,7 @@
 // abilities/FrostArrow.js - Fixed cleanup
 import {Container, Graphics} from 'pixi.js';
 import {useGameStore} from '../../stores/gameStore.js';
-import {applyStatusEffect, createFreezeEffect} from "../statusEffects.js";
+import {applyStatusEffect, createFreezeEffect, STATUS_COLORS_RGBA} from "../statusEffects.js";
 import {VFX} from "../GlobalEffects.js";
 
 export function useFrostArrow(ctx, targetX, targetY) {
@@ -28,7 +28,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
     let angle;
     angle = Math.atan2(targetY - py, targetX - px);
 
-    VFX.burst(px, py, 0x88ccff, 15, 3);
+    //VFX.burst(px, py, 0x88ccff, 15, 3);
 
     const speed = ability.stats.projectileSpeed;
     const vx = Math.cos(angle) * speed;
@@ -117,7 +117,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
         requestAnimationFrame(animateExplosion);
 
         // Impact burst
-        VFX.burst(x, y, 0xaaddff, 25, 4);
+        // VFX.burst(x, y, 0xaaddff, 25, 4);
 
         // Create ice spikes with auto-cleanup
         const spikes = [];
@@ -153,11 +153,13 @@ export function useFrostArrow(ctx, targetX, targetY) {
 
                 applyStatusEffect(mob, createFreezeEffect(freezeDuration, slowAmount));
 
-                VFX.burst(mob.x, mob.y, 0x88ddff, 8, 2);
+
+                VFX.burst(mob.x, mob.y, 0xffd700);
 
                 if (mob.hp <= 0) {
-                    VFX.burst(mob.x, mob.y, 0xffd700, 14, 4);
+                    //VFX.burst(mob.x, mob.y, 0xffd700, 14, 4);
                     store.addKills(1);
+                    store.addXP(mob.exp);
                     openWorld.entityLayer?.removeChild(mob.c);
                     mobs.splice(mi, 1);
                 }
@@ -176,7 +178,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
 
                 applyStatusEffect(boss, createFreezeEffect(freezeDuration * 0.5, slowAmount * 0.5));
 
-                VFX.burst(boss.x, boss.y, 0x88ddff, 12, 3);
+                VFX.burst(boss.x, boss.y, 0xffd700);
             }
         }
 

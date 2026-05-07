@@ -1,6 +1,7 @@
 // core/GlobalEffects.js
-import { Graphics } from 'pixi.js';
+import {AnimatedSprite, Graphics} from 'pixi.js';
 import { showFloat } from './utils/floatText.js';
+import { assetManager } from './utils/assetManager.js';
 
 class VisualEffects {
     constructor() {
@@ -33,30 +34,45 @@ class VisualEffects {
      * @param {number} count - number of particles
      * @param {number} maxSpd - maximum speed
      */
-    burst(x, y, color, count = 10, maxSpd = 3) {
-        if (!this.initialized || !this.world) {
-            console.warn('VFX not initialized or world missing');
-            return;
-        }
+    burst(x, y, color = 0xffffff) {
+        if (!this.initialized || !this.world) return;
 
-        for (let i = 0; i < count; i++) {
-            const p = new Graphics();
-            p.circle(0, 0, 1.5 + Math.random() * 3).fill({ color, alpha: 0.9 });
-            p.x = x;
-            p.y = y;
-            const a = Math.random() * Math.PI * 2;
-            const sp = 0.8 + Math.random() * maxSpd;
-            this.world.addChild(p);
-            this.particles.push({
-                g: p,
-                vx: Math.cos(a) * sp,
-                vy: Math.sin(a) * sp,
-                life: 25 + Math.random() * 25,
-                maxLife: 50,
-            });
-        }
+        const texture = assetManager.getTexture('burst');
+
+        if (!texture) return;
+
+        // 🔥 IMPORTANT: adjust based on your spritesheet
+        const frames = assetManager.getAnimationFrames('burst',
+            1024,  // frame width
+            1024,  // frame height
+            4,   // columns
+            4    // rows (16 frames)
+        );
+
+        const anim = new AnimatedSprite(frames);
+
+        anim.anchor.set(0.5);
+        anim.x = x;
+        anim.y = y;
+
+        anim.tint = color;
+        anim.blendMode = 'add';
+
+        anim.animationSpeed = 0.6;
+        anim.loop = false;
+
+        // ✨ optional polish
+        anim.rotation = Math.random() * Math.PI * 2;
+        anim.scale.set(0.1);
+
+        anim.onComplete = () => {
+            this.world.removeChild(anim);
+            anim.destroy();
+        };
+
+        this.world.addChild(anim);
+        anim.play();
     }
-
     /**
      * Spawn smoke puff
      * @param {number} x - world x position
@@ -143,6 +159,52 @@ class VisualEffects {
         this.shakeRef.value = intensity;
     }
 
+    explosion(x, y, color = null, scale = 1) {
+        if (!this.initialized || !this.world) return;
+
+        // Get cached frames (8x8 grid with 256px frames)
+        const frames = assetManager.getAnimationFrames('explosion', 256, 256, 8, 8);
+
+        if (!frames || frames.length === 0) {
+            console.warn('Failed to get explosion animation frames');
+            return;
+        }
+
+        console.log(`💥 Playing explosion with ${frames.length} frames at (${x}, ${y})`);
+
+        const anim = new AnimatedSprite(frames);
+        anim.anchor.set(0.5);
+        anim.x = x;
+        anim.y = y;
+
+        // Apply color tint if provided
+        if (color) {
+            anim.tint = color;
+        }
+
+        anim.blendMode = 'add'; // or 'normal' for less intense
+        anim.animationSpeed = 1.5; // Slower for explosion (adjust as needed)
+        anim.loop = false;
+        anim.rotation = Math.random() * Math.PI * 2; // Random rotation
+        anim.scale.set(scale);
+
+        // Optional: Add screen shake on explosion
+        if (scale > 0.8) {
+            this.shake(Math.min(8, Math.floor(scale * 5)));
+        }
+
+        anim.onComplete = () => {
+            if (this.world && !this.world.destroyed) {
+                this.world.removeChild(anim);
+            }
+            anim.destroy();
+        };
+
+        this.world.addChild(anim);
+        anim.play();
+    }
+
+
     // ============ CLEANUP ============
     clear() {
         if (this.floats) {
@@ -165,5 +227,6 @@ class VisualEffects {
         this.shakeRef.value = 0;
     }
 }
+
 
 export const VFX = new VisualEffects();
