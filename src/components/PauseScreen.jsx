@@ -27,6 +27,10 @@ export default function PauseScreen() {
         document.body.style.cursor = 'none';
     };
 
+    const handleRestart = () => {
+        window.location.reload();
+    }
+
     if (!gameState?.paused) return null;
 
     return (
@@ -73,17 +77,29 @@ export default function PauseScreen() {
                 </div>
 
 
-                <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                    <Button
-                        type="primary"
-                        size="large"
-                        icon={<CaretRightOutlined />}
-                        onClick={handleResume}
+                <div style={{textAlign: "center"}}>
+                    <Space justify="center" align="center" size={12} style={{ width: '100%', justifyContent: 'center' }}>
+                        <Button
+                            type="default"
+                            size="large"
+                            icon={<CaretRightOutlined />}
+                            onClick={handleRestart}
 
-                    >
-                        Resume Game
-                    </Button>
-                </Space>
+                        >
+                            Restart game
+                        </Button>
+
+                        <Button
+                            type="primary"
+                            size="large"
+                            icon={<CaretRightOutlined />}
+                            onClick={handleResume}
+
+                        >
+                            Resume Game
+                        </Button>
+                    </Space>
+                </div>
         </Modal>
     );
 }

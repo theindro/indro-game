@@ -25,35 +25,29 @@ export default function LoadingScreen({ onComplete }) {
     }, []);
 
     return (
-        <div style={{background: "black"}}>
+        <div>
             <Modal
                 open={loading}
                 closable={false}
                 footer={null}
                 centered
                 width={400}
-                styles={{
-                    content: {
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)',
-                        border: '3px solid #ffaa44',
-                        borderRadius: 24,
-                        textAlign: 'center',
-                    }
-                }}
             >
-                <Space direction="vertical" size={24} style={{ width: '100%', padding: '20px' }}>
-                    <Title level={2} style={{ color: '#ffaa44', margin: 0 }}>
-                        Loading Assets...
-                    </Title>
-                    <Progress
-                        percent={progress}
-                        strokeColor="#ffaa44"
-                        trailColor="rgba(255,255,255,0.1)"
-                    />
-                    <Text type="secondary">
-                        Preparing your adventure...
-                    </Text>
-                </Space>
+                <div style={{textAlign: 'center', padding: 20}}>
+                    <Space direction="vertical" size={24}>
+                        <Title level={2}>
+                            Loading Assets...
+                        </Title>
+                        <Progress
+                            percent={progress}
+                            trailColor="rgba(255,255,255,0.1)"
+                        />
+                        <Text type="secondary">
+                            Preparing your adventure...
+                        </Text>
+                    </Space>
+
+                </div>
             </Modal>
         </div>
     );
