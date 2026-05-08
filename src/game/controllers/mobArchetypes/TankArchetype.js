@@ -24,7 +24,6 @@ export class TankArchetype {
         if (distToPlayer > 30) {
             moveX = (px - m.x) / distToPlayer;
             moveY = (py - m.y) / distToPlayer;
-            // 80% of normal speed
             moveX *= m.speed;
             moveY *= m.speed;
         }
@@ -39,13 +38,7 @@ export class TankArchetype {
             this.groundSlamCooldown -= dt;
         }
 
-        // Update ground attacks
-        if (this.groundAttacks) {
-            this.groundAttacks.update(px, py, (damage) => {
-                // Damage player when ground attack hits
-                useGameStore.getState().damagePlayer(damage, 'tank slam');
-            });
-        }
+
 
         // Visual: size pulsing when angry
         const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.03;

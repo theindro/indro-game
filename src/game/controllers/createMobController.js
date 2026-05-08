@@ -52,6 +52,12 @@ export function createMobController(mob, entityLayer) {
                 VFX.addFloat(`${icon} ${Math.floor(damage)}`, m.x, m.y - 20, color);
             });
 
+            if (archetypeBehavior?.groundAttacks) {
+                archetypeBehavior.groundAttacks.update(ctx.px, ctx.py, (damage) => {
+                    useGameStore.getState().damagePlayer(damage, 'tank slam');
+                });
+            }
+
             if (distToPlayer > 1500) return;
 
             let moveX = 0, moveY = 0;
