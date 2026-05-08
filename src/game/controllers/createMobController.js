@@ -10,13 +10,23 @@ export function createMobController(mob, entityLayer) {
     let archetypeBehavior = null;
     const archetypeType = mob.archetype || ARCHETYPES.RUSHER;
 
-    const animTime = performance.now() * 0.003;
-
-    // Initialize archetype behavior
     const ArchetypeClass = archetypeMap[archetypeType];
     if (ArchetypeClass) {
         archetypeBehavior = new ArchetypeClass(mob, entityLayer);
     }
+
+    // === Patrol + Aggro System ===
+    const spawnX = mob.x;
+    const spawnY = mob.y;
+
+    const AGGRO_RADIUS = 420;
+    const RETURN_RADIUS = 620;
+    const PATROL_RADIUS = 130;
+
+    let state = 'PATROL';
+    let patrolTargetX = mob.x;
+    let patrolTargetY = mob.y;
+    let lastPatrolChange = performance.now();
 
     return {
         mob,
@@ -27,40 +37,81 @@ export function createMobController(mob, entityLayer) {
             if (!mob?.c) return;
 
             const { px, py, colliders, openWorld, mobs, dt = 1 } = ctx;
-
-            // Update zIndex for correct rendering order
-            mob.c.zIndex = mob.y;
-
             const m = this.mob;
             const distToPlayer = Math.hypot(px - m.x, py - m.y);
+            const time = performance.now();
 
-            // Status effects (DOTs, etc.)
+            mob.c.zIndex = mob.y;
+
+            // Status effects
             updateStatusEffects(m, dt, performance.now(), (damage, type) => {
-                let icon = '🔥';
-                let color = '#ff6600';
-
+                let icon = '🔥', color = '#ff6600';
                 if (type === 'poison') { icon = '💚'; color = '#88ff88'; }
                 else if (type === 'ice') { icon = '❄️'; color = '#88ccff'; }
                 else if (type === 'bleed') { icon = '🩸'; color = '#ff4444'; }
-
                 VFX.addFloat(`${icon} ${Math.floor(damage)}`, m.x, m.y - 20, color);
             });
 
-            // Performance culling
             if (distToPlayer > 1500) return;
 
-            // Archetype movement
             let moveX = 0, moveY = 0;
             let attackOverride = false;
 
-            if (archetypeBehavior?.update) {
-                const result = archetypeBehavior.update({ ...ctx, dt });
-                moveX = result.moveX || 0;
-                moveY = result.moveY || 0;
+            // ====================== STATE MACHINE ======================
+            if (state === 'PATROL') {
+                if (distToPlayer < AGGRO_RADIUS) {
+                    state = 'CHASE';
+                }
+            } else if (state === 'CHASE') {
+                if (distToPlayer > RETURN_RADIUS) {
+                    state = 'PATROL';
+                    patrolTargetX = m.x;
+                    patrolTargetY = m.y;
+                    lastPatrolChange = time;
+                }
+            }
+
+            // ====================== MOVEMENT ======================
+            if (state === 'CHASE') {
+                // Direct chase
+                const dx = px - m.x;
+                const dy = py - m.y;
+                const len = Math.hypot(dx, dy) || 1;
+                const speed = m.speed || 5;
+
+                moveX = (dx / len) * speed;
+                moveY = (dy / len) * speed;
+
+            } else {
+                // PATROL
+                if (time - lastPatrolChange > 2200 ||
+                    Math.hypot(m.x - patrolTargetX, m.y - patrolTargetY) < 25) {
+
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 40 + Math.random() * PATROL_RADIUS;
+                    patrolTargetX = spawnX + Math.cos(angle) * dist;
+                    patrolTargetY = spawnY + Math.sin(angle) * dist;
+                    lastPatrolChange = time;
+                }
+
+                const dx = patrolTargetX - m.x;
+                const dy = patrolTargetY - m.y;
+                const len = Math.hypot(dx, dy) || 1;
+                const speed = (m.speed || 5) * 0.65;
+
+                moveX = (dx / len) * speed;
+                moveY = (dy / len) * speed;
+            }
+
+            // === ONLY let archetype override in CHASE state (most important fix) ===
+            if (state === 'CHASE' && archetypeBehavior?.update) {
+                const result = archetypeBehavior.update({ ...ctx, dt, isChasing: true });
+                if (result.moveX !== undefined) moveX = result.moveX;
+                if (result.moveY !== undefined) moveY = result.moveY;
                 attackOverride = result.attackOverride || false;
             }
 
-            // Apply movement
+            // ====================== APPLY MOVEMENT ======================
             if (moveX !== 0 || moveY !== 0) {
                 const slow = m.statusSlow || 0;
                 const speedMult = 1 - slow;
@@ -77,7 +128,7 @@ export function createMobController(mob, entityLayer) {
                     }
                 }
 
-                // Mob vs Mob collision
+                // Mob vs Mob
                 if (mobs?.length) {
                     for (const other of mobs) {
                         if (other === m) continue;
@@ -93,7 +144,6 @@ export function createMobController(mob, entityLayer) {
                 // Prop collision
                 if (colliders?.length) {
                     const validColliders = colliders.filter(c => c?.collision && c.width && c.height);
-
                     if (validColliders.length) {
                         const resolved = resolveVsColliders(newX, newY, MOB_RADIUS, validColliders);
                         newX = resolved.x;
@@ -107,33 +157,32 @@ export function createMobController(mob, entityLayer) {
                 m.c.y = newY;
             }
 
-            // Attack
-            if (!attackOverride) {
+            // Attack only when chasing
+            if (!attackOverride && state === 'CHASE') {
                 this.handleAttack({ distToPlayer, dt });
             }
 
-            // Health bar
             updateMobHealthBar(m);
-
-            // Animate
-            applyBreathing(mob, animTime);
-
-            // Face towards player when moving
-            setFacingDirection(mob, moveX);
-
+            applyBreathing(mob, performance.now() * 0.003);
+            setFacingDirection(mob, moveX || (px - m.x));
         },
 
         handleAttack({ distToPlayer, dt }) {
             const m = this.mob;
-            m.attackCooldown = Math.max(0, m.attackCooldown - dt);
+            m.attackCooldown = Math.max(0, (m.attackCooldown || 0) - dt);
 
             if (distToPlayer < 26 && m.attackCooldown <= 0) {
                 useGameStore.getState().damagePlayer(m.damage, `${this.archetypeType} atk`);
-                m.attackCooldown = Math.max(0.2, 1 / m.attackSpeed);
+                m.attackCooldown = Math.max(0.2, 1 / (m.attackSpeed || 1));
             }
         },
+
+        getState: () => state,
+        forceChase: () => { state = 'CHASE'; }
     };
 }
+
+
 
 export function spawnMob(renderer,world, x, y, biome = 'forest', archetype = null, difficulty = 1) {
     const finalArchetype = archetype || Object.values(ARCHETYPES)[Math.floor(Math.random() * Object.values(ARCHETYPES).length)];
@@ -141,7 +190,7 @@ export function spawnMob(renderer,world, x, y, biome = 'forest', archetype = nul
     const stats = ARCHETYPE_STATS[finalArchetype];
     const size = stats.size;
 
-    const { c, body, gl, hpBar } = createMobEntity(renderer,biome, size);
+    const { c, body, gl, hpBar } = createMobEntity(renderer,biome, size, '', stats.type);
     c.x = x;
     c.y = y;
     c.sortableChildren = true;
@@ -203,7 +252,7 @@ export function applyBreathing(mob, globalTime) {
     const offset = mob.animOffset || 0;
 
     // ONE sin calculation
-    const breath = Math.sin(globalTime + offset) * 0.15;
+    const breath = Math.sin(globalTime + offset) * 0.5;
 
     // preserve facing
     const facing = c.scale.x < 0 ? -1 : 1;

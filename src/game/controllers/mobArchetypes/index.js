@@ -3,6 +3,7 @@ import { TankArchetype } from './TankArchetype.js';
 import { RangedArchetype } from './RangedArchetype.js';
 import {ExploderArchetype} from "./ExploderArchetype.js";
 import * as PIXI from 'pixi.js';
+import {VOID_SHAPE, VOID_SHAPE_3, VOID_SHAPE_2} from "../../monsters.js";
 
 export const ARCHETYPES = {
     RUSHER: 'rusher',
@@ -28,28 +29,32 @@ export const ARCHETYPE_STATS = {
         speedMultiplier: 0.5,
         damage: 3,
         size: 11,
-        exp: 30
+        exp: 30,
+        type: VOID_SHAPE_2
     },
     [ARCHETYPES.TANK]: {
         hpMultiplier: 2.5,
         speedMultiplier: 0.4,
         damage: 2,
         size: 24,
-        exp: 30
+        exp: 30,
+        type: VOID_SHAPE
     },
     [ARCHETYPES.RANGED]: {
         hpMultiplier: 0.9,
         speedMultiplier: 0.4,
         damage: 5,
-        size: 12,
-        exp: 30
+        size: 16,
+        exp: 30,
+        type: VOID_SHAPE_3
     },
     [ARCHETYPES.EXPLODER]: {
         hpMultiplier: 0.6,
         speedMultiplier: 0.5,
         damage: 20,  // Explosion damage
         size: 13,
-        exp: 30
+        exp: 30,
+        type: VOID_SHAPE
     }
 };
 
