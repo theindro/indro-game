@@ -6,7 +6,7 @@ import {
 } from "pixi.js";
 
 import {BIOME_COLORS} from "../constants.js";
-import {VOID_SHAPE, VOID_SHAPE_3} from "../monsters.js";
+import {VOID_SHAPE, VOID_SHAPE_3, VOID_SHAPE_7} from "../monsters.js";
 
 // texture cache
 const textureCache = new Map();
@@ -77,7 +77,7 @@ export function createMobEntity(
     biome,
     size = 1,
     colorOverride = null,
-    shape = VOID_SHAPE
+    shape = VOID_SHAPE_7
 ) {
     const c = new Container();
 
@@ -98,10 +98,10 @@ export function createMobEntity(
     const shadow = new Graphics();
 
     shadow
-        .ellipse(0, size + 5, size + 10, 6)
+        .ellipse(0, size + 0, size + 10, 6)
         .fill({
             color: 0x000000,
-            alpha: 0.2
+            alpha: 0.15
         });
 
     c.addChild(shadow);
@@ -129,7 +129,9 @@ export function createMobEntity(
     // =========================
 
     const eye = new Graphics();
-    const s = size / 13;
+    const s = Math.min(size / 13, 2); // Max size is 2
+
+    console.log(s);
     const eyeX = shape.eye.x * s;
     const eyeY = shape.eye.y * s;
 
