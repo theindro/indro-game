@@ -17,7 +17,7 @@ const ABILITY_ICONS = {
 };
 
 const ABILITY_UNLOCK_LEVELS = {
-    1: 1,
+    1: 3,
     2: 5,
     3: 10,
     4: 20,
@@ -151,6 +151,7 @@ function AbilitySlot({ability, index, playerLevel}) {
 
     const tooltipContent = isLocked ? (
         <div style={{minWidth: 140}}>
+
             <div style={{fontWeight: 600, fontSize: 13, marginBottom: 3, color: "#fff"}}>
                 {ability.name}
             </div>
@@ -166,7 +167,12 @@ function AbilitySlot({ability, index, playerLevel}) {
             <div style={{fontSize: 11, color: "rgba(255,255,255,0.55)", marginBottom: 8, lineHeight: 1.4}}>
                 {ability.description}
             </div>
-            <div style={{display: "flex", justifyContent: "space-between", fontSize: 11, color: "rgba(255,255,255,0.35)"}}>
+            <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 11,
+                color: "rgba(255,255,255,0.35)"
+            }}>
                 <span>Lv {ability.level}</span>
                 <span>CD {(ability.maxCooldown / 1000).toFixed(1)}s</span>
             </div>
@@ -174,7 +180,7 @@ function AbilitySlot({ability, index, playerLevel}) {
     );
 
     return (
-        <Tooltip title={tooltipContent} placement="top" arrow={false}  overlayStyle={{ zIndex: 10001 }}>
+        <Tooltip title={tooltipContent} placement="top" arrow={false} overlayStyle={{zIndex: 10001}}>
             <div style={{
                 position: "relative",
                 width: 48,
@@ -210,11 +216,11 @@ function AbilitySlot({ability, index, playerLevel}) {
                     display: "flex",
                     transition: "color 0.15s",
                 }}>
-                    {isLocked ? <LockOutlined /> : (ABILITY_ICONS[ability.name] || ability.icon)}
+                    {isLocked ? <LockOutlined/> : <img src={ability.icon} width={24} alt=""/>}
                 </span>
 
                 {/* Cooldown overlay */}
-                {!isLocked && !isReady && (
+                {!isLocked && !isReady && ability.cooldownEnd && (
                     <div style={{
                         position: "absolute",
                         inset: 0,
@@ -347,14 +353,16 @@ export default function AbilityBar() {
                 {/* Basic attack + Dash — smaller, visually secondary */}
                 <div style={{...styles.slots, gap: 5}}>
                     <AbilitySlot
-                        key={'dash'}
-                        ability={{name: 'dash'}}
+                        key={'basic'}
+                        ability={{name: 'basic', icon: "/icons/attack.png"}}
                         playerLevel={playerLevel}
+                        index={"Basic"}
                     />
                     <AbilitySlot
-                        key={'basic'}
-                        ability={{name: 'basic'}}
+                        key={'dash'}
+                        ability={{name: 'dash', icon: "/icons/dash.png"}}
                         playerLevel={playerLevel}
+                        index={"Dash"}
                     />
                 </div>
             </div>

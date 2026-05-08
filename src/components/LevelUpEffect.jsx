@@ -1,6 +1,13 @@
 // components/LevelUpEffect.jsx
-import React, { useEffect, useState } from "react";
-import { useGameStore } from "../stores/gameStore";
+import React, {useEffect, useState} from "react";
+import {useGameStore} from "../stores/gameStore";
+
+const ABILITY_UNLOCK_LEVELS = {
+    3: "Arrow Barrage",
+    5: "Rapid Fire",
+    10: "Empower",
+    20: "Frost Arrow",
+};
 
 export default function LevelUpEffect() {
     const playerLevel = useGameStore((s) => s.player?.pLevel);
@@ -59,6 +66,17 @@ export default function LevelUpEffect() {
                 }}>
                     {displayLevel}
                 </div>
+
+                {ABILITY_UNLOCK_LEVELS[displayLevel] && (
+                    <div style={{
+                        fontSize: 24,
+                        color: "#fff",
+                        letterSpacing: -2,
+                        lineHeight: 1,
+                    }}>
+                        Unlocked {ABILITY_UNLOCK_LEVELS[displayLevel]}!
+                    </div>
+                )}
             </div>
 
             <style>{`

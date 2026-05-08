@@ -105,19 +105,19 @@ export const useGameStore = create((set, get) => ({
         // Ability 1 (Q/1)
         ability1: {
             name: 'Arrow Barrage',
-            icon: '🏹',
+            icon: '/icons/ability1.png',
             cooldownEnd: 0,
             maxCooldown: 5000, // 3 seconds at 60fps
             level: 1,
             description: 'Shoots 10 arrows in cone front of player',
             arrowCount: 10,
             arrowSpread: 0.15,
-            damageMultiplier: 4
+            damageMultiplier: 3,
         },
         // Ability 2 (W/2)
         ability2: {
             name: 'Rapid Fire',
-            icon: '🏹⚡',
+            icon: '/icons/ability2.png',
             cooldownEnd: 0,
             maxCooldown: 2000, // 5 seconds at 60fps
             level: 1,
@@ -129,7 +129,7 @@ export const useGameStore = create((set, get) => ({
         // Ability 3 (E/3)
         ability3: {
             name: 'Empower',
-            icon: '⚡',
+            icon: '/icons/ability3.png',
             cooldownEnd: 0,
             maxCooldown: 10000, // 5 seconds at 60fps
             level: 1,
@@ -138,7 +138,7 @@ export const useGameStore = create((set, get) => ({
         // Ability 4 (R/4)
         ability4: {
             name: 'Frost Arrow',
-            icon: '❄️',
+            icon: '/icons/ability4.png',
             cooldownEnd: 0,
             maxCooldown: 10000, // 10 seconds at 60fps
             level: 1,

@@ -116,6 +116,13 @@ export async function createGame() {
         const deltaTime = ticker.deltaTime;
         const dt = deltaTime / 60; // 1 = 60fps baseline
 
+        // Particles & floats
+        tickParticles();  // Modify tickParticles to use VFX.particles
+        tickFloats(camX, camY, app.screen.width, app.screen.height);
+
+        // Weather
+        updateWeather(weatherSystem, dt, camX, camY, openWorld);
+
         if (gameState.paused || gameState.dead) return;
 
         perfMonitor.update(entities.mobs.length);
@@ -164,13 +171,6 @@ export async function createGame() {
         camY = camera.y;
         world.x = camera.worldX;
         world.y = camera.worldY;
-
-        // Particles & floats
-        tickParticles();  // Modify tickParticles to use VFX.particles
-        tickFloats(camX, camY, app.screen.width, app.screen.height);
-
-        // Weather
-        updateWeather(weatherSystem, dt, camX, camY, openWorld);
 
         // Minimap
         updateMinimap(minimap, px, py, input, world, mouseWorld);
@@ -239,6 +239,7 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, ope
 
         switch (key) {
             case '1':
+                if (useGameStore.getState().player.pLevel >= 3)
                 combat.useArrowBarrage(mouseWorld.x, mouseWorld.y);
                 break;
             case '2':
