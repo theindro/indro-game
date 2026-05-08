@@ -15,12 +15,12 @@ const { Title, Text } = Typography;
 export default function PauseScreen() {
     const gameState = useGameStore(state => state.gameState);
     const togglePause = useGameStore(state => state.togglePause);
-    const player = useGameStore(state => state.player);
-    const inventory = useGameStore(state => state.inventory);
     const audio = useGameStore(state => state.audio);
     const setMuted = useGameStore(state => state.setMuted);
     const setMusicVolume = useGameStore(state => state.setMusicVolume);
     const setSfxVolume = useGameStore(state => state.setSfxVolume);
+
+    console.log('rendering pause');
 
     const handleResume = () => {
         togglePause();
@@ -30,57 +30,11 @@ export default function PauseScreen() {
     if (!gameState?.paused) return null;
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.85)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-        }}>
-            <div style={{
-                width: 500,
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)',
-                border: '3px solid #ffaa44',
-                borderRadius: '24px',
-                padding: '32px',
-                textAlign: 'center',
-            }}>
-                <PauseCircleOutlined style={{ fontSize: 64, color: '#ffaa44', marginBottom: 16 }} />
-                <Title level={1} style={{ color: '#ffaa44', margin: 0 }}>PAUSED</Title>
-
-                {/* Player Stats */}
-                <div style={{
-                    background: 'rgba(0,0,0,0.5)',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    margin: '20px 0',
-                }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <Text>❤️ Health:</Text>
-                        <Text strong style={{ color: '#ff6688' }}>{player?.hp}/{player?.maxHp}</Text>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <Text>⚔️ Level:</Text>
-                        <Text strong style={{ color: '#ffaa44' }}>{player?.pLevel}</Text>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Text>💰 Gold:</Text>
-                        <Text strong style={{ color: '#ffcc44' }}>{inventory?.gold || 0}</Text>
-                    </div>
-                </div>
+        <Modal footer={false} open={gameState.paused} onClose={handleResume} style={{textAlign: "center"}}>
+            <img src="/templogo.png" alt="" style={{width:'100%'}} />
 
                 {/* Audio Settings */}
-                <div style={{ marginBottom: 24, textAlign: 'left' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                        <SoundOutlined style={{ color: '#ffaa44' }} />
-                        <Text strong style={{ color: '#ffaa44' }}>Audio Settings</Text>
-                    </div>
-
+                <div style={{ marginBottom: 40, textAlign: 'left' }}>
                     <div style={{ marginBottom: 12 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                             <Text>Master Sound</Text>
@@ -102,7 +56,6 @@ export default function PauseScreen() {
                             max={1}
                             step={0.01}
                             disabled={audio?.isMuted}
-                            trackStyle={{ backgroundColor: '#ffaa44' }}
                         />
                     </div>
 
@@ -115,12 +68,10 @@ export default function PauseScreen() {
                             max={1}
                             step={0.01}
                             disabled={audio?.isMuted}
-                            trackStyle={{ backgroundColor: '#ffaa44' }}
                         />
                     </div>
                 </div>
 
-                <Divider style={{ borderColor: 'rgba(255,170,68,0.3)' }} />
 
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
                     <Button
@@ -128,17 +79,11 @@ export default function PauseScreen() {
                         size="large"
                         icon={<CaretRightOutlined />}
                         onClick={handleResume}
-                        style={{
-                            background: '#44aa44',
-                            borderColor: '#44aa44',
-                            fontWeight: 'bold',
-                            height: 48,
-                        }}
+
                     >
                         Resume Game
                     </Button>
                 </Space>
-            </div>
-        </div>
+        </Modal>
     );
 }

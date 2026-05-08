@@ -40,8 +40,8 @@ export default function ArenaGame() {
 
             <Shop />
             <DeathScreen />
-            <PauseScreen />
             */}
+            <PauseScreen />
             <Inventory />
             <AbilityBar />
             <LevelUpEffect />

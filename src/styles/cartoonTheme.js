@@ -5,7 +5,7 @@ export const cartoonTheme = {
     algorithm: theme.darkAlgorithm,
 
     token: {
-        colorPrimary: '#ffffff',
+        colorPrimary: '#9212da',
         colorSuccess: '#3b9e75',
         colorWarning: '#e8a825',
         colorError: '#e06b6b',
