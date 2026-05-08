@@ -68,8 +68,9 @@ export const cartoonTheme = {
 
         Modal: {
             borderRadius: 14,
-            colorBgElevated: '#0d0f14',
+            colorBgElevated: 'rgba(10, 12, 16, 0.82)',
             boxShadow: '0 24px 64px rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(20px)',
         },
 
         Input: {

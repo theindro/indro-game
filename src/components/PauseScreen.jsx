@@ -82,7 +82,7 @@ export default function PauseScreen() {
                         <Button
                             type="default"
                             size="large"
-                            icon={<CaretRightOutlined />}
+                            icon={<ReloadOutlined />}
                             onClick={handleRestart}
 
                         >
