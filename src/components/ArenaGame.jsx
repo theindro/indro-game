@@ -23,7 +23,7 @@ export default function ArenaGame() {
             {contextHolder}
 
             <div style={{position: "absolute", top: 0, left: 0, zIndex: 10}}>
-                <img src="/public/templogo.png" alt="Logo" style={{width: 120}}/>
+                <img src="/templogo.png" alt="Logo" style={{width: 120}}/>
             </div>
 
             {/* Fullscreen Game */}
