@@ -22,6 +22,10 @@ export default function ArenaGame() {
         <ConfigProvider theme={theme}>
             {contextHolder}
 
+            <div style={{position: "absolute", top: 0, left: 0, zIndex: 10}}>
+                <img src="/public/templogo.png" alt="Logo" style={{width: 120}}/>
+            </div>
+
             {/* Fullscreen Game */}
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
                 <ArenaHUD />

@@ -16,7 +16,7 @@ export class PerformanceMonitor {
         this.display = document.createElement('div');
         this.display.style.position = 'fixed';
         this.display.style.top = '10px';
-        this.display.style.left = '10px';
+        this.display.style.right = '10px';
         this.display.style.backgroundColor = 'rgba(0,0,0,0.7)';
         this.display.style.color = '#0f0';
         this.display.style.fontFamily = 'monospace';
