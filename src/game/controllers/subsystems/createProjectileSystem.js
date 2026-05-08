@@ -14,6 +14,88 @@ export function createProjectileSystem(ctx) {
             // Update arrow zindex
             ep.c.zIndex = ep.c.y;
 
+            const ud = ep.c.userData;
+
+            if (ud) {
+
+                ud.t += 1;
+
+                // -----------------------------------
+                // BASE PULSE
+                // -----------------------------------
+                const pulse =
+                    1 +
+                    Math.sin(ud.t * ud.pulseSpeed) * 0.08;
+
+                if (ud.glowContainer) {
+                    ud.glowContainer.scale.set(pulse);
+                }
+
+                // -----------------------------------
+                // INNER GLOW FLICKER
+                // -----------------------------------
+                if (ud.glowInner) {
+                    ud.glowInner.alpha =
+                        0.18 +
+                        Math.sin(ud.t * 0.2) * 0.08;
+                }
+
+                // -----------------------------------
+                // PARTICLE ROTATION
+                // -----------------------------------
+                if (ud.particles) {
+                    ud.particles.rotation += ud.rotationSpeed;
+                }
+
+                // -----------------------------------
+                // ELEMENT SPECIFIC
+                // -----------------------------------
+
+                switch (ud.elementalType) {
+
+                    case 'burn':
+
+                        ep.c.scale.set(
+                            1 + Math.sin(ud.t * 0.25) * 0.03
+                        );
+
+                        break;
+
+                    case 'lightning':
+
+                        ep.c.x += (Math.random() - 0.5) * 1.2;
+                        ep.c.y += (Math.random() - 0.5) * 1.2;
+
+                        if (ud.glowOuter) {
+                            ud.glowOuter.alpha =
+                                0.04 + Math.random() * 0.08;
+                        }
+
+                        break;
+
+                    case 'poison':
+
+                        if (ud.particles?.children) {
+
+                            for (const p of ud.particles.children) {
+
+                                p.y -= 0.15;
+
+                                if (p.y < -14) {
+                                    p.y = 14;
+                                }
+
+                                p.alpha =
+                                    0.3 +
+                                    Math.sin(ud.t * 0.08 + p.x) * 0.2;
+                            }
+                        }
+
+                        break;
+                }
+            }
+
+
             ep.life--;
 
             // Check life and world bounds
@@ -26,6 +108,9 @@ export function createProjectileSystem(ctx) {
                 enemyProjs.splice(ei, 1);
                 continue;
             }
+
+
+
 
             // === NEW: Check collision with props ===
             let hitProp = false;

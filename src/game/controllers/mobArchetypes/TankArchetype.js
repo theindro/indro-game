@@ -4,7 +4,7 @@ import {GroundAttackController} from '../createGroundAttackController.js'; // Ad
 export class TankArchetype {
     constructor(mob, entityLayer) {
         this.mob = mob;
-        this.slamRadius = 200;
+        this.slamRadius = 150;
 
         // random initial offset so they NEVER sync
         this.groundSlamCooldown = Math.random() * 1.0;
@@ -54,9 +54,9 @@ export class TankArchetype {
         // Create ground slam effect using GroundAttackController
         this.groundAttacks.addAttack(px, py, {
             shape: 'circle',
-            color: 0xff8844,
-            warningColor: 0xff4400,
-            innerColor: 0xffaa66,
+            color: 'orange',
+            warningColor: 'red',
+            innerColor: 'orange',
             radius: this.slamRadius,
             warningDuration: 200, // frames (~0.5 seconds at 60fps)
             damage: 25,

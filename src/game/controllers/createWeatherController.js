@@ -48,7 +48,7 @@ export class CreateWeatherController {
         // ✅ FIX: Compare with targetWeatherType when transitioning
         console.log(`🌤️ Changing weather from ${this.currentWeatherType} to ${type}`);
 
-            //audioManager.play('/sounds/bg-music.wav')
+        //audioManager.play('/sounds/bg-music.mp3')
 
         this.targetAmbient = this.getAmbientForWeather(type, intensity);
 

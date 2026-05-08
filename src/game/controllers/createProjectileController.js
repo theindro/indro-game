@@ -190,9 +190,40 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
     const colors = elementColors[elementalType] || elementColors.normal;
 
     // Glow
-    const gl = new Graphics();
-    gl.circle(0, 0, size + 7).fill({ color: colors.glow, alpha: 0.22 });
-    c.addChild(gl);
+    const glowContainer = new Container();
+
+    // OUTER SOFT GLOW
+    const glowOuter = new Graphics();
+    glowOuter.circle(0, 0, size + 30).fill({
+        color: colors.glow,
+        alpha: 0.06
+    });
+    glowContainer.addChild(glowOuter);
+
+    // MID GLOW
+    const glowMid = new Graphics();
+    glowMid.circle(0, 0, size + 15).fill({
+        color: colors.glow,
+        alpha: 0.12
+    });
+    glowContainer.addChild(glowMid);
+
+    // INNER HOT GLOW
+    const glowInner = new Graphics();
+    glowInner.circle(0, 0, size + 10).fill({
+        color: colors.glow,
+        alpha: 0.25
+    });
+
+    glowContainer.addChild(glowInner);
+
+    glowContainer.blendMode = 'add';
+
+    c.addChild(glowContainer);
+
+    const trail = new Graphics();
+
+    c.addChild(trail);
 
     // Main orb
     const orb = new Graphics();
@@ -227,6 +258,12 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
     c.userData = {
         elementalType,
         particles,
+        glowContainer,
+        glowInner,
+        glowMid,
+        glowOuter,
+        trail,
+        t: Math.random() * 100,
         rotationSpeed: elementalType === 'lightning' ? 0.12 : 0.06,
         pulseSpeed: elementalType === 'burn' ? 0.18 : 0.09
     };

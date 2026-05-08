@@ -7,7 +7,7 @@ export class AudioManager {
         this.lastPlayed = new Map();
         this.cooldowns = new Map();
         this.isMuted = false;
-        this.musicVolume = 0.3;
+        this.musicVolume = 0.1;
         this.sfxVolume = 0.5;
     }
 

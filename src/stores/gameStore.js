@@ -97,7 +97,7 @@ export const useGameStore = create((set, get) => ({
     // ===== AUDIO SETTINGS =====
     audio: {
         isMuted: false,
-        musicVolume: 0.3,
+        musicVolume: 0.1,
         sfxVolume: 0.2,
     },
 

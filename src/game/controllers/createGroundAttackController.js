@@ -109,6 +109,11 @@ export class GroundAttack {
         this.complete = false;
         this.hasStoppedTracking = false;
         this.currentAngle = this.config.angle;
+
+        // phases
+        this.phase = 'warning';
+        this.impactTimer = 0;
+        this.impactDuration = config.impactDuration ?? 100;
     }
 
     update(playerX, playerY, onDamageCallback) {
@@ -141,7 +146,10 @@ export class GroundAttack {
 
         this.container.zIndex = this.y
 
-        this.timer++;
+        if (this.phase === 'warning') {
+            this.timer++;
+        }
+
         this.g.clear();
 
         const progress = Math.min(1, this.timer / this.config.warningDuration);
@@ -166,25 +174,91 @@ export class GroundAttack {
         }
 
         // Damage check when animation completes
-        if (!this.hasHit && progress >= 0.95) {
-            this.hasHit = true;
-            if (this._checkHit(playerX, playerY)) {
-                if (onDamageCallback) onDamageCallback(this.config.damage);
-                if (this.config.onHit) this.config.onHit(playerX, playerY);
+
+        if (
+            this.phase === 'warning' &&
+            this.timer >= this.config.warningDuration
+        ) {
+
+            this.phase = 'impact';
+
+            // damage happens EXACTLY here
+            if (!this.hasHit) {
+
+                this.hasHit = true;
+
+                if (this._checkHit(playerX, playerY)) {
+
+                    if (onDamageCallback) {
+                        onDamageCallback(this.config.damage);
+                    }
+
+                    if (this.config.onHit) {
+                        this.config.onHit(playerX, playerY);
+                    }
+                }
             }
         }
 
-        if (this.timer >= this.config.warningDuration) {
-            this.complete = true;
-            if (this.config.onComplete) this.config.onComplete();
+        if (this.phase === 'impact') {
+            this.impactTimer++;
+            console.log('impact:', this.impactTimer, '/', this.impactDuration, 'complete?', this.impactTimer >= this.impactDuration);
+            if (this.impactTimer >= this.impactDuration) {
+                this.complete = true;
+            }
         }
     }
 
     _drawCircle(progress) {
+
         const R = this.config.radius;
+
+        const isImpact = this.phase === 'impact';
+
+        // =========================================
+        // IMPACT PHASE
+        // =========================================
+
+        if (isImpact) {
+
+            const impactProgress = this.impactTimer / this.impactDuration;
+
+            const alpha =
+                0.55 * (1 - impactProgress);
+
+            const impactScale =
+                1 + (1 - impactProgress) * 0.12;
+
+            this.container.scale.set(
+                impactScale,
+                0.6 * impactScale
+            );
+
+            // BIG SOLID FLASH
+            this.g.circle(0, 0, R)
+                .fill({
+                    color: this.config.color,
+                    alpha
+                });
+
+            // bright center
+            this.g.circle(0, 0, R * 0.7)
+                .fill({
+                    color: this.config.innerColor,
+                    alpha: alpha * 0.7
+                });
+
+            return;
+        }
+
+        // =========================================
+        // WARNING PHASE
+        // =========================================
+
+        this.container.scale.set(1, 0.6);
+
         const waveRadius = R * progress;
 
-        // ✅ CHANGE 4: Use 0,0 instead of this.x, this.y
         this.g.circle(0, 0, R)
             .stroke({
                 color: this.config.warningColor,
@@ -193,20 +267,42 @@ export class GroundAttack {
             });
 
         this.g.circle(0, 0, R - 2)
-            .fill({ color: this.config.warningColor, alpha: 0.1 });
+            .fill({
+                color: this.config.warningColor,
+                alpha: 0.1
+            });
 
         this.g.circle(0, 0, waveRadius)
-            .stroke({ color: this.config.color, alpha: 0.9, width: 4 });
+            .stroke({
+                color: this.config.color,
+                alpha: 0.9,
+                width: 4
+            });
 
         this.g.circle(0, 0, waveRadius - 3)
-            .stroke({ color: this.config.innerColor, alpha: 0.7, width: 2 });
+            .stroke({
+                color: this.config.innerColor,
+                alpha: 0.7,
+                width: 2
+            });
 
-        const particleCount = Math.min(12, Math.floor(progress * 20));
+        const particleCount =
+            Math.min(12, Math.floor(progress * 20));
+
         for (let i = 0; i < particleCount; i++) {
-            const angle = (i / particleCount) * Math.PI * 2 + this.timer * 0.1;
+
+            const angle =
+                (i / particleCount) * Math.PI * 2
+                + this.timer * 0.1;
+
             const x = Math.cos(angle) * waveRadius;
             const y = Math.sin(angle) * waveRadius;
-            this.g.circle(x, y, 2).fill({ color: this.config.color, alpha: 0.8 });
+
+            this.g.circle(x, y, 2)
+                .fill({
+                    color: this.config.color,
+                    alpha: 0.8
+                });
         }
     }
 
@@ -336,12 +432,16 @@ export class GroundAttack {
         // ✅ Hit detection stays EXACTLY the same (uses world coordinates)
         switch(this.config.shape) {
             case 'circle': {
-                const dist = Math.hypot(px - this.x, py - this.y);
+                const dx = px - this.x;
+                const dy = py - this.y;
+                // Compensate for the 0.6 vertical squash
+                const adjustedDy = dy / 0.6;
+                const dist = Math.hypot(dx, adjustedDy);
                 return dist <= this.config.radius;
             }
             case 'rectangle': {
                 const halfW = this.config.width / 2;
-                const halfH = this.config.height / 2;
+                const halfH = (this.config.height / 2) * 0.6; // match visual squash
                 return Math.abs(px - this.x) <= halfW && Math.abs(py - this.y) <= halfH;
             }
             case 'pizza': {
