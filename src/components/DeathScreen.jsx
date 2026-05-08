@@ -1,6 +1,6 @@
 // components/DeathScreen.jsx
-import { useEffect, useState } from 'react';
-import { Modal, Button, Statistic, Space, Typography, Divider } from 'antd';
+import {useEffect, useState} from 'react';
+import {Modal, Button, Statistic, Space, Typography, Divider} from 'antd';
 import {
     ReloadOutlined,
     HomeOutlined,
@@ -9,9 +9,9 @@ import {
     ClockCircleOutlined,
     RiseOutlined,
 } from '@ant-design/icons';
-import { useGameStore } from '../stores/gameStore';
+import {useGameStore} from '../stores/gameStore';
 
-const { Title, Text } = Typography;
+const {Title, Text} = Typography;
 
 export default function DeathScreen() {
     const [isOpen, setIsOpen] = useState(false);
@@ -46,23 +46,11 @@ export default function DeathScreen() {
             centered
             width={550}
             modalRender={(node) => node}
-            styles={{
-                content: {
-                    background: 'linear-gradient(135deg, #1a0a0a 0%, #0f0a0a 100%)',
-                    border: '3px solid #ff4444',
-                    borderRadius: '24px',
-                    padding: 0,
-                    overflow: 'hidden',
-                },
-            }}
         >
-
-            <div style={{ padding: '40px 32px', textAlign: 'center' }}>
+            <div style={{padding: '40px 32px', textAlign: 'center'}}>
                 {/* Title */}
                 <Title level={1} style={{
-                    color: '#ff4444',
                     margin: 0,
-                    textShadow: '3px 3px 0 #660000',
                     fontSize: 48,
                     letterSpacing: 4,
                 }}>
@@ -70,7 +58,6 @@ export default function DeathScreen() {
                 </Title>
 
                 <Text type="secondary" style={{
-                    color: '#aa6666',
                     fontSize: 14,
                     display: 'block',
                     marginTop: 8,
@@ -78,15 +65,15 @@ export default function DeathScreen() {
                     The darkness claims another soul...
                 </Text>
 
-                <Divider style={{ borderColor: 'rgba(255,68,68,0.3)', margin: '24px 0' }} />
+                <Divider/>
 
                 {/* Stats */}
-                <div style={{ marginBottom: 32 }}>
-                    <Title level={4} style={{ color: '#ffaa44', marginBottom: 20 }}>
-                        <TrophyOutlined /> Final Stats
+                <div style={{marginBottom: 32}}>
+                    <Title level={4} style={{marginBottom: 20}}>
+                        <TrophyOutlined/> Final Stats
                     </Title>
 
-                    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <Space direction="vertical" size={12} style={{width: '100%'}}>
                         <div style={{
                             display: 'flex',
                             justifyContent: 'space-between',
@@ -94,8 +81,8 @@ export default function DeathScreen() {
                             background: 'rgba(0,0,0,0.5)',
                             borderRadius: 8,
                         }}>
-                            <Text style={{ color: '#ffaa44' }}><TrophyOutlined /> Level Reached</Text>
-                            <Text strong style={{ color: '#ffffff' }}>{1}</Text>
+                            <Text><TrophyOutlined/> Level Reached</Text>
+                            <Text strong>{1}</Text>
                         </div>
 
                         <div style={{
@@ -105,8 +92,8 @@ export default function DeathScreen() {
                             background: 'rgba(0,0,0,0.5)',
                             borderRadius: 8,
                         }}>
-                            <Text style={{ color: '#ffaa44' }}> Enemies Slain</Text>
-                            <Text strong style={{ color: '#ff8866' }}>{kills || 0}</Text>
+                            <Text> Enemies Slain</Text>
+                            <Text strong>{kills || 0}</Text>
                         </div>
 
                         <div style={{
@@ -116,8 +103,8 @@ export default function DeathScreen() {
                             background: 'rgba(0,0,0,0.5)',
                             borderRadius: 8,
                         }}>
-                            <Text style={{ color: '#ffaa44' }}><GoldOutlined /> Gold Collected</Text>
-                            <Text strong style={{ color: '#ffcc44' }}>{inventory?.gold || 0}</Text>
+                            <Text><GoldOutlined/> Gold Collected</Text>
+                            <Text strong>{inventory?.gold || 0}</Text>
                         </div>
 
                         <div style={{
@@ -127,38 +114,26 @@ export default function DeathScreen() {
                             background: 'rgba(0,0,0,0.5)',
                             borderRadius: 8,
                         }}>
-                            <Text style={{ color: '#ffaa44' }}><ClockCircleOutlined /> Time Survived</Text>
-                            <Text strong style={{ color: '#88aaff' }}>{formatTime(playTime)}</Text>
+                            <Text><ClockCircleOutlined/> Time Survived</Text>
+                            <Text strong>{formatTime(playTime)}</Text>
                         </div>
                     </Space>
                 </div>
 
-                <Divider style={{ borderColor: 'rgba(255,68,68,0.3)', margin: '24px 0' }} />
+                <Divider/>
 
                 {/* Action Buttons */}
-                <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                <Space direction="vertical" size={12} style={{width: '100%'}}>
                     <Button
                         type="primary"
                         size="large"
-                        icon={<RiseOutlined />}
+                        icon={<RiseOutlined/>}
                         onClick={handleQuit}
-                        style={{
-                            background: 'linear-gradient(135deg, #ff4444, #cc0000)',
-                            border: 'none',
-                            fontWeight: 'bold',
-                            height: 48,
-                            fontSize: 16,
-                            boxShadow: '0 4px 0 #660000',
-                        }}
+
                     >Retry</Button>
                 </Space>
 
-                <Text type="secondary" style={{
-                    fontSize: 11,
-                    marginTop: 24,
-                    display: 'block',
-                    color: '#664444',
-                }}>
+                <Text type="secondary" style={{marginTop: 20, display: "block"}}>
                     Your soul will be remembered...
                 </Text>
             </div>

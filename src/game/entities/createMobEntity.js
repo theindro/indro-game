@@ -131,7 +131,6 @@ export function createMobEntity(
     const eye = new Graphics();
     const s = Math.min(size / 13, 2); // Max size is 2
 
-    console.log(s);
     const eyeX = shape.eye.x * s;
     const eyeY = shape.eye.y * s;
 

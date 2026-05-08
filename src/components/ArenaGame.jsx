@@ -39,8 +39,8 @@ export default function ArenaGame() {
             </div>
 
             <Shop />
-            <DeathScreen />
             */}
+            <DeathScreen />
             <PauseScreen />
             <Inventory />
             <AbilityBar />
