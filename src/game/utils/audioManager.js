@@ -1,3 +1,4 @@
+// audio files: https://pixabay.com/sound-effects/search/vfx%20rpg%20game%20sounds%20arrow%20shoot/?pagi=8
 // audioManager.js - Simplified AudioManager
 export class AudioManager {
     constructor() {
@@ -62,8 +63,6 @@ export class AudioManager {
     playSFX(path, volume = null) {
         if (this.isMuted) return;
 
-        console.log(path);
-
         const now = Date.now();
         const lastTime = this.lastPlayed.get(path) || 0;
         const cooldown = this.cooldowns.get(path) || 200;
@@ -72,16 +71,26 @@ export class AudioManager {
 
         this.lastPlayed.set(path, now);
 
+        // Determine the final volume for this sound
+        let finalVolume = this.sfxVolume;
+
+        if (volume !== null && volume >= 0) {
+            finalVolume = Math.min(this.sfxVolume, volume); // Use lower volume if provided
+        }
+
+        // Get or create base Audio
         let base = this.sounds.get(path);
         if (!base) {
             base = new Audio(path);
-            base.volume = this.sfxVolume;
             this.sounds.set(path, base);
         }
 
+        // Clone and play with correct volume
         const sound = base.cloneNode();
-        sound.volume = this.sfxVolume;
-        sound.play().catch(() => {});
+        sound.volume = finalVolume;
+        sound.play().catch(err => {
+            console.warn(`Failed to play SFX ${path}:`, err);
+        });
     }
 }
 

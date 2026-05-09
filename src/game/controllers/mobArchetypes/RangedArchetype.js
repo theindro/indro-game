@@ -1,4 +1,5 @@
 import { createEnemyProj } from "../createProjectileController.js";
+import { audioManager } from "../../utils/audioManager.js";
 
 export class RangedArchetype {
     constructor(mob, ctx) {
@@ -64,6 +65,8 @@ export class RangedArchetype {
         const m = this.mob;
 
         let elementalType = 'normal';
+
+        audioManager.playSFX('/sounds/shoot.mp3', 0.1)
 
         switch (m.biome) {
             case 'ice':
