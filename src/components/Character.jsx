@@ -129,51 +129,7 @@ function EquipSlot({ slotKey, item, onUnequip }) {
     );
 }
 
-function InventorySlot({ item, index, onEquip, onSell }) {
-    const sellPrice = item ? Math.floor((item.price || 0) * 0.5) : 0;
-    const accentColor = item?.rarity?.color || '#333';
-
-    return (
-        <Tooltip
-            title={item ? <ItemTooltip item={item} sellPrice={sellPrice} showSell /> : null}
-            placement="top"
-            arrow={false}
-        >
-            <div
-                onClick={() => item && onEquip(index)}
-                onContextMenu={(e) => { e.preventDefault(); if (item) onSell(index); }}
-                style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 8,
-                    background: item ? `${accentColor}12` : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${item ? accentColor : 'rgba(255,255,255,0.08)'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: item ? 'pointer' : 'default',
-                    position: 'relative',
-                }}
-            >
-                {item?.texture ? (
-                    <img src={item.texture} alt={item.name} width={32} height={32} />
-                ) : (
-                    <span style={{ fontSize: 20, opacity: 0.15 }}>•</span>
-                )}
-
-                {item?.quantity > 1 && (
-                    <Badge
-                        count={item.quantity}
-                        size="small"
-                        style={{ position: 'absolute', bottom: 2, right: 2, fontSize: 10 }}
-                    />
-                )}
-            </div>
-        </Tooltip>
-    );
-}
-
-export default function Inventory({isOpen, setIsOpen}) {
+const Character = ({isOpen, setIsOpen}) => {
     const [messageApi, contextHolder] = message.useMessage();
 
     const inventory = useGameStore((s) => s.inventory);
@@ -181,34 +137,11 @@ export default function Inventory({isOpen, setIsOpen}) {
     const playerMaxHp = useGameStore((s) => s.player.maxHp);
     const playerStats = useGameStore((s) => s.player.stats);
 
-    const equipItem = useGameStore((s) => s.equipItem);
-    const sellItem = useGameStore((s) => s.sellItem);
     const unequipItem = useGameStore((s) => s.unequipItem);
 
     useEffect(() => {
         if (isOpen) audioManager.playSFX('/sounds/open-close.mp3', 0.15);
     }, [isOpen]);
-
-    const handleEquip = (index) => {
-        const item = inventory?.slots?.[index];
-        if (!item) return;
-
-        if (item.equipSlot) {
-            equipItem(index);
-            messageApi.success(`Equipped ${item.name}`, 1.5);
-        } else {
-            messageApi.warning(`${item.name} cannot be equipped`, 1.5);
-        }
-    };
-
-    const handleSell = (index) => {
-        return;
-        const item = inventory?.slots?.[index];
-        if (!item) return;
-        const price = Math.floor((item.price || 0) * 0.5);
-        sellItem(index);
-        messageApi.success(`Sold ${item.name} for ${price}g`, 1.5);
-    };
 
     const handleUnequip = (slotKey) => {
         const item = inventory?.equipment?.[slotKey];
@@ -226,7 +159,7 @@ export default function Inventory({isOpen, setIsOpen}) {
     const slots = inventory?.slots || [];
     const equipment = inventory?.equipment || {};
 
-    console.log('rerendering inventory bar');
+    console.log('rerendering character bar');
 
     return (
         <>
@@ -237,7 +170,7 @@ export default function Inventory({isOpen, setIsOpen}) {
                     position: 'fixed',
                     bottom: 100,
                     right: 24,
-                    width: 300,
+                    width: 700,
                     zIndex: 10000,
                     background: 'rgba(10, 12, 16, 0.92)',
                     border: '1px solid rgba(255,255,255,0.12)',
@@ -250,37 +183,62 @@ export default function Inventory({isOpen, setIsOpen}) {
                 }}
             >
                 <Row>
-                    <Col span={24}>
-                        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 8 }}>
-                            <Text strong>
-                                Inventory
-                            </Text>
-                            <Text type="secondary">
-                                {slots.filter(Boolean).length} / {slots.length}
+                    {/* Stats Column */}
+                    <Col span={8} style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                            <Text strong style={{ fontSize: 15, color: '#ddd' }}>
+                                Level {playerLevel || 1}
                             </Text>
                         </div>
 
                         <div style={{ padding: '20px' }}>
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)',
-                                gap: 10,
-                            }}>
-                                {slots.map((item, i) => (
-                                    <InventorySlot
-                                        key={i}
-                                        item={item}
-                                        index={i}
-                                        onEquip={handleEquip}
-                                        onSell={handleSell}
-                                    />
+                            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                                <Row justify="space-between"><Text type="secondary">Damage</Text><Text strong>{playerStats.damage}</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Health</Text><Text strong>{playerMaxHp}</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Atk Speed</Text><Text strong>{playerStats.attackSpeed?.toFixed(2)}</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Move Speed</Text><Text strong>{playerStats.moveSpeed}</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Crit Chance</Text><Text strong>{playerStats.critChance}%</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Crit Damage</Text><Text strong>{playerStats.critDamage}%</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Projectiles</Text><Text strong>{playerStats.projectiles}</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Armor</Text><Text strong>{playerStats.armor || 0}</Text></Row>
+                            </Space>
+                        </div>
+                    </Col>
+
+                    {/* Equipment Column */}
+                    <Col span={16} style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                            <Text strong>Equipment</Text>
+                        </div>
+
+                        <div style={{ padding: '24px 20px' }}>
+                            <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                                {EQUIPMENT_LAYOUT.map((row, ri) => (
+                                    <Row key={ri} justify="center" gutter={[12, 12]}>
+                                        {row.map((slotKey, ci) => (
+                                            <Col key={ci}>
+                                                {slotKey ? (
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <EquipSlot
+                                                            slotKey={slotKey}
+                                                            item={equipment[slotKey]}
+                                                            onUnequip={handleUnequip}
+                                                        />
+                                                        <div style={{ marginTop: 6, fontSize: 10, color: '#666', textTransform: 'uppercase' }}>
+                                                            {slotKey}
+                                                        </div>
+                                                    </div>
+                                                ) : <div style={{ width: 54, height: 54 }} />}
+                                            </Col>
+                                        ))}
+                                    </Row>
                                 ))}
-                            </div>
+                            </Space>
                         </div>
 
                         <Divider style={{ margin: 0 }} />
                         <div style={{ padding: '10px', textAlign: 'center', fontSize: 12, color: '#666' }}>
-                            Click to equip
+                            Right-click to unequip
                         </div>
                     </Col>
                 </Row>
@@ -305,3 +263,5 @@ export default function Inventory({isOpen, setIsOpen}) {
         </>
     );
 }
+
+export default Character;

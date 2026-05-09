@@ -26,8 +26,10 @@ export const useGameStore = create((set, get) => ({
         XPnext: 100,
         hp: 100,
         maxHp: 100,  // Changed from maxHp to match your usage
-        x: 0,
-        y: 0,
+        location: {
+            x: 0,
+            y: 0,
+        },
         stats: {
             attackSpeed: 0.6,
             damage: 5,
@@ -432,7 +434,13 @@ export const useGameStore = create((set, get) => ({
 
     // ===== Player Actions =====
     updatePlayerPosition: (x, y) => set(state => ({
-        player: {...state.player, x, y}
+        player: {
+            ...state.player,
+            location: {
+                x,
+                y
+            }
+        }
     })),
 
     // ===== Helper: Calculate crit damage =====

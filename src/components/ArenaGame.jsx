@@ -2,16 +2,14 @@
 import {useMemo, useState} from 'react';
 import { ConfigProvider, message } from 'antd';
 import ArenaHUD from './ArenaHUD.jsx';
-import GameHeader from './GameHeader.jsx';
 import Inventory from './Inventory.jsx';
-import Shop from './Shop.jsx';
-import Sidebar from './Sidebar.jsx';
 import PauseScreen from './PauseScreen.jsx';
 import { cartoonTheme } from '../styles/cartoonTheme';
 import '../styles/global.css';
 import DeathScreen from "./DeathScreen.jsx";
 import AbilityBar from "./PlayerStatsBar.jsx";
 import LevelUpEffect from "./LevelUpEffect.jsx";
+import BottomRightMenu from "./BottomRightMenu.jsx";
 
 export default function ArenaGame() {
     const [messageApi, contextHolder] = message.useMessage();
@@ -22,6 +20,7 @@ export default function ArenaGame() {
         <ConfigProvider theme={theme}>
             {contextHolder}
 
+            {/* Top right logo */}
             <div style={{position: "absolute", top: 0, left: 0, zIndex: 10}}>
                 <img src="/templogo.png" alt="Logo" style={{width: 120}}/>
             </div>
@@ -31,19 +30,16 @@ export default function ArenaGame() {
                 <ArenaHUD />
             </div>
 
-            {/* Sidebar
-            <div style={{ position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 100, pointerEvents: 'none' }}>
-                <div style={{ pointerEvents: 'auto', height: '100%' }}>
-                    <Sidebar collapsed={collapsed} onCollapse={setCollapsed} />
-                </div>
-            </div>
-
+            {/*
             <Shop />
             */}
+
+            <BottomRightMenu />
+
             <DeathScreen />
-            <PauseScreen />
-            <Inventory />
+
             <AbilityBar />
+
             <LevelUpEffect />
         </ConfigProvider>
     );

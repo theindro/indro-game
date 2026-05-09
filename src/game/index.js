@@ -246,14 +246,6 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, ope
 
         if (e.code === 'Space') dash.tryDash();
 
-        if (e.key === 'Escape') {
-            useGameStore.getState().togglePause();
-
-            const currentState = useGameStore.getState().gameState;
-
-            document.body.style.cursor = currentState.paused ? 'default' : 'none';
-        }
-
         switch (key) {
             case '1':
                 if (useGameStore.getState().player.pLevel >= 3)
@@ -286,7 +278,6 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
     let isTransitioning = false;
 
     openWorld.onChunkChangeCallback = (info) => {
-        console.log(info);
         if (info.biome === lastWeatherBiome && !isTransitioning) return;
 
         const weatherConfig = {
@@ -307,7 +298,7 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
 }
 
 async function spawnTestBoss(bosses, openWorld) {
-    const {x: px, y: py} = useGameStore.getState().player;
+    const {x: px, y: py} = useGameStore.getState().player.location;
     console.log('🎮 Spawning test boss!');
 
     const {spawnBoss} = await import('./controllers/createBossController.js');

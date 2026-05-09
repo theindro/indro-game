@@ -27,8 +27,8 @@ export function createPlayerController({hpBar, pBody, world}) {
 
         // Get current position from store
         const player = useGameStore.getState().player;
-        const playerX = player.x;
-        const playerY = player.y;
+        const playerX = player.location.x;
+        const playerY = player.location.y;
 
         // Flash red
         if (pBody) {

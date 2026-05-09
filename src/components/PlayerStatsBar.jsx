@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import {
     Avatar,
     Progress,
@@ -14,7 +14,7 @@ import {
     UserOutlined,
     ThunderboltOutlined,
 } from "@ant-design/icons";
-import { useGameStore } from "../stores/gameStore";
+import {useGameStore} from "../stores/gameStore";
 
 const ABILITY_UNLOCK_LEVELS = {
     1: 3,
@@ -53,30 +53,36 @@ const styles = {
     },
 };
 
-function AbilitySlot({ ability, index, playerLevel }) {
+const AbilitySlot = React.memo(function AbilitySlot({
+                                                        ability,
+                                                        index,
+                                                        playerLevel
+                                                    }) {
     const isLocked = playerLevel < ABILITY_UNLOCK_LEVELS[index];
-    const now = performance.now();
-    const isReady = !isLocked && now >= (ability?.cooldownEnd ?? 0);
-    const remaining = !isReady ? (ability.cooldownEnd - now) / 1000 : 0;
     const playerDmg = useGameStore((s) => s.player?.stats?.damage);
+    const isReady =
+        !isLocked &&
+        performance.now() >= (ability?.cooldownEnd ?? 0);
 
     const tooltipContent = isLocked ? (
         <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>{ability.name}</div>
-            <div style={{ color: "#aaa", fontSize: 12 }}>
+            <div style={{fontWeight: 600, fontSize: 14}}>{ability.name}</div>
+            <div style={{color: "#aaa", fontSize: 12}}>
                 Unlocks at level {ABILITY_UNLOCK_LEVELS[index]}
             </div>
         </div>
     ) : (
-        <div style={{ minWidth: 160 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>{ability.name}</div>
-            <div style={{ fontSize: 12, color: "#bbb", lineHeight: 1.4, marginBottom: 8 }}>
+        <div style={{minWidth: 160}}>
+            <div style={{fontWeight: 600, marginBottom: 4}}>{ability.name}</div>
+            <div style={{fontSize: 12, color: "#bbb", lineHeight: 1.4, marginBottom: 8}}>
                 {ability.description}
             </div>
-            <Space style={{ fontSize: 12, color: "#888" }}>
+            <Space style={{fontSize: 12, color: "#888"}}>
                 <Tag>Lv {ability.level}</Tag>
                 <Tag>CD {(ability.maxCooldown / 1000).toFixed(1)}s</Tag>
-                <Tag>Dmg {playerDmg * ability.damageMultiplier}</Tag>
+                {ability.damageMultiplier && (
+                    <Tag>Dmg {playerDmg * ability.damageMultiplier}</Tag>
+                )}
             </Space>
         </div>
     );
@@ -86,7 +92,7 @@ function AbilitySlot({ ability, index, playerLevel }) {
             title={tooltipContent}
             placement="top"
             arrow={false}
-            overlayStyle={{ zIndex: 10001 }}
+            overlayStyle={{zIndex: 10001}}
         >
             <div
                 style={{
@@ -106,35 +112,20 @@ function AbilitySlot({ ability, index, playerLevel }) {
                 }}
             >
                 {isLocked ? (
-                    <LockOutlined style={{ fontSize: 20, color: "#555" }} />
+                    <LockOutlined style={{fontSize: 20, color: "#555"}}/>
                 ) : (
                     <img
                         src={ability.icon}
                         alt={ability.name}
                         width={28}
                         height={28}
-                        style={{ filter: isReady ? "none" : "grayscale(0.6)" }}
+                        style={{filter: isReady ? "none" : "grayscale(0.6)"}}
                     />
                 )}
 
                 {/* Cooldown Overlay */}
                 {!isLocked && !isReady && (
-                    <div
-                        style={{
-                            position: "absolute",
-                            inset: 0,
-                            background: "rgba(0,0,0,0.65)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 15,
-                            fontWeight: 700,
-                            color: "#fff",
-                            borderRadius: 12,
-                        }}
-                    >
-                        {remaining.toFixed(1)}
-                    </div>
+                    <CooldownOverlay cooldownEnd={ability.cooldownEnd}/>
                 )}
 
                 {/* Hotkey / Level */}
@@ -152,15 +143,22 @@ function AbilitySlot({ ability, index, playerLevel }) {
             </div>
         </Tooltip>
     );
-}
+});
 
 export default function AbilityBar() {
-    const player = useGameStore((s) => s.player);
+    const playerLevel = useGameStore((s) => s.player.pLevel);
+    const playerXp = useGameStore((s) => s.player.xp);
+    const playerXpNext = useGameStore((s) => s.player.XPnext);
+    const playerHp = useGameStore((s) => s.player.hp);
+    const playerMaxHp = useGameStore((s) => s.player.maxHp);
+    const playerStats = useGameStore((s) => s.player.stats);
+
+    const attackSpeed = useGameStore(s => s.player.stats.attackSpeed);
+    const dashCooldown = useGameStore(s => s.player.stats.dashCooldown);
+
     const abilities = useGameStore((s) => s.abilities);
     const basicAttack = useGameStore((s) => s.basicAttack);
     const dash = useGameStore((s) => s.dash);
-
-    const playerLevel = player?.pLevel ?? 1;
 
     const abilityList = useMemo(
         () => [abilities?.ability1, abilities?.ability2, abilities?.ability3, abilities?.ability4],
@@ -169,16 +167,18 @@ export default function AbilityBar() {
 
     if (!abilities?.ability1) return null;
 
+    console.log('rerendering ability bar');
+
     return (
         <div style={styles.root}>
             <div>
                 <div>
-                    <Row type="flex" justify="space-between" style={{fontSize: 12, opacity:0.7}}>
+                    <Row type="flex" justify="space-between" style={{fontSize: 12, opacity: 0.7}}>
                         <span>XP</span>
-                        <span>{Math.round(player?.xp ?? 0)} / {player?.XPnext}</span>
+                        <span>{Math.round(playerXp ?? 0)} / {playerXpNext}</span>
                     </Row>
                     <Progress
-                        percent={((player?.xp ?? 0) / (player?.XPnext ?? 100)) * 100}
+                        percent={((playerXp ?? 0) / (playerXpNext ?? 100)) * 100}
                         showInfo={false}
                         strokeColor="#f5a623"
                         size="small"
@@ -210,22 +210,28 @@ export default function AbilityBar() {
                     </Badge>
 
                     {/* HP & XP Bars - Stacked to the right of avatar */}
-                    <Space direction="vertical" size={6} style={{ width: 170 }}>
+                    <Space direction="vertical" size={6} style={{width: 170}}>
                         <div>
                             <Progress
-                                percent={((player?.hp ?? 0) / (player?.maxHp ?? 100)) * 100}
+                                percent={((playerHp ?? 0) / (playerMaxHp ?? 100)) * 100}
                                 showInfo={false}
                                 strokeColor="#3b9e75"
                                 size="small"
                             />
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#aaa", marginTop: 2 }}>
+                            <div style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                fontSize: 12,
+                                color: "#aaa",
+                                marginTop: 2
+                            }}>
                                 <span>HP</span>
-                                <span>{Math.round(player?.hp ?? 0)} / {player?.maxHp}</span>
+                                <span>{Math.round(playerHp ?? 0)} / {playerMaxHp}</span>
                             </div>
                         </div>
                     </Space>
 
-                    <Divider type="vertical" style={{ height: 64, background: "rgba(255,255,255,0.1)" }} />
+                    <Divider type="vertical" style={{height: 64, background: "rgba(255,255,255,0.1)"}}/>
 
                     {/* Main Abilities */}
                     <Space size={8}>
@@ -241,7 +247,7 @@ export default function AbilityBar() {
                         )}
                     </Space>
 
-                    <Divider type="vertical" style={{ height: 64, background: "rgba(255,255,255,0.1)" }} />
+                    <Divider type="vertical" style={{height: 64, background: "rgba(255,255,255,0.1)"}}/>
 
                     {/* Basic Attack + Dash */}
                     <Space size={8}>
@@ -250,7 +256,7 @@ export default function AbilityBar() {
                                 name: "Basic Attack",
                                 icon: "/icons/attack.png",
                                 cooldownEnd: basicAttack?.cooldownEnd ?? 0,
-                                maxCooldown: (useGameStore((s) => s.player?.stats?.attackSpeed ?? 0.6)) * 1000,
+                                maxCooldown: (attackSpeed) * 1000,
                                 description: "Standard attack",
                                 level: 1,
                             }}
@@ -263,7 +269,7 @@ export default function AbilityBar() {
                                 name: "Dash",
                                 icon: "/icons/dash.png",
                                 cooldownEnd: dash?.cooldownEnd ?? 0,
-                                maxCooldown: (useGameStore((s) => s.player?.stats?.dashCooldown ?? 120) / 60) * 1000,
+                                maxCooldown: (dashCooldown / 60) * 1000,
                                 description: "Quick dash",
                                 level: 1,
                             }}
@@ -273,6 +279,46 @@ export default function AbilityBar() {
                     </Space>
                 </Space>
             </div>
+        </div>
+    );
+}
+
+function CooldownOverlay({cooldownEnd}) {
+    const [now, setNow] = useState(performance.now());
+
+    useEffect(() => {
+        let frame;
+
+        const update = () => {
+            setNow(performance.now());
+            frame = requestAnimationFrame(update);
+        };
+
+        frame = requestAnimationFrame(update);
+
+        return () => cancelAnimationFrame(frame);
+    }, []);
+
+    if (now >= cooldownEnd) return null;
+
+    const remaining = (cooldownEnd - now) / 1000;
+
+    return (
+        <div
+            style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(0,0,0,0.65)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 15,
+                fontWeight: 700,
+                color: "#fff",
+                borderRadius: 12,
+            }}
+        >
+            {remaining.toFixed(1)}
         </div>
     );
 }

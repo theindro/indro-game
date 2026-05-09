@@ -8,7 +8,7 @@ export function useArrowBarrage(ctx, targetX, targetY) {
     const store = useGameStore.getState();
     const stats = store.player.stats;
     const ability = store.abilities.ability1;
-    const {x: px, y: py} = store.player;
+    const {x: px, y: py} = store.player.location;
     const now = performance.now();
 
     if (now < ability.cooldownEnd) {

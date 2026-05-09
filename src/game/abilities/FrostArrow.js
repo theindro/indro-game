@@ -11,7 +11,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
     const stats = store.player.stats;
     const ability = store.abilities.ability4;
     const now = performance.now();
-    const {x: px, y: py} = store.player;
+    const {x: px, y: py} = store.player.location;
 
     if (now < ability.cooldownEnd) {
         console.log(`❄️ Frost Arrow on cooldown!`);
