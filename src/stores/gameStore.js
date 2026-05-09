@@ -102,6 +102,14 @@ export const useGameStore = create((set, get) => ({
         sfxVolume: 0.2,
     },
 
+    basicAttack: {
+        cooldownEnd: 0,
+    },
+
+    dash: {
+        cooldownEnd: 0,
+    },
+
     abilities: {
         // Ability 1 (Q/1)
         ability1: {
@@ -187,6 +195,30 @@ export const useGameStore = create((set, get) => ({
 
         // Recalculate after state settles
         get().recalculateStats();
+    },
+
+    useBasicAttack: () => {
+        const state = get();
+        const now = performance.now();
+        if (now < state.basicAttack.cooldownEnd) return false;
+
+        // attackSpeed = seconds between attacks (0.6 → 600ms)
+        const cooldownMs = state.player.stats.attackSpeed * 1000;
+
+        set({ basicAttack: { cooldownEnd: now + cooldownMs } });
+        return true;
+    },
+
+    useDash: () => {
+        const state = get();
+        const now = performance.now();
+        if (now < state.dash.cooldownEnd) return false;
+
+        // dashCooldown is in frames (120 frames @ 60fps = 2000ms)
+        const cooldownMs = (state.player.stats.dashCooldown / 60) * 1000;
+
+        set({ dash: { cooldownEnd: now + cooldownMs } });
+        return true;
     },
 
     // Ability Actions

@@ -326,15 +326,16 @@ async function spawnTestBoss(bosses, openWorld) {
 }
 
 function handleShooting(input, combat, px, py, world, shootCooldown, stats) {
-
     if (input.mouseDown && shootCooldown <= 0) {
+        // Sync to store so AbilityBar can read it
+        useGameStore.getState().useBasicAttack();
+
         const scale = world.scale.x;
         const tx = (input.mouseX - world.x) / scale;
         const ty = (input.mouseY - world.y) / scale;
         combat.tryShoot(px, py, tx, ty);
         return stats.attackSpeed;
     }
-
     return shootCooldown;
 }
 

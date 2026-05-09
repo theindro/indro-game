@@ -14,21 +14,30 @@ export function createDashAbility({ input, world }) {
     const ghosts = [];
 
     function tryDash() {
-        const {x: px, y: py, stats} = useGameStore.getState().player;
+        const store = useGameStore.getState();
+        const { stats } = store.player;
 
+        // Guard against rapid keydown firing before update() ticks
         if (dashCooldown > 0 || dashTime > 0) return null;
 
-        let dx = 0;
-        let dy = 0;
+        // Uses zustand cooldown system
+        const success = store.useDash();
 
+        // Still on cooldown
+        if (!success) return null;
+
+        // Set immediately so re-entrant calls are blocked
+        dashCooldown = stats.dashCooldown;
+        dashTime = stats.dashDuration;
+
+
+        let dx = 0, dy = 0;
         if (input.isDown('w')) dy -= 1;
         if (input.isDown('s')) dy += 1;
         if (input.isDown('a')) dx -= 1;
         if (input.isDown('d')) dx += 1;
 
         let dist = Math.hypot(dx, dy);
-
-        // fallback to last direction
         if (dist === 0) {
             dx = lastDirX;
             dy = lastDirY;
@@ -37,12 +46,8 @@ export function createDashAbility({ input, world }) {
 
         dashDirX = dx / dist;
         dashDirY = dy / dist;
-
         lastDirX = dashDirX;
         lastDirY = dashDirY;
-
-        dashTime = stats.dashDuration;
-        dashCooldown = stats.dashCooldown;
 
         return { dashDirX, dashDirY };
     }

@@ -298,6 +298,12 @@ export default function AbilityBar() {
     const playerXPNext = useGameStore((s) => s.player?.XPnext);
     const playerLevel = useGameStore((s) => s.player?.pLevel);
 
+    // Add these selectors at the top of AbilityBar()
+    const basicAttackCooldownEnd = useGameStore((s) => s.basicAttack?.cooldownEnd ?? 0);
+    const dashCooldownEnd = useGameStore((s) => s.dash?.cooldownEnd ?? 0);
+    const attackSpeed = useGameStore((s) => s.player?.stats?.attackSpeed ?? 0.6);
+    const dashCooldown = useGameStore((s) => s.player?.stats?.dashCooldown ?? 120);
+
     const abilities = useMemo(
         () => [ability1, ability2, ability3, ability4],
         [ability1, ability2, ability3, ability4]
@@ -354,13 +360,25 @@ export default function AbilityBar() {
                 <div style={{...styles.slots, gap: 5}}>
                     <AbilitySlot
                         key={'basic'}
-                        ability={{name: 'basic', icon: "/icons/attack.png"}}
+                        ability={{
+                            name: 'Basic Attack',
+                            icon: "/icons/attack.png",
+                            cooldownEnd: basicAttackCooldownEnd,
+                            maxCooldown: attackSpeed * 1000,  // e.g. 600ms
+                            description: 'Standard attack',
+                        }}
                         playerLevel={playerLevel}
                         index={"Basic"}
                     />
                     <AbilitySlot
                         key={'dash'}
-                        ability={{name: 'dash', icon: "/icons/dash.png"}}
+                        ability={{
+                            name: 'Dash',
+                            icon: "/icons/dash.png",
+                            cooldownEnd: dashCooldownEnd,
+                            maxCooldown: (dashCooldown / 60) * 1000,  // frames → ms
+                            description: 'Quick dash',
+                        }}
                         playerLevel={playerLevel}
                         index={"Dash"}
                     />
