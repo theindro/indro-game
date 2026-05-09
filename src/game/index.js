@@ -38,6 +38,7 @@ export async function createGame() {
     let pBobT = 0;
     let saveTimer = 0;
     let shootCooldown = 0;
+    let movePenalty = 1.0;
     let shakeRef = {value: 0};
     let killsRef = {value: 0};
     let bossActiveRef = {value: null};
@@ -55,7 +56,7 @@ export async function createGame() {
     createDevTool(useGameStore);
 
     // ==================== PLAYER ====================
-    const {pCont, pGlow, pBody, hpBar} = createPlayerEntity(world);
+    const {pCont, pGlow, pBody, hpBar, tickAnimations} = createPlayerEntity(world);
     let px = 0, py = 0;
 
     const playerController = createPlayerController({
@@ -143,13 +144,29 @@ export async function createGame() {
         shootCooldown = handleShooting(input, combat, px, py, world, shootCooldown, playerState.stats);
 
         // Player movement
-        const movement = handlePlayerMovement(input, px, py, playerState.stats, dash, openWorld, colliders, dt);
+        // Movement penalty — use dt-scaled lerp so framerate doesn't matter
+        if (input.mouseDown) {
+            movePenalty = 0.45;
+        } else {
+            movePenalty += (1.0 - movePenalty) * (1 - Math.pow(0.1, dt));
+        }
+
+        const movement = handlePlayerMovement(
+            input, px, py, playerState.stats,
+            dash, openWorld, colliders, dt,
+            movePenalty // ← add this param
+        );
+
         px = movement.x;
         py = movement.y;
         pBobT += 0.055 * dt * 60;
 
         // Update visuals
         updatePlayerVisuals(pCont, pGlow, px, py, movement.moving, pBobT);
+
+        const mxRel = mouseWorld.x - px;
+        const myRel = mouseWorld.y - py;
+        tickAnimations(pBobT, mxRel, myRel);
 
         // Update player depth zindex
         pCont.zIndex = pCont.y;
@@ -280,7 +297,7 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
         };
 
         const weather = weatherConfig[info.biome];
-        
+
         if (weather) {
             // Smooth transition over 3 seconds
             weatherSystem.setWeather(weather.type, weather.intensity, weather.speed);
@@ -321,7 +338,7 @@ function handleShooting(input, combat, px, py, world, shootCooldown, stats) {
     return shootCooldown;
 }
 
-function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders, dt) {
+function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders, dt, movePenalty) {
     let nx = px, ny = py;
     let moving = false;
 
@@ -331,7 +348,7 @@ function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders, 
         nx += dashState.vx;
         ny += dashState.vy;
     } else {
-        const spd = PLAYER_SPEED * GS * stats.moveSpeed * dt;
+        const spd = PLAYER_SPEED * GS * stats.moveSpeed * dt * movePenalty;
 
         if (input.isDown('w')) {
             ny -= spd;

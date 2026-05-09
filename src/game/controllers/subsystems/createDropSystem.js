@@ -4,6 +4,7 @@ import {useGameStore} from "../../../stores/gameStore.js";
 import {ItemDatabase, DropTables, getDropTableForMob} from '../../items.js';
 import {assetManager} from '../../utils/assetManager.js';
 import {VFX} from "../../GlobalEffects.js";
+import {audioManager} from "../../utils/audioManager.js";
 
 export function createDropSystem(ctx) {
     const {world, entityLayer, drops} = ctx;
@@ -19,6 +20,13 @@ export function createDropSystem(ctx) {
         if (Math.random() * 100 < table.gold.chance) {
             const amount = table.gold.min + Math.floor(Math.random() * (table.gold.max - table.gold.min + 1));
             drops.push({type: 'gold', amount});
+        }
+
+        // Roll gold
+        if (Math.random() * 100 < table.void_essence.chance) {
+            const amount = table.void_essence.min + Math.floor(Math.random() * (table.void_essence.max - table.void_essence.min + 1));
+
+            drops.push({type: 'void_essence', amount});
         }
 
         // Roll heart (healing)
@@ -54,13 +62,23 @@ export function createDropSystem(ctx) {
         container.x = x;
         container.y = y;
 
+            console.log(drop);
         if (drop.type === 'gold') {
             // Gold drop visual
             const graphics = new Graphics();
-            graphics.circle(0, 0, 6).fill({color: 0xffcc44});
-            graphics.circle(0, 0, 4).fill({color: 0xffaa00});
+            graphics.circle(0, 0, 5).fill({color: 0xffcc44});
+            graphics.circle(0, 0, 3).fill({color: 0xffaa00});
             container.addChild(graphics);
 
+        } else if (drop.type === 'void_essence') {
+            // Item drop visual - use textureId directly
+            const texture = assetManager.getTexture(drop.type);
+            const sprite = new Sprite(texture);
+
+            sprite.anchor.set(0.5);
+            sprite.scale.set(0.2);
+
+            container.addChild(sprite);
         } else if (drop.type === 'hp') {
             // Heart drop visual
             const graphics = new Graphics();
@@ -69,7 +87,7 @@ export function createDropSystem(ctx) {
             graphics.moveTo(-8, 1).lineTo(8, 1).lineTo(0, 10).closePath().fill({color: 0xff2255});
             container.addChild(graphics);
 
-        } else if (drop.type === 'item' && drop.item) {
+        } else if ((drop.type === 'item') && drop.item) {
             // Add shadow under the drop
             const shadow = createShadow();
             container.addChild(shadow);
@@ -80,7 +98,7 @@ export function createDropSystem(ctx) {
             if (texture) {
                 const sprite = new Sprite(texture);
                 sprite.anchor.set(0.1);
-                sprite.scale.set(0.15);
+                sprite.scale.set(0.1);
                 container.addChild(sprite);
             } else {
                 // Fallback
@@ -155,6 +173,7 @@ export function createDropSystem(ctx) {
         const dropList = rollDrop(mobType, isBoss);
         const dropObjects = [];
 
+
         for (const drop of dropList) {
             if (drop.type === 'gold') {
                 // Spawn multiple gold coins
@@ -163,6 +182,12 @@ export function createDropSystem(ctx) {
                 }
             } else if (drop.type === 'hp') {
                 dropObjects.push(createDrop(x, y, {type: 'hp', amount: drop.amount}));
+
+            } else if (drop.type === 'void_essence') {
+                // Spawn multiple void essence
+                for (let i = 0; i < drop.amount; i++) {
+                    dropObjects.push(createDrop(x, y, {type: drop.type, amount: 1}));
+                }
             } else if (drop.type === 'item') {
                 for (let i = 0; i < drop.quantity; i++) {
                     dropObjects.push(createDrop(x, y, {type: 'item', item: drop.item}));
@@ -219,6 +244,7 @@ export function createDropSystem(ctx) {
 
             // Pickup logic
             if (dist < 22) {
+                audioManager.playSFX('/sounds/pickup.mp3', 0.15);
                 if (d.type === 'hp') {
                     useGameStore.getState().healPlayer(d.amount || 20);
 
@@ -230,6 +256,10 @@ export function createDropSystem(ctx) {
                     useGameStore.getState().addGold(d.amount || 1);
 
                     VFX.addFloat(`+${d.amount || 1}`, d.container.x, d.container.y, '#ffd700');
+                } else if (d.type === 'void_essence') {
+                    useGameStore.getState().addVoidEssence(d.amount || 1);
+
+                    VFX.addFloat(`+${d.amount || 1}`, d.container.x, d.container.y, 'purple');
                 } else if (d.type === 'item' && d.item) {
                     const added = useGameStore.getState().addItem(d.item, 1);
 

@@ -59,6 +59,7 @@ export const useGameStore = create((set, get) => ({
             ring: null,
         },
         gold: 0,
+        void_essence: 0,
     },
 
     // Shop State
@@ -266,6 +267,16 @@ export const useGameStore = create((set, get) => ({
             inventory: {
                 ...state.inventory,
                 gold: state.inventory.gold + amount
+            }
+        }));
+    },
+
+    addVoidEssence: (amount) => {
+        console.log(`💰 Adding ${amount} void essence`);
+        set(state => ({
+            inventory: {
+                ...state.inventory,
+                void_essence: state.inventory.void_essence + amount
             }
         }));
     },

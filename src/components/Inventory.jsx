@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Tooltip, message } from 'antd';
+import {Tooltip, message, Tag} from 'antd';
 import { useGameStore } from '../stores/gameStore';
+import {audioManager} from "../game/utils/audioManager.js";
 
 const STAT_LABELS = {
     damage:      { label: 'DMG',  color: '#e8a825' },
@@ -277,8 +278,6 @@ export default function Inventory() {
     const sellItem    = useGameStore((s) => s.sellItem);
     const unequipItem = useGameStore((s) => s.unequipItem);
 
-    console.log(inventory);
-
     useEffect(() => {
         const onKey = (e) => {
             if (e.key === 'i' || e.key === 'I') setIsOpen(o => !o);
@@ -287,6 +286,12 @@ export default function Inventory() {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, []);
+
+    useEffect(() => {
+        if (isOpen) {
+            audioManager.playSFX('/sounds/open-close.mp3', 0.15);
+        }
+    }, [isOpen]);
 
     const handleEquip = (index) => {
         const item = inventory?.slots?.[index];
@@ -353,6 +358,16 @@ export default function Inventory() {
 
                     <div style={{...styles.col, width: 160}}>
                         <div style={styles.colHeader}>Stats</div>
+                        <div style={{
+                            paddingTop: '14px',
+                            paddingLeft: '14px',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: 'rgba(255,255,255,0.8)',
+                            lineHeight: 1.2
+                        }}>
+                            Level {playerLevel}
+                        </div>
                         <div style={{padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8}}>
                             <StatRow icon="⚔" label="Damage" value={playerStats?.damage}/>
                             <StatRow icon="❤" label="Health" value={playerHp}/>
@@ -371,46 +386,9 @@ export default function Inventory() {
                     <div style={{...styles.col, width: 200}}>
                         <div style={styles.colHeader}>Equipment</div>
 
-                        {/* Player summary */}
-                        <div style={{
-                            padding: '10px 14px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            borderBottom: '0.5px solid rgba(255,255,255,0.06)',
-                        }}>
-                            <div style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                border: '0.5px solid rgba(255,255,255,0.12)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 16, flexShrink: 0,
-                            }}>⚔
-                            </div>
-                            <div>
-                                <div style={{
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    color: 'rgba(255,255,255,0.8)',
-                                    lineHeight: 1.2
-                                }}>
-                                    Level {playerLevel}
-                                </div>
-                                <div style={{fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1}}>
-                                    {playerStats?.damage} dmg · {playerHp} hp
-                                </div>
-                            </div>
-                            <div style={{
-                                marginLeft: 'auto',
-                                fontSize: 12, fontWeight: 700,
-                                color: '#e8a825',
-                            }}>
-                                {inventory?.gold ?? 0}g
-                            </div>
-                        </div>
-
                         {/* Equipment grid */}
                         <div style={{padding: '10px 14px', flex: 1}}>
-                            {EQUIPMENT_LAYOUT.map((row, ri) => (
+                        {EQUIPMENT_LAYOUT.map((row, ri) => (
                                 <div key={ri}
                                      style={{display: 'flex', gap: 6, marginBottom: 6, justifyContent: 'center'}}>
                                     {row.map((slotKey, ci) => (
@@ -460,18 +438,21 @@ export default function Inventory() {
                             alignItems: 'center',
                             justifyContent: 'space-between'
                         }}>
-                            <span>Bag</span>
+                            <span>Bag <img style={{width: "10px"}} src="/rpg/coins.png" alt=""/> {inventory.gold} <span><img
+                                style={{width: "10px"}} src="/void_essence.png" alt=""/> {inventory.void_essence}</span></span>
                             <span style={{color: 'rgba(255,255,255,0.15)', fontWeight: 400, letterSpacing: 0}}>
                                 {slots.filter(Boolean).length} / {slots.length}
                             </span>
+
                         </div>
 
                         <div style={{
                             padding: '10px 12px',
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(5, 48px)',
+                            gridTemplateColumns: 'repeat(4, 48px)',
                             gap: 6,
                             flex: 1,
+                            margin: 'auto'
                         }}>
                             {slots.map((item, i) => (
                                 <InventorySlot

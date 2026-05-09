@@ -89,10 +89,10 @@ class AssetManager {
 
         // ============= GROUND TEXTURES =============
         const groundFiles = [
-            { file: 'lava-ground.png', id: 'lava-ground', type: 'ground' },
-            { file: 'snow-ground.png', id: 'snow-ground', type: 'ground' },
-            { file: 'grass-ground.png', id: 'grass-ground', type: 'ground' },
-            { file: 'desert-ground.png', id: 'desert-ground', type: 'ground' },
+            { file: '/lava-ground.png', id: 'lava-ground', type: 'ground' },
+            { file: '/snow-ground.png', id: 'snow-ground', type: 'ground' },
+            { file: '/grass-ground.png', id: 'grass-ground', type: 'ground' },
+            { file: '/desert-ground.png', id: 'desert-ground', type: 'ground' },
             { file: '/lava/aaaaa.png', id: 'lava-texture', type: 'ground' },
         ];
 
@@ -130,7 +130,8 @@ class AssetManager {
 
         // ============= DROP TEXTURES =============
         const dropFiles = [
-            { file: 'drops_drop_gold', id: 'drops_drop_gold', type: 'drop', itemId: null },
+            { file: '/void_essence.png', id: 'void_essence', type: 'void_essence', itemId: null },
+            { file: '/gold.png', id: 'gold', type: 'currency', itemId: null },
         ];
 
         const allItems = [

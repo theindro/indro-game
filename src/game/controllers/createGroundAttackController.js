@@ -202,7 +202,6 @@ export class GroundAttack {
 
         if (this.phase === 'impact') {
             this.impactTimer++;
-            console.log('impact:', this.impactTimer, '/', this.impactDuration, 'complete?', this.impactTimer >= this.impactDuration);
             if (this.impactTimer >= this.impactDuration) {
                 this.complete = true;
             }

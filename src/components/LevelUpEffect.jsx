@@ -1,6 +1,7 @@
 // components/LevelUpEffect.jsx
 import React, {useEffect, useState} from "react";
 import {useGameStore} from "../stores/gameStore";
+import {audioManager} from "../game/utils/audioManager.js";
 
 const ABILITY_UNLOCK_LEVELS = {
     3: "Arrow Barrage",
@@ -24,6 +25,9 @@ export default function LevelUpEffect() {
         }
         setDisplayLevel(playerLevel);
         setVisible(true);
+
+        audioManager.playSFX('/sounds/level-up.mp3', 0.15);
+
         const t = setTimeout(() => setVisible(false), 5000);
         return () => clearTimeout(t);
     }, [playerLevel]);

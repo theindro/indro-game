@@ -12,11 +12,11 @@ export const ItemTypes = {
 };
 
 export const ItemRarity = {
-    COMMON: { name: 'Common', color: '#ffffff', multiplier: 1, dropChance: 60 },
-    MAGIC: { name: 'Magic', color: '#44aaff', multiplier: 1.5, dropChance: 25 },
-    RARE: { name: 'Rare', color: '#aa44ff', multiplier: 2, dropChance: 10 },
-    EPIC: { name: 'Epic', color: '#ff44aa', multiplier: 3, dropChance: 4 },
-    LEGENDARY: { name: 'Legendary', color: '#ffaa44', multiplier: 5, dropChance: 1 },
+    COMMON: {name: 'Common', color: '#ffffff', multiplier: 1, dropChance: 60},
+    MAGIC: {name: 'Magic', color: '#44aaff', multiplier: 1.5, dropChance: 25},
+    RARE: {name: 'Rare', color: '#aa44ff', multiplier: 2, dropChance: 10},
+    EPIC: {name: 'Epic', color: '#ff44aa', multiplier: 3, dropChance: 4},
+    LEGENDARY: {name: 'Legendary', color: '#ffaa44', multiplier: 5, dropChance: 1},
 };
 
 // Helper function to generate stat ranges based on rarity
@@ -912,124 +912,131 @@ export const ItemDatabase = {
 // ============= COMPLETE DROP TABLES =============
 export const DropTables = {
     // Common forest mob drops
-        gold: { min: 2, max: 8, chance: 85 },
+    gold: {min: 2, max: 8, chance: 85},
+
     forest_mob: {
-        gold: { min: 2, max: 8, chance: 85 },
+        gold: {min: 2, max: 8, chance: 85},
+        void_essence: {min: 1, max: 3, chance: 100},
         items: [
-            { id: 'leather_boots', chance: 5, minQty: 1, maxQty: 1 },
-            { id: 'leather_gloves', chance: 5, minQty: 1, maxQty: 1 },
-            { id: 'leather_armor', chance: 3, minQty: 1, maxQty: 1 },
-            { id: 'leather_helmet', chance: 4, minQty: 1, maxQty: 1 },
-            { id: 'short_bow', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_strength', chance: 1, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_dexterity', chance: 1, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_health', chance: 1, minQty: 1, maxQty: 1 },
+            {id: 'leather_boots', chance: 5, minQty: 1, maxQty: 1},
+            {id: 'leather_gloves', chance: 5, minQty: 1, maxQty: 1},
+            {id: 'leather_armor', chance: 3, minQty: 1, maxQty: 1},
+            {id: 'leather_helmet', chance: 4, minQty: 1, maxQty: 1},
+            {id: 'short_bow', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'ring_of_strength', chance: 1, minQty: 1, maxQty: 1},
+            {id: 'ring_of_dexterity', chance: 1, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_health', chance: 1, minQty: 1, maxQty: 1},
         ]
     },
 
     // Desert mob drops
     desert_mob: {
-        gold: { min: 3, max: 12, chance: 90 },
+        gold: {min: 3, max: 12, chance: 90},
+        void_essence: {min: 1, max: 3, chance: 100},
         items: [
-            { id: 'iron_boots', chance: 4, minQty: 1, maxQty: 1 },
-            { id: 'iron_gloves', chance: 4, minQty: 1, maxQty: 1 },
-            { id: 'iron_armor', chance: 3, minQty: 1, maxQty: 1 },
-            { id: 'iron_helmet', chance: 3, minQty: 1, maxQty: 1 },
-            { id: 'long_bow', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_intellect', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_strength', chance: 2, minQty: 1, maxQty: 1 },
+            {id: 'iron_boots', chance: 4, minQty: 1, maxQty: 1},
+            {id: 'iron_gloves', chance: 4, minQty: 1, maxQty: 1},
+            {id: 'iron_armor', chance: 3, minQty: 1, maxQty: 1},
+            {id: 'iron_helmet', chance: 3, minQty: 1, maxQty: 1},
+            {id: 'long_bow', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'ring_of_intellect', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_strength', chance: 2, minQty: 1, maxQty: 1},
         ]
     },
 
     // Ice mob drops
     ice_mob: {
-        gold: { min: 4, max: 15, chance: 95 },
+        gold: {min: 4, max: 15, chance: 95},
+        void_essence: {min: 1, max: 3, chance: 100},
         items: [
-            { id: 'steel_boots', chance: 3, minQty: 1, maxQty: 1 },
-            { id: 'steel_gloves', chance: 3, minQty: 1, maxQty: 1 },
-            { id: 'steel_armor', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'steel_helmet', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'crossbow', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'frost_gloves', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_health', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_speed', chance: 1, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_magic', chance: 1, minQty: 1, maxQty: 1 },
+            {id: 'steel_boots', chance: 3, minQty: 1, maxQty: 1},
+            {id: 'steel_gloves', chance: 3, minQty: 1, maxQty: 1},
+            {id: 'steel_armor', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'steel_helmet', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'crossbow', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'frost_gloves', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'ring_of_health', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'ring_of_speed', chance: 1, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_magic', chance: 1, minQty: 1, maxQty: 1},
         ]
     },
 
     // Lava mob drops
     lava_mob: {
-        gold: { min: 5, max: 20, chance: 100 },
+        gold: {min: 5, max: 20, chance: 100},
+        void_essence: {min: 1, max: 3, chance: 100},
         items: [
-            { id: 'gold_boots', chance: 3, minQty: 1, maxQty: 1 },
-            { id: 'gold_gloves', chance: 3, minQty: 1, maxQty: 1 },
-            { id: 'gold_armor', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'crown', chance: 1, minQty: 1, maxQty: 1 },
-            { id: 'windbow', chance: 1, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_crit', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_fire', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_protection', chance: 2, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_speed', chance: 1, minQty: 1, maxQty: 1 },
+            {id: 'gold_boots', chance: 3, minQty: 1, maxQty: 1},
+            {id: 'gold_gloves', chance: 3, minQty: 1, maxQty: 1},
+            {id: 'gold_armor', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'crown', chance: 1, minQty: 1, maxQty: 1},
+            {id: 'windbow', chance: 1, minQty: 1, maxQty: 1},
+            {id: 'ring_of_crit', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'ring_of_fire', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_protection', chance: 2, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_speed', chance: 1, minQty: 1, maxQty: 1},
         ]
     },
 
     // Elite mob drops (higher chance for rare items)
     elite: {
-        gold: { min: 15, max: 40, chance: 100 },
+        gold: {min: 15, max: 40, chance: 100},
+        void_essence: {min: 1, max: 3, chance: 100},
         items: [
-            { id: 'swift_boots', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'assassin_gloves', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'shadow_armor', chance: 6, minQty: 1, maxQty: 1 },
-            { id: 'shadow_boots', chance: 6, minQty: 1, maxQty: 1 },
-            { id: 'spell_gloves', chance: 6, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_magic', chance: 5, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_protection', chance: 5, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_crit', chance: 5, minQty: 1, maxQty: 1 },
+            {id: 'swift_boots', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'assassin_gloves', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'shadow_armor', chance: 6, minQty: 1, maxQty: 1},
+            {id: 'shadow_boots', chance: 6, minQty: 1, maxQty: 1},
+            {id: 'spell_gloves', chance: 6, minQty: 1, maxQty: 1},
+            {id: 'ring_of_magic', chance: 5, minQty: 1, maxQty: 1},
+            {id: 'ring_of_protection', chance: 5, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_crit', chance: 5, minQty: 1, maxQty: 1},
         ]
     },
 
     // Boss drops (high chance for epic/legendary)
     boss: {
-        gold: { min: 100, max: 300, chance: 100 },
+        gold: {min: 100, max: 300, chance: 100},
+        void_essence: {min: 25, max: 50, chance: 100},
         items: [
             // Epic items
-            { id: 'swift_boots', chance: 20, minQty: 1, maxQty: 1 },
-            { id: 'spell_gloves', chance: 20, minQty: 1, maxQty: 1 },
-            { id: 'shadow_armor', chance: 20, minQty: 1, maxQty: 1 },
-            { id: 'crown', chance: 15, minQty: 1, maxQty: 1 },
-            { id: 'windbow', chance: 15, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_magic', chance: 20, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_protection', chance: 20, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_fire', chance: 15, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_speed', chance: 15, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_crit', chance: 15, minQty: 1, maxQty: 1 },
+            {id: 'swift_boots', chance: 20, minQty: 1, maxQty: 1},
+            {id: 'spell_gloves', chance: 20, minQty: 1, maxQty: 1},
+            {id: 'shadow_armor', chance: 20, minQty: 1, maxQty: 1},
+            {id: 'crown', chance: 15, minQty: 1, maxQty: 1},
+            {id: 'windbow', chance: 15, minQty: 1, maxQty: 1},
+            {id: 'ring_of_magic', chance: 20, minQty: 1, maxQty: 1},
+            {id: 'ring_of_protection', chance: 20, minQty: 1, maxQty: 1},
+            {id: 'ring_of_fire', chance: 15, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_speed', chance: 15, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_crit', chance: 15, minQty: 1, maxQty: 1},
 
             // Legendary items
-            { id: 'dragon_boots', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'dragon_gloves', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'dragon_armor', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'dragon_helmet', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_life', chance: 5, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_power', chance: 5, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_swiftness', chance: 5, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_gods', chance: 3, minQty: 1, maxQty: 1 },
+            {id: 'dragon_boots', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'dragon_gloves', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'dragon_armor', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'dragon_helmet', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'ring_of_life', chance: 5, minQty: 1, maxQty: 1},
+            {id: 'ring_of_power', chance: 5, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_swiftness', chance: 5, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_gods', chance: 3, minQty: 1, maxQty: 1},
         ]
     },
 
     // Chest loot (can be found in world)
     chest: {
-        gold: { min: 25, max: 100, chance: 95 },
+        gold: {min: 25, max: 100, chance: 95},
         items: [
-            { id: 'leather_boots', chance: 15, minQty: 1, maxQty: 1 },
-            { id: 'iron_boots', chance: 10, minQty: 1, maxQty: 1 },
-            { id: 'steel_boots', chance: 5, minQty: 1, maxQty: 1 },
-            { id: 'short_bow', chance: 10, minQty: 1, maxQty: 1 },
-            { id: 'long_bow', chance: 7, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_strength', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_dexterity', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'ring_of_intellect', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_health', chance: 8, minQty: 1, maxQty: 1 },
-            { id: 'amulet_of_strength', chance: 8, minQty: 1, maxQty: 1 },
+            {id: 'leather_boots', chance: 15, minQty: 1, maxQty: 1},
+            {id: 'iron_boots', chance: 10, minQty: 1, maxQty: 1},
+            {id: 'steel_boots', chance: 5, minQty: 1, maxQty: 1},
+            {id: 'short_bow', chance: 10, minQty: 1, maxQty: 1},
+            {id: 'long_bow', chance: 7, minQty: 1, maxQty: 1},
+            {id: 'ring_of_strength', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'ring_of_dexterity', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'ring_of_intellect', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_health', chance: 8, minQty: 1, maxQty: 1},
+            {id: 'amulet_of_strength', chance: 8, minQty: 1, maxQty: 1},
         ]
     },
 };
@@ -1077,11 +1084,16 @@ export function getDropTableForMob(mobType, biome) {
     if (mobType === 'elite') return DropTables.elite;
 
     // Biome-specific drops
-    switch(biome) {
-        case 'forest': return DropTables.forest_mob;
-        case 'desert': return DropTables.desert_mob;
-        case 'ice': return DropTables.ice_mob;
-        case 'lava': return DropTables.lava_mob;
-        default: return DropTables.forest_mob;
+    switch (biome) {
+        case 'forest':
+            return DropTables.forest_mob;
+        case 'desert':
+            return DropTables.desert_mob;
+        case 'ice':
+            return DropTables.ice_mob;
+        case 'lava':
+            return DropTables.lava_mob;
+        default:
+            return DropTables.forest_mob;
     }
 }
