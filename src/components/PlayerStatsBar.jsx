@@ -1,20 +1,20 @@
-import React, {useEffect, useMemo, useRef, useState} from "react";
-import {Tooltip} from "antd";
+import React, { useMemo } from "react";
+import {
+    Avatar,
+    Progress,
+    Tooltip,
+    Space,
+    Divider,
+    Badge, Row, Tag,
+} from "antd";
 import {
     AimOutlined,
     FireOutlined,
-    LockOutlined, UserOutlined,
+    LockOutlined,
+    UserOutlined,
+    ThunderboltOutlined,
 } from "@ant-design/icons";
-import {useGameStore} from "../stores/gameStore";
-
-const ABILITY_ICONS = {
-    "Arrow Barrage": <FireOutlined/>,
-    "Rapid Fire": <LockOutlined/>,
-    "Empower": <LockOutlined/>,
-    "Frost Arrow": <LockOutlined/>,
-    "basic": <AimOutlined/>,
-    "dash": <UserOutlined/>,
-};
+import { useGameStore } from "../stores/gameStore";
 
 const ABILITY_UNLOCK_LEVELS = {
     1: 3,
@@ -30,359 +30,248 @@ const styles = {
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 9999,
+        padding: "0 16px",
     },
     bar: {
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "9px 14px",
-        borderRadius: 14,
-        background: "rgba(10, 12, 16, 0.82)",
-        border: "0.5px solid rgba(255,255,255,0.10)",
+        background: "rgba(10, 12, 16, 0.85)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 16,
         backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.45), inset 0 0.5px 0 rgba(255,255,255,0.07)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+        padding: "12px 20px",
     },
-    avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        background: "rgba(255,255,255,0.05)",
-        border: "0.5px solid rgba(255,255,255,0.12)",
+    abilitySlot: {
+        width: 52,
+        height: 52,
+        borderRadius: 12,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        flexShrink: 0,
         position: "relative",
-        fontSize: 18,
-        color: "rgba(255,255,255,0.5)",
-    },
-    levelBadge: {
-        position: "absolute",
-        bottom: -4,
-        right: -4,
-        background: "#0a0c10",
-        border: "0.5px solid rgba(255,255,255,0.15)",
-        borderRadius: 20,
-        fontSize: 10,
-        fontWeight: 600,
-        color: "rgba(255,255,255,0.7)",
-        padding: "0 5px",
-        lineHeight: "15px",
-        letterSpacing: 0.2,
-    },
-    stats: {
-        display: "flex",
-        flexDirection: "column",
-        gap: 5,
-        width: 140,
-    },
-    statRow: {
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-    },
-    statLabel: {
-        fontSize: 10,
-        fontWeight: 600,
-        color: "rgba(255,255,255,0.3)",
-        width: 16,
-        letterSpacing: 0.3,
-        flexShrink: 0,
-    },
-    track: {
-        flex: 1,
-        height: 4,
-        background: "rgba(255,255,255,0.07)",
-        borderRadius: 99,
-        overflow: "hidden",
-    },
-    statVal: {
-        fontSize: 10,
-        color: "rgba(255,255,255,0.3)",
-        minWidth: 56,
-        textAlign: "right",
-        fontVariantNumeric: "tabular-nums",
-    },
-    divider: {
-        width: "0.5px",
-        height: 40,
-        background: "rgba(255,255,255,0.08)",
-        flexShrink: 0,
-    },
-    slots: {
-        display: "flex",
-        gap: 5,
-        alignItems: "center",
+        cursor: "pointer",
+        transition: "all 0.2s",
     },
 };
 
-function StatBar({label, value, max, fillColor}) {
-    const pct = Math.round(Math.min(100, Math.max(0, (value / max) * 100)));
-    return (
-        <div style={styles.statRow}>
-            <span style={styles.statLabel}>{label}</span>
-            <div style={styles.track}>
-                <div
-                    style={{
-                        width: `${pct}%`,
-                        height: "100%",
-                        background: fillColor,
-                        borderRadius: 99,
-                        transition: "width 0.35s ease",
-                    }}
-                />
-            </div>
-            <span style={styles.statVal}>
-                {Math.round(value)} / {max}
-            </span>
-        </div>
-    );
-}
-
-function AbilitySlot({ability, index, playerLevel}) {
-    const [, setTick] = useState(0);
-    useRAF(() => setTick(t => t + 1));
-
+function AbilitySlot({ ability, index, playerLevel }) {
     const isLocked = playerLevel < ABILITY_UNLOCK_LEVELS[index];
     const now = performance.now();
-    const isReady = !isLocked && now >= ability.cooldownEnd;
-    const remaining = isReady ? 0 : (ability.cooldownEnd - now) / 1000;
+    const isReady = !isLocked && now >= (ability?.cooldownEnd ?? 0);
+    const remaining = !isReady ? (ability.cooldownEnd - now) / 1000 : 0;
+    const playerDmg = useGameStore((s) => s.player?.stats?.damage);
 
     const tooltipContent = isLocked ? (
-        <div style={{minWidth: 140}}>
-
-            <div style={{fontWeight: 600, fontSize: 13, marginBottom: 3, color: "#fff"}}>
-                {ability.name}
-            </div>
-            <div style={{fontSize: 11, color: "rgba(255,255,255,0.4)"}}>
+        <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{ability.name}</div>
+            <div style={{ color: "#aaa", fontSize: 12 }}>
                 Unlocks at level {ABILITY_UNLOCK_LEVELS[index]}
             </div>
         </div>
     ) : (
-        <div style={{minWidth: 140, zIndex: 5}}>
-            <div style={{fontWeight: 600, fontSize: 13, marginBottom: 3, color: "#fff"}}>
-                {ability.name}
-            </div>
-            <div style={{fontSize: 11, color: "rgba(255,255,255,0.55)", marginBottom: 8, lineHeight: 1.4}}>
+        <div style={{ minWidth: 160 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{ability.name}</div>
+            <div style={{ fontSize: 12, color: "#bbb", lineHeight: 1.4, marginBottom: 8 }}>
                 {ability.description}
             </div>
-            <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 11,
-                color: "rgba(255,255,255,0.35)"
-            }}>
-                <span>Lv {ability.level}</span>
-                <span>CD {(ability.maxCooldown / 1000).toFixed(1)}s</span>
-            </div>
+            <Space style={{ fontSize: 12, color: "#888" }}>
+                <Tag>Lv {ability.level}</Tag>
+                <Tag>CD {(ability.maxCooldown / 1000).toFixed(1)}s</Tag>
+                <Tag>Dmg {playerDmg * ability.damageMultiplier}</Tag>
+            </Space>
         </div>
     );
 
     return (
-        <Tooltip title={tooltipContent} placement="top" arrow={false} overlayStyle={{zIndex: 10001}}>
-            <div style={{
-                position: "relative",
-                width: 48,
-                height: 48,
-                borderRadius: 10,
-                background: isLocked
-                    ? "rgba(255,255,255,0.02)"
-                    : isReady
-                        ? "rgba(255,255,255,0.07)"
-                        : "rgba(255,255,255,0.03)",
-                border: isLocked
-                    ? "0.5px solid rgba(255,255,255,0.04)"
-                    : isReady
-                        ? "0.5px solid rgba(255,255,255,0.18)"
-                        : "0.5px solid rgba(255,255,255,0.07)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: isLocked ? "default" : "pointer",
-                transition: "border-color 0.15s, background 0.15s",
-                overflow: "hidden",
-                flexShrink: 0,
-                opacity: isLocked ? 1 : isReady ? 1 : 0.5,
-            }}>
-                {/* Icon or lock */}
-                <span style={{
-                    fontSize: isLocked ? 16 : 20,
-                    color: isLocked
-                        ? "rgba(255,255,255,0.2)"
+        <Tooltip
+            title={tooltipContent}
+            placement="top"
+            arrow={false}
+            overlayStyle={{ zIndex: 10001 }}
+        >
+            <div
+                style={{
+                    ...styles.abilitySlot,
+                    background: isLocked
+                        ? "rgba(255,255,255,0.03)"
                         : isReady
-                            ? "rgba(255,255,255,0.85)"
-                            : "rgba(255,255,255,0.25)",
-                    display: "flex",
-                    transition: "color 0.15s",
-                }}>
-                    {isLocked ? <LockOutlined/> : <img src={ability.icon} width={24} alt=""/>}
-                </span>
+                            ? "rgba(255,255,255,0.08)"
+                            : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${isLocked
+                        ? "rgba(255,255,255,0.08)"
+                        : isReady
+                            ? "rgba(255,255,255,0.3)"
+                            : "rgba(255,255,255,0.15)"
+                    }`,
+                    opacity: isLocked ? 0.75 : 1,
+                }}
+            >
+                {isLocked ? (
+                    <LockOutlined style={{ fontSize: 20, color: "#555" }} />
+                ) : (
+                    <img
+                        src={ability.icon}
+                        alt={ability.name}
+                        width={28}
+                        height={28}
+                        style={{ filter: isReady ? "none" : "grayscale(0.6)" }}
+                    />
+                )}
 
-                {/* Cooldown overlay */}
-                {!isLocked && !isReady && ability.cooldownEnd && (
-                    <div style={{
-                        position: "absolute",
-                        inset: 0,
-                        background: "rgba(0,0,0,0.55)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "rgba(255,255,255,0.7)",
-                        letterSpacing: -0.3,
-                    }}>
+                {/* Cooldown Overlay */}
+                {!isLocked && !isReady && (
+                    <div
+                        style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "rgba(0,0,0,0.65)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 15,
+                            fontWeight: 700,
+                            color: "#fff",
+                            borderRadius: 12,
+                        }}
+                    >
                         {remaining.toFixed(1)}
                     </div>
                 )}
 
-                {/* Unlock level badge — shown instead of hotkey when locked */}
-                {isLocked ? (
-                    <span style={{
+                {/* Hotkey / Level */}
+                <div
+                    style={{
                         position: "absolute",
-                        bottom: 3,
-                        left: 0,
-                        right: 0,
-                        textAlign: "center",
-                        fontSize: 9,
+                        bottom: 4,
+                        fontSize: 10,
                         fontWeight: 600,
-                        color: "rgba(255,255,255,0.2)",
-                        lineHeight: 1,
-                    }}>
-                        lv{ABILITY_UNLOCK_LEVELS[index]}
-                    </span>
-                ) : (
-                    <span style={{
-                        position: "absolute",
-                        bottom: 3,
-                        left: 4,
-                        fontSize: 9,
-                        fontWeight: 600,
-                        color: "rgba(255,255,255,0.25)",
-                        lineHeight: 1,
-                    }}>
-                        {index}
-                    </span>
-                )}
+                        color: isLocked ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)",
+                    }}
+                >
+                    {isLocked ? `Lv${ABILITY_UNLOCK_LEVELS[index]}` : index}
+                </div>
             </div>
         </Tooltip>
     );
 }
 
-function useRAF(callback) {
-    const rafRef = useRef(null);
-    const cbRef = useRef(callback);
-    cbRef.current = callback;
-
-    useEffect(() => {
-        const tick = () => {
-            cbRef.current();
-            rafRef.current = requestAnimationFrame(tick);
-        };
-        rafRef.current = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(rafRef.current);
-    }, []);
-}
-
-
 export default function AbilityBar() {
-    const ability1 = useGameStore((s) => s.abilities?.ability1);
-    const ability2 = useGameStore((s) => s.abilities?.ability2);
-    const ability3 = useGameStore((s) => s.abilities?.ability3);
-    const ability4 = useGameStore((s) => s.abilities?.ability4);
+    const player = useGameStore((s) => s.player);
+    const abilities = useGameStore((s) => s.abilities);
+    const basicAttack = useGameStore((s) => s.basicAttack);
+    const dash = useGameStore((s) => s.dash);
 
-    const playerHp = useGameStore((s) => s.player?.hp);
-    const playerMaxHp = useGameStore((s) => s.player?.maxHp);
-    const playerXP = useGameStore((s) => s.player?.xp);
-    const playerXPNext = useGameStore((s) => s.player?.XPnext);
-    const playerLevel = useGameStore((s) => s.player?.pLevel);
+    const playerLevel = player?.pLevel ?? 1;
 
-    // Add these selectors at the top of AbilityBar()
-    const basicAttackCooldownEnd = useGameStore((s) => s.basicAttack?.cooldownEnd ?? 0);
-    const dashCooldownEnd = useGameStore((s) => s.dash?.cooldownEnd ?? 0);
-    const attackSpeed = useGameStore((s) => s.player?.stats?.attackSpeed ?? 0.6);
-    const dashCooldown = useGameStore((s) => s.player?.stats?.dashCooldown ?? 120);
-
-    const abilities = useMemo(
-        () => [ability1, ability2, ability3, ability4],
-        [ability1, ability2, ability3, ability4]
+    const abilityList = useMemo(
+        () => [abilities?.ability1, abilities?.ability2, abilities?.ability3, abilities?.ability4],
+        [abilities]
     );
 
-    if (!ability1) return null;
+    if (!abilities?.ability1) return null;
 
     return (
         <div style={styles.root}>
+            <div>
+                <div>
+                    <Row type="flex" justify="space-between" style={{fontSize: 12, opacity:0.7}}>
+                        <span>XP</span>
+                        <span>{Math.round(player?.xp ?? 0)} / {player?.XPnext}</span>
+                    </Row>
+                    <Progress
+                        percent={((player?.xp ?? 0) / (player?.XPnext ?? 100)) * 100}
+                        showInfo={false}
+                        strokeColor="#f5a623"
+                        size="small"
+                    />
+                </div>
+            </div>
             <div style={styles.bar}>
-                {/* Avatar + level */}
-                <div style={styles.avatar}>
-                    ⚔
-                    <div style={styles.levelBadge}>{playerLevel}</div>
-                </div>
+                <Space align="center" size={16}>
+                    {/* Avatar + Level */}
+                    <Badge
+                        count={playerLevel}
+                        color="#0a0c10"
+                        style={{
+                            color: "#ddd",
+                            fontWeight: 700,
+                            fontSize: 12,
+                            border: "1px solid rgba(255,255,255,0.2)",
+                        }}
+                    >
+                        <Avatar
+                            size={52}
+                            style={{
+                                background: "rgba(255,255,255,0.08)",
+                                border: "1px solid rgba(255,255,255,0.15)",
+                            }}
+                        >
+                            ⚔
+                        </Avatar>
+                    </Badge>
 
-                {/* HP + XP bars */}
-                <div style={styles.stats}>
-                    <StatBar
-                        label="HP"
-                        value={playerHp ?? 0}
-                        max={playerMaxHp ?? 100}
-                        fillColor="#3b9e75"
-                    />
-                    <StatBar
-                        label="XP"
-                        value={playerXP ?? 0}
-                        max={playerXPNext ?? 100}
-                        fillColor="orange"
-                    />
-                </div>
-
-                <div style={styles.divider}/>
-
-                {/* Ability slots */}
-                <div style={styles.slots}>
-                    {abilities.map((ability, i) => {
-                        if (!ability) return null;
-                        return (
-                            <AbilitySlot
-                                key={i}
-                                ability={ability}
-                                index={i + 1}
-                                playerLevel={playerLevel}
+                    {/* HP & XP Bars - Stacked to the right of avatar */}
+                    <Space direction="vertical" size={6} style={{ width: 170 }}>
+                        <div>
+                            <Progress
+                                percent={((player?.hp ?? 0) / (player?.maxHp ?? 100)) * 100}
+                                showInfo={false}
+                                strokeColor="#3b9e75"
+                                size="small"
                             />
-                        );
-                    })}
-                </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#aaa", marginTop: 2 }}>
+                                <span>HP</span>
+                                <span>{Math.round(player?.hp ?? 0)} / {player?.maxHp}</span>
+                            </div>
+                        </div>
+                    </Space>
 
+                    <Divider type="vertical" style={{ height: 64, background: "rgba(255,255,255,0.1)" }} />
 
-                <div style={styles.divider}/>
+                    {/* Main Abilities */}
+                    <Space size={8}>
+                        {abilityList.map((ability, i) =>
+                            ability ? (
+                                <AbilitySlot
+                                    key={i}
+                                    ability={ability}
+                                    index={i + 1}
+                                    playerLevel={playerLevel}
+                                />
+                            ) : null
+                        )}
+                    </Space>
 
-                {/* Basic attack + Dash — smaller, visually secondary */}
-                <div style={{...styles.slots, gap: 5}}>
-                    <AbilitySlot
-                        key={'basic'}
-                        ability={{
-                            name: 'Basic Attack',
-                            icon: "/icons/attack.png",
-                            cooldownEnd: basicAttackCooldownEnd,
-                            maxCooldown: attackSpeed * 1000,  // e.g. 600ms
-                            description: 'Standard attack',
-                        }}
-                        playerLevel={playerLevel}
-                        index={"Basic"}
-                    />
-                    <AbilitySlot
-                        key={'dash'}
-                        ability={{
-                            name: 'Dash',
-                            icon: "/icons/dash.png",
-                            cooldownEnd: dashCooldownEnd,
-                            maxCooldown: (dashCooldown / 60) * 1000,  // frames → ms
-                            description: 'Quick dash',
-                        }}
-                        playerLevel={playerLevel}
-                        index={"Dash"}
-                    />
-                </div>
+                    <Divider type="vertical" style={{ height: 64, background: "rgba(255,255,255,0.1)" }} />
+
+                    {/* Basic Attack + Dash */}
+                    <Space size={8}>
+                        <AbilitySlot
+                            ability={{
+                                name: "Basic Attack",
+                                icon: "/icons/attack.png",
+                                cooldownEnd: basicAttack?.cooldownEnd ?? 0,
+                                maxCooldown: (useGameStore((s) => s.player?.stats?.attackSpeed ?? 0.6)) * 1000,
+                                description: "Standard attack",
+                                level: 1,
+                            }}
+                            index="Basic"
+                            playerLevel={playerLevel}
+                        />
+
+                        <AbilitySlot
+                            ability={{
+                                name: "Dash",
+                                icon: "/icons/dash.png",
+                                cooldownEnd: dash?.cooldownEnd ?? 0,
+                                maxCooldown: (useGameStore((s) => s.player?.stats?.dashCooldown ?? 120) / 60) * 1000,
+                                description: "Quick dash",
+                                level: 1,
+                            }}
+                            index="Dash"
+                            playerLevel={playerLevel}
+                        />
+                    </Space>
+                </Space>
             </div>
         </div>
     );

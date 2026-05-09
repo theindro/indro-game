@@ -152,14 +152,12 @@ export const useGameStore = create((set, get) => ({
             maxCooldown: 10000, // 10 seconds at 60fps
             level: 1,
             description: 'Launches a massive frost arrow that explodes and freezes enemies',
-            stats: {
-                damageMultiplier: 2.5,
-                explosionRadius: 180,
-                freezeDuration: 3, // 3 seconds at 60fps
-                slowAmount: 0.6, // 60% slow
-                arrowCount: 1,
-                projectileSpeed: 8
-            }
+            damageMultiplier: 2.5,
+            explosionRadius: 180,
+            freezeDuration: 3, // 3 seconds at 60fps
+            slowAmount: 0.6, // 60% slow
+            arrowCount: 1,
+            projectileSpeed: 8
         },
     },
 
@@ -205,7 +203,7 @@ export const useGameStore = create((set, get) => ({
         // attackSpeed = seconds between attacks (0.6 → 600ms)
         const cooldownMs = state.player.stats.attackSpeed * 1000;
 
-        set({ basicAttack: { cooldownEnd: now + cooldownMs } });
+        set({basicAttack: {cooldownEnd: now + cooldownMs}});
         return true;
     },
 
@@ -217,7 +215,7 @@ export const useGameStore = create((set, get) => ({
         // dashCooldown is in frames (120 frames @ 60fps = 2000ms)
         const cooldownMs = (state.player.stats.dashCooldown / 60) * 1000;
 
-        set({ dash: { cooldownEnd: now + cooldownMs } });
+        set({dash: {cooldownEnd: now + cooldownMs}});
         return true;
     },
 
@@ -595,12 +593,12 @@ export const useGameStore = create((set, get) => ({
 // Base stats at level 1, scaled per level
 function getScaledStats(level) {
     return {
-        damage:      5  + (level - 1) * 2,       // +2 dmg per level
-        maxHp:       100 + (level - 1) * 15,      // +15 hp per level
+        damage: 5 + (level - 1) * 2,       // +2 dmg per level
+        maxHp: 100 + (level - 1) * 15,      // +15 hp per level
         attackSpeed: 0.6 + (level - 1) * 0.01,    // +0.01 per level (diminishing feel)
-        moveSpeed:   100,                          // flat, items only
-        critChance:  5,                            // flat, items only
-        critDamage:  100,                          // flat, items only
+        moveSpeed: 100,                          // flat, items only
+        critChance: 5,                            // flat, items only
+        critDamage: 100,                          // flat, items only
         projectiles: 1,                            // flat, items only
     };
 }

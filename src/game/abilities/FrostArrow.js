@@ -20,17 +20,17 @@ export function useFrostArrow(ctx, targetX, targetY) {
 
     store.useAbility(4, now);
 
-    const damageMult = ability.stats.damageMultiplier + (ability.level * 0.15);
-    const explosionRadius = ability.stats.explosionRadius;
-    const freezeDuration = ability.stats.freezeDuration;
-    const slowAmount = ability.stats.slowAmount;
+    const damageMult = ability.damageMultiplier + (ability.level * 0.15);
+    const explosionRadius = ability.explosionRadius;
+    const freezeDuration = ability.freezeDuration;
+    const slowAmount = ability.slowAmount;
 
     let angle;
     angle = Math.atan2(targetY - py, targetX - px);
 
     //VFX.burst(px, py, 0x88ccff, 15, 3);
 
-    const speed = ability.stats.projectileSpeed;
+    const speed = ability.projectileSpeed;
     const vx = Math.cos(angle) * speed;
     const vy = Math.sin(angle) * speed;
 
