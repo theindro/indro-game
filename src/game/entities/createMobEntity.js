@@ -7,6 +7,13 @@ import {
 
 import {BIOME_COLORS} from "../constants.js";
 import {VOID_SHAPE, VOID_SHAPE_3, VOID_SHAPE_7} from "../monsters.js";
+import {OutlineFilter} from "pixi-filters";
+
+const HOVER_FILTER = new OutlineFilter({
+    thickness: 2,
+    color: 0xaa66ff,
+    quality: 0.4,
+});
 
 // texture cache
 const textureCache = new Map();
@@ -121,6 +128,17 @@ export function createMobEntity(
 
     // center correctly
     body.anchor.set(0.5);
+
+    body.eventMode = 'static';
+    body.cursor = 'pointer';
+
+    body.on('pointerover', () => {
+        body.filters = [HOVER_FILTER];
+    });
+
+    body.on('pointerout', () => {
+        body.filters = null;
+    });
 
     c.addChild(body);
 

@@ -77,6 +77,7 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
     c.addChild(glow);
     }
 
+
     // Arrow trail (elemental color)
     const trail = new Graphics();
     trail.rect(-14, -1.5, 14, 3).fill({ color: arrowType.trailColor, alpha: arrowType.trailAlpha });
