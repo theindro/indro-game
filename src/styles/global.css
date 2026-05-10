@@ -180,7 +180,3 @@
 .ant-btn-primary:hover::after {
     opacity: 1;
 }
-
-.ant-btn-icon {
-    //height: 24px!important;
-}
