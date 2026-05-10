@@ -26,6 +26,8 @@ export default function DeathScreen() {
         setIsOpen(isDead);
     }, [isDead]);
 
+    if (!isDead) return;
+
     const handleQuit = () => {
         window.location.href = '/';
     };

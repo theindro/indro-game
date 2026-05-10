@@ -11,7 +11,8 @@ import {OutlineFilter} from "pixi-filters";
 
 const HOVER_FILTER = new OutlineFilter({
     thickness: 2,
-    color: 0xaa66ff,
+    color: 'red',
+    alpha: 0.65,
     quality: 0.4,
 });
 

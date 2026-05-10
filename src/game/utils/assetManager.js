@@ -271,7 +271,6 @@ class AssetManager {
                 return this.textures.get(name);
             }
 
-            console.log(`Loading texture "${name}" from ${path}`);
             const texture = await Assets.load(path);
             this.textures.set(name, texture);
 
@@ -280,7 +279,6 @@ class AssetManager {
                 this.textures.set(itemId, texture);
             }
 
-            console.log(`✓ Loaded: ${name}`);
             return texture;
         } catch (error) {
             console.warn(`Failed to load ${name} from ${path}:`, error.message);

@@ -1,5 +1,6 @@
 // stores/gameStore.js
 import {create} from 'zustand';
+import {ItemDatabase} from "../game/items.js";
 
 export const useGameStore = create((set, get) => ({
     // ===== CORE SYSTEMS =====
@@ -36,7 +37,7 @@ export const useGameStore = create((set, get) => ({
             projectiles: 1,
             moveSpeed: 100,
             dashSpeed: 100,
-            dashRange: 250,
+            dashRange: 320,
             dashDuration: 60,
             dashCooldown: 120,
             // Chain stats
@@ -164,11 +165,12 @@ export const useGameStore = create((set, get) => ({
     },
 
     addXP: (amount) => {
+        let levelUp = false;
+
         set(state => {
             let xp = state.player.xp + amount;
             let level = state.player.pLevel;
             let nextXP = state.player.XPnext;
-            let levelUp = false;
 
             // Player level up
             while (xp >= nextXP) {
@@ -195,6 +197,13 @@ export const useGameStore = create((set, get) => ({
 
         // Recalculate after state settles
         get().recalculateStats();
+
+        // Full heal after recalc so maxHp is already updated
+        if (levelUp) {
+            set(state => ({
+                player: {...state.player, hp: state.player.maxHp}
+            }));
+        }
     },
 
     useBasicAttack: () => {
@@ -329,17 +338,41 @@ export const useGameStore = create((set, get) => ({
     },
 
     // Methods
-    addItem: (item, quantity = 1) => {
+    addItem: (itemId, quantity = 1) => {
         const state = get();
-        const emptySlot = state.inventory.slots.findIndex(slot => slot === null);
 
-        if (emptySlot !== -1) {
-            const newSlots = [...state.inventory.slots];
-            newSlots[emptySlot] = {...item, quantity};
+        const dbItem = ItemDatabase[itemId];
+        if (!dbItem) return false;
+
+        const newSlots = [...state.inventory.slots];
+
+        // 1. Try stacking first
+        const existingSlot = newSlots.findIndex(
+            s => s && s.id === itemId && dbItem.stackable
+        );
+
+        if (existingSlot !== -1) {
+            newSlots[existingSlot] = {
+                id: itemId,
+                quantity: (newSlots[existingSlot].quantity || 1) + quantity,
+            };
+
             set({inventory: {...state.inventory, slots: newSlots}});
             return true;
         }
-        return false; // Inventory full
+
+        // 2. Find empty slot
+        const emptySlot = newSlots.findIndex(slot => slot === null);
+
+        if (emptySlot === -1) return false;
+
+        newSlots[emptySlot] = {
+            id: itemId,
+            quantity,
+        };
+
+        set({inventory: {...state.inventory, slots: newSlots}});
+        return true;
     },
 
     removeItem: (slotIndex, quantity = 1) => {
@@ -356,32 +389,6 @@ export const useGameStore = create((set, get) => ({
         set({inventory: {...state.inventory, slots: newSlots}});
     },
 
-    equipItem: (slotIndex) => {
-        const state = get();
-        const item = state.inventory.slots[slotIndex];
-        if (!item || !item.equipSlot) return;
-
-        const newEquipment = {...state.inventory.equipment};
-        const oldItem = newEquipment[item.equipSlot];
-
-        // Swap equipment
-        newEquipment[item.equipSlot] = item;
-
-        const newSlots = [...state.inventory.slots];
-        newSlots[slotIndex] = oldItem;
-
-        set({
-            inventory: {
-                ...state.inventory,
-                slots: newSlots,
-                equipment: newEquipment
-            }
-        });
-
-        // Update player stats based on equipment
-        get().recalculateStats();
-    },
-
     // In your gameStore.js, update recalculateStats to apply all item bonuses
     recalculateStats: () => {
         const state = get();
@@ -391,7 +398,7 @@ export const useGameStore = create((set, get) => ({
         // Sum equipment bonuses
         let bonus = {
             damage: 0, attackSpeed: 0, critChance: 0, critDamage: 0,
-            moveSpeed: 0, armor: 0, health: 0, projectiles: 0, dodge: 0,
+            moveSpeed: 0, armor: 0, health: 0, projectiles: 0, dodge: 0, chainCount: 0,
         };
 
         Object.values(state.inventory.equipment).forEach(item => {
@@ -408,6 +415,7 @@ export const useGameStore = create((set, get) => ({
             player: {
                 ...state.player,
                 maxHp: newMaxHp,
+                // only clamp hp down if it exceeds the new max, never heal
                 hp: Math.min(state.player.hp, newMaxHp),
                 stats: {
                     damage: base.damage + bonus.damage,
@@ -416,6 +424,7 @@ export const useGameStore = create((set, get) => ({
                     critChance: base.critChance + bonus.critChance,
                     critDamage: base.critDamage + bonus.critDamage,
                     projectiles: base.projectiles + bonus.projectiles,
+                    chainCount: base.chainCount + bonus.chainCount,
                     armor: bonus.armor,
                     dodge: bonus.dodge,
                     // keep dash stats untouched
@@ -424,7 +433,6 @@ export const useGameStore = create((set, get) => ({
                     dashDuration: state.player.stats.dashDuration,
                     dashCooldown: state.player.stats.dashCooldown,
                     chainEnabled: state.player.stats.chainEnabled,
-                    chainCount: state.player.stats.chainCount,
                     chainRange: state.player.stats.chainRange,
                     chainDamage: state.player.stats.chainDamage,
                 }
@@ -461,45 +469,80 @@ export const useGameStore = create((set, get) => ({
         return {damage: baseDamage, isCrit: false};
     },
 
-    // Add to your gameStore.js
+    equipItem: (slotItem) => {
+        const state = get();
+        if (!slotItem) return;
+
+        const dbItem = ItemDatabase[slotItem.id];
+        if (!dbItem?.equipSlot) return;
+
+        const slotKey = dbItem.equipSlot;
+        const newEquipment = {...state.inventory.equipment};
+        const oldItem = newEquipment[slotKey]; // currently equipped item
+
+        // Equip new item
+        newEquipment[slotKey] = dbItem;
+
+        const newSlots = [...state.inventory.slots];
+
+        // Remove equipped item from inventory
+        const inventoryIndex = newSlots.findIndex(s => s && s.id === slotItem.id);
+        if (inventoryIndex !== -1) newSlots[inventoryIndex] = null;
+
+        // If something was already equipped, put it back into inventory
+        if (oldItem) {
+            const emptySlot = newSlots.findIndex(s => s === null);
+            if (emptySlot !== -1) {
+                newSlots[emptySlot] = {id: oldItem.id, quantity: 1};
+            }
+        }
+
+        set({inventory: {...state.inventory, slots: newSlots, equipment: newEquipment}});
+        get().recalculateStats();
+    },
 
     unequipItem: (slotKey) => {
         const state = get();
         const item = state.inventory.equipment[slotKey];
-
         if (!item) return false;
 
-        // Find first empty slot in inventory
-        const emptySlot = state.inventory.slots.findIndex(slot => slot === null);
+        const newSlots = [...state.inventory.slots];
+        const emptySlot = newSlots.findIndex(s => s === null);
 
         if (emptySlot === -1) {
             console.log("Inventory full, cannot unequip");
             return false;
         }
 
-        console.log(`equipped ${slotKey}`);
-
-        // Remove from equipment
         const newEquipment = {...state.inventory.equipment};
         newEquipment[slotKey] = null;
 
-        // Add to inventory
-        const newSlots = [...state.inventory.slots];
-        newSlots[emptySlot] = item;
+        // Store as inventory wrapper {id, quantity}, not raw db item
+        newSlots[emptySlot] = {id: item.id, quantity: 1};
 
-        set({
-            inventory: {
-                ...state.inventory,
-                slots: newSlots,
-                equipment: newEquipment
-            }
-        });
-
-        // Recalculate stats after unequipping
+        set({inventory: {...state.inventory, slots: newSlots, equipment: newEquipment}});
         get().recalculateStats();
-
         return true;
     },
+
+    sellItem: (slotIndex) => {
+        const state = get();
+        const slot = state.inventory.slots[slotIndex];
+        if (!slot) return;
+
+        // Look up price from ItemDatabase, not from the slot wrapper
+        const dbItem = ItemDatabase[slot.id];
+        const sellPrice = Math.floor((dbItem?.price || 0) * 0.5);
+
+        get().removeItem(slotIndex);
+        set(state => ({
+            inventory: {
+                ...state.inventory,
+                gold: state.inventory.gold + sellPrice
+            }
+        }));
+    },
+
 
     damagePlayer: (amount, source = 'unknown') => set(state => {
         const newHp = Math.max(0, state.player.hp - amount);
@@ -580,22 +623,6 @@ export const useGameStore = create((set, get) => ({
         }
         return false;
     },
-
-    sellItem: (slotIndex) => {
-        const state = get();
-        const item = state.inventory.slots[slotIndex];
-        if (item) {
-            const sellPrice = Math.floor(item.price * 0.5);
-            get().removeItem(slotIndex);
-            set(state => ({
-                inventory: {
-                    ...state.inventory,
-                    gold: state.inventory.gold + sellPrice
-                }
-            }));
-        }
-    },
-
 }));
 
 // Base stats at level 1, scaled per level
@@ -608,5 +635,6 @@ function getScaledStats(level) {
         critChance: 5,                            // flat, items only
         critDamage: 100,                          // flat, items only
         projectiles: 1,                            // flat, items only
+        chainCount: 0
     };
 }

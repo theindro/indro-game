@@ -4,7 +4,7 @@ import {spawnMob} from '../controllers/createMobController.js';
 import {MOB_RADIUS, BIOME_COLORS} from '../constants.js';
 import {PropManager} from "./PropManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
-import * as PIXI from 'pixi.js';
+import { InteractablePropManager } from './InteractablePropManager.js';   // ADD
 
 const weatherConfig = {
     forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
@@ -34,7 +34,6 @@ export class OpenWorldManager {
         this.entitiesList = null;
         this.initialized = false;
         this.worldSeed = Math.floor(Math.random() * 1000000);
-
         this.config = {
             biomeScale: 0.006,
             debugChunks: false,
@@ -58,6 +57,8 @@ export class OpenWorldManager {
         this.chunkUpdateInterval = 100; // Only update chunks every 100ms
         this.processingChunks = false;
         this.pendingChunks = new Set();
+        this.persistedProps = new Set();
+        this.persistedMobs = new Set();
         this.onChunkChangeCallback = null; // ADD THIS LINE
 
         // Create PropManager
@@ -79,7 +80,20 @@ export class OpenWorldManager {
         //this.world.addChild(this.shadowLayer);
         //this.world.addChild(this.propLayer);
 
+
         this.entityLayer.sortableChildren = true;
+
+        // NOW construct interactablePropManager  ← moved down here
+        this.interactablePropManager = new InteractablePropManager(
+            this,
+            colliders,
+            this.worldSeed,
+            (loot, propDef, x, y) => {
+                if (this.onLootCallback) this.onLootCallback(loot, propDef, x, y);
+            }
+        );
+        this.interactablePropManager.setLayer(this.entityLayer); // ← entityLayer exists now ✓
+        this.onLootCallback = null;
 
         this.chunkTypes = {
             empty: 0.25,
@@ -319,6 +333,9 @@ export class OpenWorldManager {
                 const x = pack.x + Math.cos(angle) * dist;
                 const z = pack.z + Math.sin(angle) * dist;
 
+                // TODO: Dont respawn mobs that are killed
+                //if (this.persistedMobs.has(mobId)) continue;
+
                 const mob = spawnMob(
                     this.renderer,
                     this.entityLayer,
@@ -453,6 +470,9 @@ export class OpenWorldManager {
                 });
             }
         }
+
+        // Interactable props
+        this.interactablePropManager.update(playerX, playerZ, dt ?? 0);
     }
 
     async unloadChunk(key) {
@@ -467,6 +487,9 @@ export class OpenWorldManager {
 
         // Unload props (this is handled correctly)
         this.propManager.unloadChunkProps(key);
+
+        // Unload interactable props
+        this.interactablePropManager.unloadChunkProps(key);
 
         // Remove mobs
         const entities = this.spawnedEntities.get(key);
@@ -565,6 +588,11 @@ export class OpenWorldManager {
 
         // Chunk props
         await this.propManager.generateChunkProps(chunkX, chunkZ, chunk.biome, this.chunkSize, this.tileSize);
+
+        // Chunk interactable props
+        await this.interactablePropManager.generateChunkProps(
+            chunkX, chunkZ, chunk.biome, this.chunkSize, this.tileSize
+        );
 
         // Chunk mobs
         const chunkData = this.generateChunkData(chunkX, chunkZ);

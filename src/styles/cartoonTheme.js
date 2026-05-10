@@ -48,6 +48,9 @@ export const cartoonTheme = {
             colorBgContainer: 'rgba(255,255,255,0.05)',
             colorBorder: 'rgba(255,255,255,0.08)',
             colorText: 'rgba(255,255,255,0.7)',
+            colorPrimary: '#7a0fc2',           // base for primary variant
+            colorPrimaryHover: '#9b18e8',
+            colorPrimaryActive: '#5a0a99',
             boxShadow: 'none',
             boxShadowPrimary: 'none',
         },

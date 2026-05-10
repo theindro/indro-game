@@ -8,6 +8,7 @@ export class MinimapManager {
         this.openWorld = openWorld;
         this.playerRef = playerRef;
         this.entities = entities;
+        this.propsManager = this.openWorld.interactablePropManager;
 
         this.radius = 120;
         this.scale = 0.05;
@@ -23,7 +24,8 @@ export class MinimapManager {
             elite: 0xff6666,
             boss: 0xff0000,
             drop: 0xffd700,
-            poi: 0x00ff00
+            poi: 0x00ff00,
+            prop: 'rgba(45,152,8,0.7)',
         };
 
         this.dotPool = [];
@@ -258,6 +260,29 @@ export class MinimapManager {
             }
         }
 
+        // Process interactable props
+        if (this.propsManager?.allProps) {
+            for (const prop of this.propsManager.allProps) {
+                if (!prop || !prop.container || !prop.alive) continue;
+
+                const x = prop.x ?? prop.container.x;
+                const y = prop.y ?? prop.container.y;
+
+                if (x == null || y == null) continue;
+
+                const distance = Math.hypot(x - this.playerRef.x, y - this.playerRef.y);
+                const pos = this.worldToMinimap(x, y);
+
+                entitiesToDraw.push({
+                    type: 'prop',
+                    entity: prop,
+                    pos,
+                    distance,
+                    priority: 3
+                });
+            }
+        }
+
         // Sort by priority (lower number = higher priority) then by distance
         entitiesToDraw.sort((a, b) => {
             if (a.priority !== b.priority) return a.priority - b.priority;
@@ -268,6 +293,7 @@ export class MinimapManager {
         let mobsDrawn = 0;
         let bossesDrawn = 0;
         let dropsDrawn = 0;
+        let propsDrawn = 0;
 
         for (const item of entitiesToDraw) {
             // Check limits
@@ -299,6 +325,14 @@ export class MinimapManager {
                 case 'drop':
                     g.circle(0, 0, 2).fill({ color: this.colors.drop });
                     dropsDrawn++;
+                    break;
+
+                case 'prop':
+                    if (propsDrawn >= 25) continue;
+                    propsDrawn++;
+
+                    g.circle(0, 0, 3).fill({ color: this.colors.prop });
+
                     break;
             }
 

@@ -94,13 +94,6 @@ export async function createGame() {
     // ==================== UI ====================
     const minimap = new MinimapManager(app, openWorld, {x: px, y: py, rotation: 0}, entities);
 
-    // Debug
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'F2') {
-            useGameStore.getState().toggleDebug();
-        }
-    });
-
     // ==================== SETUP ====================
     setupEventListeners(input, dash, combat, playerState.stats, mouseWorld, entities.bosses, openWorld);
     setupChunkChangeHandler(openWorld, weatherSystem);
@@ -109,6 +102,54 @@ export async function createGame() {
     pCont.x = px;
     pCont.y = py;
     openWorld.entityLayer.addChild(pCont);
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'F2') {
+            useGameStore.getState().toggleDebug();
+            return;
+        }
+
+        if (e.key.toLowerCase() === 'e') {
+            const ipm = openWorld.interactablePropManager;
+            const result = ipm.tryInteract(px, py);
+
+            if (result === null) {
+                // Nothing in range, or harvest started (loot comes via onLoot callback)
+                return;
+            }
+
+            // Instant loot (chest / container opened)
+            if (result.loot && result.loot.length > 0) {
+                console.log(`[Loot] Opened ${result.prop.def.label}:`, result.loot);
+
+                for (const drop of result.loot) {
+                    // Hook into your inventory / store here, e.g.:
+                    // useGameStore.getState().addItem(drop.id, drop.amount);
+                    console.log(`  +${drop.amount}x ${drop.id}`);
+                }
+            }
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.key.toLowerCase() === 'e') {
+            openWorld.interactablePropManager.cancelInteract();
+        }
+    });
+
+    openWorld.interactablePropManager.onLoot = (loot, propDef, x, y) => {
+        console.log(`[Harvest Complete] ${propDef.label}:`, loot);
+
+        for (const drop of loot) {
+            console.log(drop);
+
+            useGameStore.getState().addItem(drop.id, drop.amount);
+            console.log(`  +${drop.amount}x ${drop.id}`);
+        }
+
+        // Optionally spawn floating text / particles at (x, y)
+        // VFX.floatText(`+${loot.map(d => d.amount + 'x ' + d.id).join(', ')}`, x, y);
+    };
 
     // ==================== GAME LOOP ====================
     app.ticker.add((ticker) => {
@@ -205,7 +246,7 @@ export async function createGame() {
         checkDeath(playerState, gameState, killsRef);
     });
 
-    return () => cleanup(input, debug, app, chunkMonitor);
+    return () => cleanup(input, debug, app, chunkMonitor, world);
 }
 
 // ==================== HELPER FUNCTIONS ====================
@@ -249,7 +290,7 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, ope
         switch (key) {
             case '1':
                 if (useGameStore.getState().player.pLevel >= 3)
-                combat.useArrowBarrage(mouseWorld.x, mouseWorld.y);
+                    combat.useArrowBarrage(mouseWorld.x, mouseWorld.y);
                 break;
             case '2':
                 if (useGameStore.getState().player.pLevel >= 5)
@@ -281,10 +322,10 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
         if (info.biome === lastWeatherBiome && !isTransitioning) return;
 
         const weatherConfig = {
-            desert: { type: 'sandstorm', intensity: 0.7, speed: 1.0 },
-            forest: { type: 'rain', intensity: 0.7, speed: 1.0 },
-            ice: { type: 'snow', intensity: 0.6, speed: 0.8 },
-            lava: { type: 'embers', intensity: 0.8, speed: 0.8 }
+            desert: {type: 'sandstorm', intensity: 0.7, speed: 1.0},
+            forest: {type: 'rain', intensity: 0.7, speed: 1.0},
+            ice: {type: 'snow', intensity: 0.6, speed: 0.8},
+            lava: {type: 'embers', intensity: 0.8, speed: 0.8}
         };
 
         const weather = weatherConfig[info.biome];
@@ -439,9 +480,10 @@ function checkDeath(playerState, gameState, killsRef) {
     }
 }
 
-function cleanup(input, debug, app, chunkMonitor) {
+function cleanup(input, debug, app, chunkMonitor, world) {
     input.destroy();
     debug.destroy();
     chunkMonitor.destroy();
     app.destroy(true, {children: true});
+    world.destroy({ children: true });
 }

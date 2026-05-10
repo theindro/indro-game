@@ -5,3 +5,182 @@
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="27" viewBox="0 0 24 27"><polygon points="2,2 22,13 12,13 9,25" fill="%23ffaa44" stroke="%23000" stroke-width="2"/><circle cx="6" cy="8" r="2" fill="white"/></svg>') 4 2, auto !important;
 }
 
+@keyframes fadeUp {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+}
+
+
+.item-card {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    border: solid 1px rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-self: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden!important;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.08);
+}
+
+.item-card.magic {
+    border-color: rgba(0, 178, 255, 0.4);
+}
+
+.item-card.magic:after {
+    background: radial-gradient(ellipse at 50% 110%, rgba(0, 140, 255, 0.2) 0%, transparent 70%);
+}
+
+.item-card.rare {
+    border-color: rgba(208, 0, 255, 0.25);
+}
+
+.item-card.rare:after {
+    background: radial-gradient(ellipse at 50% 110%, rgba(208, 0, 255, 0.25) 0%, transparent 70%);
+}
+
+.item-card.epic {
+    border-color: rgba(208, 0, 255, 0.6);
+}
+
+.item-card.epic:after {
+    background: radial-gradient(ellipse at 50% 110%, rgba(208, 0, 255, 0.6) 0%, transparent 70%);
+}
+
+
+.item-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ── Legendary item ─────────────────────────── */
+.item-legendary {
+    border: 1.5px solid #ffbb55;
+}
+
+
+/* Subtle bottom heat glow */
+.item-legendary::after {
+    background: radial-gradient(ellipse at 50% 110%, rgba(255, 120, 0, 0.35) 0%, transparent 70%);
+}
+
+/* Icon sits above the glow layers */
+.item-legendary .icon {
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 0 6px rgba(255, 180, 60, 0.7));
+}
+
+@keyframes spinGlow {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ── Ember particle container ───────────────── */
+.ember-container {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.ember {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    --dur: 5s;    /* fallback */
+    --delay: 0s;    /* fallback */
+    --dx: 0px;      /* fallback */
+    --dx2: 0px;     /* fallback */
+    animation: emberRise var(--dur) ease-out var(--delay) infinite;
+}
+
+@keyframes emberRise {
+    0%   { opacity: 0;   transform: translate(0, 0)                      scale(1);   }
+    10%  { opacity: 0.9;                                                              }
+    60%  { opacity: 0.7; transform: translate(var(--dx),  -52px)         scale(0.7); }
+    100% { opacity: 0;   transform: translate(var(--dx2), -90px)         scale(0.2); }
+}
+
+.bottom-right-float-card {
+    position: fixed;
+    bottom: 100px;
+    right: 24px;
+    width: 700px;
+    z-index: 10000;
+    background: rgba(10, 12, 16, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* Primary button gradient override */
+.ant-btn-primary {
+    background: linear-gradient(135deg, #a020f0 0%, #6a0dad 50%, #4a0080 100%) !important;
+    border: 1px solid rgba(180, 60, 255, 0.5) !important;
+    box-shadow:
+            0 0 12px rgba(150, 20, 240, 0.4),
+            0 2px 8px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    transition: all 0.15s ease !important;
+}
+
+.ant-btn-primary:hover {
+    background: linear-gradient(135deg, #b830ff 0%, #8a1ddd 50%, #6a10bb 100%) !important;
+    box-shadow:
+            0 0 20px rgba(170, 40, 255, 0.6),
+            0 4px 12px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    transform: translateY(-1px);
+}
+
+.ant-btn-primary:active {
+    background: linear-gradient(135deg, #8010d0 0%, #5a0aaa 50%, #3a0070 100%) !important;
+    box-shadow:
+            0 0 8px rgba(130, 20, 220, 0.4),
+            0 1px 4px rgba(0, 0, 0, 0.5),
+            inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(0px);
+}
+
+/* Shine sweep on hover */
+.ant-btn-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+            105deg,
+            transparent 40%,
+            rgba(255, 255, 255, 0.12) 50%,
+            transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.ant-btn-primary:hover::after {
+    opacity: 1;
+}
+
+.ant-btn-icon {
+    //height: 24px!important;
+}

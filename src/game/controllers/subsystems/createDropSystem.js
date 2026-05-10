@@ -62,7 +62,6 @@ export function createDropSystem(ctx) {
         container.x = x;
         container.y = y;
 
-            console.log(drop);
         if (drop.type === 'gold') {
             // Gold drop visual
             const graphics = new Graphics();
@@ -209,10 +208,15 @@ export function createDropSystem(ctx) {
     function updateDrops(px, py) {
         if (!drops) return;
 
+        // Batch accumulators
+        let goldBatch = 0;
+        let voidBatch = 0;
+        let hpBatch = 0;
+        const itemBatch = [];
+
         for (let di = drops.length - 1; di >= 0; di--) {
             const d = drops[di];
 
-            // Skip if already destroyed or missing container
             if (!d || !d.container || d.container.destroyed) {
                 drops.splice(di, 1);
                 continue;
@@ -222,10 +226,8 @@ export function createDropSystem(ctx) {
             const dy = py - d.container.y;
             const dist = Math.hypot(dx, dy);
 
-            // Update arrow zindex
             d.container.zIndex = d.container.y;
 
-            // Cull far drops for performance
             if (dist > 1000) {
                 if (d.container.parent) d.container.parent.removeChild(d.container);
                 d.container.destroy();
@@ -233,57 +235,91 @@ export function createDropSystem(ctx) {
                 continue;
             }
 
-            // Animate drop
             if (d.update) d.update();
 
-            // Magnetic effect (pull towards player)
             if (dist < 120) {
                 d.container.x += dx * 0.07;
                 d.container.y += dy * 0.07;
             }
 
-            // Pickup logic
             if (dist < 22) {
                 audioManager.playSFX('/sounds/pickup.mp3', 0.15);
-                if (d.type === 'hp') {
-                    useGameStore.getState().healPlayer(d.amount || 20);
 
+                // Accumulate instead of calling store immediately
+                if (d.type === 'gold')         goldBatch += d.amount || 1;
+                else if (d.type === 'void_essence') voidBatch += d.amount || 1;
+                else if (d.type === 'hp')       hpBatch += d.amount || 20;
+                else // Change itemBatch to store just the id string
+                if (d.type === 'item' && d.item) {
+                    const itemId = d.item.id; // ← cache before any cleanup
+                    itemBatch.push(itemId);
+                }
+
+                // VFX still per-drop (pixi only, no react)
+                if (d.type === 'hp')
                     VFX.burst(d.container.x, d.container.y, 0xff2255, 6, 2);
 
-                    VFX.addFloat(`+${d.amount || 20} HP`, d.container.x, d.container.y, '#ff2255');
+                VFX.addFloat(
+                    d.type === 'gold' ? `+${d.amount}` :
+                        d.type === 'hp'   ? `+${d.amount} HP` :
+                            d.type === 'void_essence' ? `+${d.amount}` :
+                                d.item?.name,
+                    d.container.x, d.container.y,
+                    d.type === 'gold' ? '#ffd700' :
+                        d.type === 'hp'   ? '#ff2255' :
+                            d.type === 'void_essence' ? 'purple' :
+                                d.item?.rarity?.color || '#ffaa44'
+                );
 
-                } else if (d.type === 'gold') {
-                    useGameStore.getState().addGold(d.amount || 1);
+                if (d.container.parent) d.container.parent.removeChild(d.container);
+                if (!d.container.destroyed) d.container.destroy({ children: true });
+                d.container = null;
+                d.item = null;
+                drops.splice(di, 1);
+            }
+        }
 
-                    VFX.addFloat(`+${d.amount || 1}`, d.container.x, d.container.y, '#ffd700');
-                } else if (d.type === 'void_essence') {
-                    useGameStore.getState().addVoidEssence(d.amount || 1);
+        // ── Single store update per frame ──────────────────
+        if (goldBatch || voidBatch || hpBatch || itemBatch.length) {
+            const store = useGameStore.getState();
 
-                    VFX.addFloat(`+${d.amount || 1}`, d.container.x, d.container.y, 'purple');
-                } else if (d.type === 'item' && d.item) {
-                    const added = useGameStore.getState().addItem(d.item, 1);
+            useGameStore.setState(state => {
+                const inv = state.inventory;
+                const newSlots = [...inv.slots];
+                let addedItems = true;
 
-                    if (added) {
-                        const rarityColor = d.item.rarity?.color || '#ffaa44';
+                console.log(itemBatch);
 
-                        VFX.addFloat(d.item.name, d.container.x, d.container.y, rarityColor);
+                for (const itemId of itemBatch) {
+                    if (!itemId) continue; // safety guard
+                    const idx = newSlots.findIndex(
+                        s => s && s.id === itemId && ItemDatabase[itemId]?.stackable
+                    );
+                    if (idx !== -1) {
+                        newSlots[idx] = { ...newSlots[idx], quantity: newSlots[idx].quantity + 1 };
+                    } else {
+                        const empty = newSlots.findIndex(s => s === null);
+                        if (empty !== -1) newSlots[empty] = { id: itemId, quantity: 1 };
+                        else addedItems = false;
                     }
                 }
 
-                // Cleanup
-                if (d.container && d.container.parent) {
-                    d.container.parent.removeChild(d.container);
-                }
-                if (d.container && !d.container.destroyed) {
-                    d.container.destroy({children: true});
-                }
+                return {
+                    player: hpBatch ? {
+                        ...state.player,
+                        hp: Math.min(state.player.maxHp, state.player.hp + hpBatch)
+                    } : state.player,
+                    inventory: {
+                        ...inv,
+                        gold: inv.gold + goldBatch,
+                        void_essence: inv.void_essence + voidBatch,
+                        slots: newSlots,
+                    }
+                };
+            });
 
-                // Clear references
-                d.container = null;
-                d.item = null;
-
-                drops.splice(di, 1);
-            }
+            // Recalc only if items were picked up
+            if (itemBatch.length) store.recalculateStats();
         }
     }
 

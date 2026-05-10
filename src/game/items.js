@@ -9,10 +9,11 @@ export const ItemTypes = {
     AMULET: 'amulet',
     BOW: 'bow',
     CONSUMABLE: 'consumable',
+    CRAFTING: 'crafting',
 };
 
 export const ItemRarity = {
-    COMMON: {name: 'Common', color: '#ffffff', multiplier: 1, dropChance: 60},
+    COMMON: {name: 'Common', color: 'rgba(255,255,255,0.4)', multiplier: 1, dropChance: 60},
     MAGIC: {name: 'Magic', color: '#44aaff', multiplier: 1.5, dropChance: 25},
     RARE: {name: 'Rare', color: '#aa44ff', multiplier: 2, dropChance: 10},
     EPIC: {name: 'Epic', color: '#ff44aa', multiplier: 3, dropChance: 4},
@@ -30,6 +31,176 @@ function getStatValue(baseValue, rarity, isPercent = false) {
 
 // Complete Item Database
 export const ItemDatabase = {
+    // ============= CRAFTING PROPS =============
+
+    'chest_wood': {
+        id: 'chest_wood',
+        name: 'Wooden Chest',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '📦',
+        texture: '/rpg/props/chest_wood.png',
+        textureId: 'chest_wood',
+        stackable: false,
+        description: 'A simple wooden chest. Might contain loot.',
+    },
+
+    'chest_iron': {
+        id: 'chest_iron',
+        name: 'Iron Chest',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '🧰',
+        texture: '/rpg/props/chest_iron.png',
+        textureId: 'chest_iron',
+        stackable: false,
+        description: 'Reinforced chest with better loot.',
+    },
+
+    'chest_gold': {
+        id: 'chest_gold',
+        name: 'Golden Chest',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.RARE,
+        icon: '🟡',
+        texture: '/rpg/props/chest_gold.png',
+        textureId: 'chest_gold',
+        stackable: false,
+        description: 'Rare chest with valuable loot.',
+    },
+
+    'chest_ancient': {
+        id: 'chest_ancient',
+        name: 'Ancient Chest',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.EPIC,
+        icon: '🪦',
+        texture: '/rpg/props/chest_ancient.png',
+        textureId: 'chest_ancient',
+        stackable: false,
+        description: 'Ancient chest containing forgotten treasures.',
+    },
+
+    // ============= RESOURCES =============
+    'wood_plank': {
+        id: 'wood_plank',
+        name: 'Wood',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '🪵',
+        texture: '/rpg/resources/22.png',
+        textureId: 'wood_plank',
+        stackable: true,
+        gatherable: true,
+        description: 'Crafting resource.',
+    },
+
+    'iron_ingot': {
+        id: 'iron_ingot',
+        name: 'Iron Ore',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '⛏️',
+        texture: '/rpg/resources/9.png',
+        textureId: 'iron_ingot',
+        stackable: true,
+        gatherable: true,
+        description: 'Crafting resource.',
+    },
+
+    'gold_ingot': {
+        id: 'gold_ingot',
+        name: 'Gold Ore',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '🟡',
+        texture: '/rpg/resources/13.png',
+        textureId: 'gold_ingot',
+        stackable: true,
+        gatherable: true,
+        description: 'Crafting resource.',
+    },
+
+    'crystal_shard': {
+        id: 'crystal_shard',
+        name: 'Crystal Ore',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.RARE,
+        icon: '💎',
+        texture: '/rpg/resources/8.png',
+        textureId: 'crystal_shard',
+        stackable: true,
+        gatherable: true,
+        description: 'Magical crystal ore.',
+    },
+
+    'lava_stone': {
+        id: 'lava_stone',
+        name: 'Lava Ore',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.EPIC,
+        icon: '🔥',
+        texture: '/rpg/resources/10.png',
+        textureId: 'lava_stone',
+        stackable: true,
+        gatherable: true,
+        description: 'Volcanic ore infused with heat.',
+    },
+
+    // ============= HERBS =============
+
+    'herb': {
+        id: 'herb',
+        name: 'Green Herb',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '🌿',
+        texture: '/rpg/resources/hemp.png',
+        textureId: 'herb',
+        stackable: true,
+        gatherable: true,
+        description: 'Basic healing herb.',
+    },
+
+    'frostbloom': {
+        id: 'frostbloom',
+        name: 'Ice Herb',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '❄️',
+        texture: '/rpg/resources/silkweed.png',
+        textureId: 'frostbloom',
+        stackable: true,
+        gatherable: true,
+        description: 'Cold herb used in potions.',
+    },
+
+// ============= CONTAINERS =============
+
+    'barrel': {
+        id: 'barrel',
+        name: 'Barrel',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '🛢️',
+        texture: '/rpg/props/barrel.png',
+        textureId: 'barrel',
+        stackable: false,
+        description: 'Can contain random loot.',
+    },
+
+    'crate': {
+        id: 'crate',
+        name: 'Crate',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.COMMON,
+        icon: '📦',
+        texture: '/rpg/props/crate.png',
+        textureId: 'crate',
+        stackable: false,
+        description: 'Wooden supply crate.',
+    },
+
     // ============= BOOTS (1-6) =============
     'leather_boots': {
         id: 'leather_boots',
@@ -558,11 +729,11 @@ export const ItemDatabase = {
         id: 'windbow',
         name: 'Windrunner Bow',
         type: ItemTypes.BOW,
-        rarity: ItemRarity.EPIC,
+        rarity: ItemRarity.LEGENDARY,
         icon: '🏹',
         texture: '/rpg/armour/89.png',
         textureId: 'bow_89',
-        price: 1200,
+        price: 690000,
         equipSlot: "weapon",
         description: 'Bow blessed by wind spirits',
         stats: {
@@ -571,7 +742,7 @@ export const ItemDatabase = {
             range: 90,
             dexterity: 20,
             critChance: 12,
-            pierce: 25,
+            chainCount: 2
         }
     },
 

@@ -10,7 +10,12 @@ import {
     UserOutlined,
     TrophyOutlined,
     SettingOutlined,
-    CompassOutlined, BellOutlined, FolderOutlined,
+    CompassOutlined,
+    BellOutlined,
+    FolderOutlined,
+    QuestionCircleOutlined,
+    ExclamationCircleOutlined,
+    PlusCircleOutlined, HeatMapOutlined, FireOutlined,
 } from '@ant-design/icons';
 import {useGameStore} from '../stores/gameStore';
 import Inventory from './Inventory';
@@ -25,17 +30,24 @@ const MENU_ITEMS = [
         hotkey: 'Esc',
     },
     {
-        key: 'achievements',
-        icon: <TrophyOutlined/>,
-        label: 'Achievements',
-        hotkey: 'A',
-        disabled: true,
-    },
-    {
         key: 'map',
         icon: <CompassOutlined/>,
         label: 'Map',
         hotkey: 'M',
+        disabled: true,
+    },
+    {
+        key: 'quests',
+        icon: <ExclamationCircleOutlined/>,
+        label: 'Quests',
+        hotkey: '',
+        disabled: true,
+    },
+    {
+        key: 'skills',
+        icon: <FireOutlined/>,
+        label: 'Skills',
+        hotkey: '',
         disabled: true,
     },
     {
@@ -46,7 +58,7 @@ const MENU_ITEMS = [
     },
     {
         key: 'inventory',
-        icon: <FolderOutlined/>,
+        icon: '/icons/backpack.png',
         label: 'Inventory',
         hotkey: 'I',
     },
@@ -145,27 +157,29 @@ const BottomRightMenu = () => {
                 >
                     <Space size={4}>
 
-                        {MENU_ITEMS.map((item) => (
-                            <Tooltip
-                                key={item.key}
-                                title={`${item.label} (${item.hotkey})`}
-                                placement="top"
-                                overlayStyle={{zIndex: 10001}}
-                            >
-                                <Button
-                                    disabled={item.disabled}
-                                    type={openPanel === item.key ? "primary" : "text"}
-                                    icon={item.icon}
-                                    onClick={() => togglePanel(item.key)}
-                                    style={{
-                                        width: 52,
-                                        height: 52,
-                                        borderRadius: 10,
-                                        fontSize: 22,
-                                    }}
-                                />
-                            </Tooltip>
-                        ))}
+                        {MENU_ITEMS.map((item) => {
+                            return (
+                                <Tooltip
+                                    key={item.key}
+                                    title={`${item.label} (${item.hotkey})`}
+                                    placement="top"
+                                    overlayStyle={{zIndex: 10001}}
+                                >
+                                    <Button
+                                        disabled={item.disabled}
+                                        type={openPanel === item.key ? "primary" : "text"}
+                                        icon={item.key === 'inventory' ? <img style={{marginBottom: -3}} src={item.icon} width={20} alt=""/> : item.icon }
+                                        onClick={() => togglePanel(item.key)}
+                                        style={{
+                                            width: 52,
+                                            height: 52,
+                                            borderRadius: 10,
+                                            fontSize: 22,
+                                        }}
+                                    />
+                                </Tooltip>
+                            )
+                        })}
 
                     </Space>
                 </Card>

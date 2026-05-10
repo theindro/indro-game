@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
     Card,
     Tooltip,
@@ -12,296 +12,169 @@ import {
 } from 'antd';
 import { useGameStore } from '../stores/gameStore';
 import { audioManager } from "../game/utils/audioManager.js";
+import {ItemDatabase} from "../game/items.js";
+import ItemCard from "./Items/ItemCard.jsx";
 
 const { Text } = Typography;
-
-const ABILITY_UNLOCK_LEVELS = { /* not needed here */ };
-
-const STAT_LABELS = {
-    damage: { label: 'DMG', color: '#e8a825' },
-    chest: { label: 'ARM', color: '#7f77dd' },
-    attackSpeed: { label: 'ASPD', color: '#3b9e75' },
-    critChance: { label: 'CRIT', color: '#e06b6b' },
-    moveSpeed: { label: 'SPD', color: '#4fc3f7' },
-    projectiles: { label: 'PROJ', color: '#ce93d8' },
-    health: { label: 'HP', color: '#3b9e75' },
-};
-
-const EQUIPMENT_LAYOUT = [
-    [null, 'helmet', null],
-    ['gloves', 'chest', 'weapon'],
-    [null, 'pants', null],
-    ['amulet', 'boots', 'ring'],
-];
-
-function StatPill({ statKey, value }) {
-    const def = STAT_LABELS[statKey];
-    if (!def || !value) return null;
-
-    const display = statKey === 'moveSpeed'
-        ? `+${Math.floor(value * 100)}%`
-        : `+${value}`;
-
-    return (
-        <Badge
-            color={def.color}
-            text={
-                <span style={{ color: def.color, fontSize: 12, fontWeight: 600 }}>
-                    {display} {def.label}
-                </span>
-            }
-        />
-    );
-}
-
-function ItemTooltip({ item, sellPrice, showSell }) {
-    if (!item) return null;
-
-    return (
-        <div style={{ minWidth: 180 }}>
-            <div style={{ fontWeight: 600, fontSize: 15, color: item?.rarity?.color || '#fff' }}>
-                {item.name}
-            </div>
-
-            {item.description && (
-                <div style={{ fontSize: 12, color: '#aaa', margin: '6px 0' }}>
-                    {item.description}
-                </div>
-            )}
-
-            <Space direction="vertical" size={2}>
-                {Object.entries(item.stats || {}).map(([key, val]) =>
-                    val ? <StatPill key={key} statKey={key} value={val} /> : null
-                )}
-            </Space>
-
-            {showSell && (
-                <div style={{ marginTop: 10, fontSize: 12, color: '#888' }}>
-                    Click to equip • Right-click to sell for <Text type="warning">{sellPrice}g</Text>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function EquipSlot({ slotKey, item, onUnequip }) {
-    const accentColor = item?.rarity?.color || '#333';
-
-    return (
-        <Tooltip
-            title={item ? <ItemTooltip item={item} showSell={false} /> : null}
-            placement="right"
-            arrow={false}
-        >
-            <div
-                onContextMenu={(e) => { e.preventDefault(); if (item) onUnequip(slotKey); }}
-                style={{
-                    width: 54,
-                    height: 54,
-                    borderRadius: 10,
-                    background: item ? `${accentColor}15` : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${item ? accentColor : 'rgba(255,255,255,0.1)'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: item ? 'pointer' : 'default',
-                    position: 'relative',
-                }}
-            >
-                {item?.texture ? (
-                    <img src={item.texture} alt={item.name} width={34} height={34} />
-                ) : (
-                    <span style={{ fontSize: 24, opacity: 0.2 }}>•</span>
-                )}
-
-                {item && (
-                    <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: 3,
-                        background: accentColor,
-                    }} />
-                )}
-            </div>
-        </Tooltip>
-    );
-}
-
-function InventorySlot({ item, index, onEquip, onSell }) {
-    const sellPrice = item ? Math.floor((item.price || 0) * 0.5) : 0;
-    const accentColor = item?.rarity?.color || '#333';
-
-    return (
-        <Tooltip
-            title={item ? <ItemTooltip item={item} sellPrice={sellPrice} showSell /> : null}
-            placement="top"
-            arrow={false}
-        >
-            <div
-                onClick={() => item && onEquip(index)}
-                onContextMenu={(e) => { e.preventDefault(); if (item) onSell(index); }}
-                style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 8,
-                    background: item ? `${accentColor}12` : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${item ? accentColor : 'rgba(255,255,255,0.08)'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: item ? 'pointer' : 'default',
-                    position: 'relative',
-                }}
-            >
-                {item?.texture ? (
-                    <img src={item.texture} alt={item.name} width={32} height={32} />
-                ) : (
-                    <span style={{ fontSize: 20, opacity: 0.15 }}>•</span>
-                )}
-
-                {item?.quantity > 1 && (
-                    <Badge
-                        count={item.quantity}
-                        size="small"
-                        style={{ position: 'absolute', bottom: 2, right: 2, fontSize: 10 }}
-                    />
-                )}
-            </div>
-        </Tooltip>
-    );
-}
 
 export default function Inventory({isOpen, setIsOpen}) {
     const [messageApi, contextHolder] = message.useMessage();
 
     const inventory = useGameStore((s) => s.inventory);
-    const playerLevel = useGameStore((s) => s.player.pLevel);
-    const playerMaxHp = useGameStore((s) => s.player.maxHp);
-    const playerStats = useGameStore((s) => s.player.stats);
 
     const equipItem = useGameStore((s) => s.equipItem);
+    const removeItem = useGameStore((s) => s.removeItem);
     const sellItem = useGameStore((s) => s.sellItem);
-    const unequipItem = useGameStore((s) => s.unequipItem);
+    const [lootPopup, setLootPopup] = useState(null);
+    const prevSlotsRef = useRef([]);
+
+    useEffect(() => {
+        const prev = prevSlotsRef.current;
+        const current = inventory?.slots || [];
+
+        if (!prev.length) {
+            prevSlotsRef.current = current;
+            return;
+        }
+
+        const changes = [];
+
+        for (let i = 0; i < current.length; i++) {
+            const prevItem = prev[i];
+            const currItem = current[i];
+
+            if (!currItem) continue;
+
+            // new item
+            if (!prevItem && currItem) {
+                changes.push({
+                    id: currItem.id,
+                    quantity: currItem.quantity,
+                });
+            }
+
+            // quantity increase
+            if (prevItem && currItem && currItem.quantity > prevItem.quantity) {
+                changes.push({
+                    id: currItem.id,
+                    quantity: currItem.quantity - prevItem.quantity,
+                });
+            }
+        }
+
+        if (changes.length > 0) {
+            const first = changes[0];
+            setLootPopup(first);
+
+            setTimeout(() => {
+                setLootPopup(null);
+            }, 1000);
+        }
+
+        prevSlotsRef.current = current;
+    }, [inventory?.slots]);
 
     useEffect(() => {
         if (isOpen) audioManager.playSFX('/sounds/open-close.mp3', 0.15);
     }, [isOpen]);
 
-    const handleEquip = (index) => {
-        const item = inventory?.slots?.[index];
-        if (!item) return;
+    const handleEquip = (i) => {
+        if (!i) return;
 
-        if (item.equipSlot) {
-            equipItem(index);
-            messageApi.success(`Equipped ${item.name}`, 1.5);
+        if (i.equipSlot) {
+            equipItem(i);
+            messageApi.success(`Equipped ${i.name}`, 1.5);
         } else {
-            messageApi.warning(`${item.name} cannot be equipped`, 1.5);
+            messageApi.warning(`${i.name} cannot be equipped`, 1.5);
         }
     };
-
-    const handleSell = (index) => {
-        return;
-        const item = inventory?.slots?.[index];
-        if (!item) return;
-        const price = Math.floor((item.price || 0) * 0.5);
-        sellItem(index);
-        messageApi.success(`Sold ${item.name} for ${price}g`, 1.5);
-    };
-
-    const handleUnequip = (slotKey) => {
-        const item = inventory?.equipment?.[slotKey];
-        if (!item) return;
-
-        if (unequipItem(slotKey)) {
-            messageApi.info(`Unequipped ${item.name}`, 1.5);
-        } else {
-            messageApi.warning('Inventory is full', 1.5);
-        }
-    };
-
-    if (!isOpen) return <>{contextHolder}</>;
 
     const slots = inventory?.slots || [];
-    const equipment = inventory?.equipment || {};
 
-    console.log('rerendering inventory bar');
+    const handleAction = useCallback((actionKey, item) => {
+        if (actionKey === 'equip')  equipItem(item);
+        if (actionKey === 'sell')   sellItem(slots.findIndex(s => s?.id === item.id));
+        if (actionKey === 'drop')   removeItem(slots.findIndex(s => s?.id === item.id));
+        if (actionKey === 'craft')  console.log('craft', item); // hook up later
+    }, [equipItem, sellItem, removeItem, slots]);
+
+    console.log('rerendering inventory');
 
     return (
         <>
-            {contextHolder}
-
-            <Card
-                style={{
-                    position: 'fixed',
-                    bottom: 100,
-                    right: 24,
-                    width: 300,
-                    zIndex: 10000,
-                    background: 'rgba(10, 12, 16, 0.92)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    backdropFilter: 'blur(20px)',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-                }}
-                styles={{
-                    body: { padding: 0 },
-                    header: { display: 'none' }
-                }}
-            >
-                <Row>
-                    <Col span={24}>
-                        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 8 }}>
-                            <Text strong>
-                                Inventory
-                            </Text>
-                            <Text type="secondary">
-                                {slots.filter(Boolean).length} / {slots.length}
-                            </Text>
-                        </div>
-
-                        <div style={{ padding: '20px' }}>
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)',
-                                gap: 10,
-                            }}>
-                                {slots.map((item, i) => (
-                                    <InventorySlot
-                                        key={i}
-                                        item={item}
-                                        index={i}
-                                        onEquip={handleEquip}
-                                        onSell={handleSell}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        <Divider style={{ margin: 0 }} />
-                        <div style={{ padding: '10px', textAlign: 'center', fontSize: 12, color: '#666' }}>
-                            Click to equip
-                        </div>
-                    </Col>
-                </Row>
-
-                {/* Close Button */}
-                <button
-                    onClick={() => setIsOpen(false)}
+            {lootPopup && (
+                <div
                     style={{
-                        position: 'absolute',
-                        top: 14,
-                        right: 18,
-                        background: 'none',
-                        border: 'none',
-                        fontSize: 18,
-                        color: '#888',
-                        cursor: 'pointer',
+                        position: 'fixed',
+                        top: '45%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'rgba(0,0,0,0.7)',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        color: '#fff',
+                        fontWeight: 600,
+                        zIndex: 99999,
+                        animation: 'fadeUp 1s ease-out'
                     }}
                 >
-                    ✕
-                </button>
-            </Card>
+                    <img
+                        src={ItemDatabase[lootPopup.id]?.texture}
+                        width={28}
+                        height={28}
+                    />
+                    <span>
+                        +{lootPopup.quantity} {ItemDatabase[lootPopup.id]?.name}
+                    </span>
+                </div>
+            )}
+
+            {contextHolder}
+
+            {isOpen && (
+                <Card
+                    style={{width: 300}}
+                    className="bottom-right-float-card"
+                    styles={{
+                        body: { padding: 0 },
+                        header: { display: 'none' }
+                    }}
+                >
+                    <Row>
+                        <Col span={24}>
+                            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 8 }}>
+                                <Text strong>
+                                    Inventory
+                                </Text>
+                                <Text type="secondary">
+                                    {slots.filter(Boolean).length} / {slots.length}
+                                </Text>
+                            </div>
+
+                            <div style={{ padding: '20px' }}>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                    gap: 10,
+                                }}>
+                                    {slots.map((item, i) => {
+                                        if (!item) return <div key={i} className="item-card">-</div>
+
+                                        const dbItem = ItemDatabase[item?.id];
+
+                                        return (
+                                            <ItemCard item={dbItem} quantity={item?.quantity} onClick={handleEquip}   onAction={handleAction}/>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </Col>
+                    </Row>
+                </Card>
+            )}
         </>
     );
 }

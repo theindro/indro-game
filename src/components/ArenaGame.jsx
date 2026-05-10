@@ -10,6 +10,7 @@ import DeathScreen from "./DeathScreen.jsx";
 import AbilityBar from "./PlayerStatsBar.jsx";
 import LevelUpEffect from "./LevelUpEffect.jsx";
 import BottomRightMenu from "./BottomRightMenu.jsx";
+import ItemBrowser from "./ItemBrowser.jsx";
 
 export default function ArenaGame() {
     const [messageApi, contextHolder] = message.useMessage();
@@ -33,6 +34,8 @@ export default function ArenaGame() {
             {/*
             <Shop />
             */}
+
+            <ItemBrowser />
 
             <BottomRightMenu />
 
