@@ -16,15 +16,15 @@ import {PerformanceMonitor} from './world/PerformanceMonitor.js';
 import {MinimapManager} from "./world/MinimapManager.js";
 import {VFX} from './GlobalEffects.js';
 import {ChunkMonitor} from "./world/ChunkMonitor.js";
+import {createLightingController} from "./controllers/createLightingController.js";
 
 export async function createGame() {
     // ==================== INITIALIZATION ====================
     const app = await initApp();
     const world = createWorldContainer(app);
 
-    // Shader lighting just testing
-    // const lighting = createLightingFilter(app);
-    // world.filters = [lighting.filter];
+    // Global lighting just testing
+    //const lighting = new createLightingController(app, app.screen.width, app.screen.height);
 
     // ==================== GAME STATE ====================
     const colliders = [];
@@ -150,6 +150,9 @@ export async function createGame() {
         // Optionally spawn floating text / particles at (x, y)
         // VFX.floatText(`+${loot.map(d => d.amount + 'x ' + d.id).join(', ')}`, x, y);
     };
+
+    // Test light
+    //lighting.addLight(400, 300, 400, 0.2, '#ffb700');
 
     // ==================== GAME LOOP ====================
     app.ticker.add((ticker) => {

@@ -40,14 +40,21 @@ const MENU_ITEMS = [
         key: 'quests',
         icon: <ExclamationCircleOutlined/>,
         label: 'Quests',
-        hotkey: '',
+        hotkey: 'p',
+        disabled: true,
+    },
+    {
+        key: 'crafting',
+        icon: <QuestionCircleOutlined/>,
+        label: 'Crafting',
+        hotkey: 'K',
         disabled: true,
     },
     {
         key: 'skills',
         icon: <FireOutlined/>,
         label: 'Skills',
-        hotkey: '',
+        hotkey: 'O',
         disabled: true,
     },
     {

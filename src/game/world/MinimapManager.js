@@ -61,6 +61,9 @@ export class MinimapManager {
         this.container.x = this.centerX;
         this.container.y = this.centerY;
         this.app.stage.addChild(this.container);
+        this.container.zIndex = 2000;
+
+        this.container.label = 'MinimapManager'
 
         // Create mask circle
         this.mask = new Graphics();

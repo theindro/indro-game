@@ -71,6 +71,12 @@ export class OpenWorldManager {
         this.entityLayer = new Container();
         this.propLayer = new Container();
 
+        this.groundLayer.label = 'groundLayer';
+        this.entityLayer.label = 'entityLayer';
+        this.propLayer.label = 'propLayer';
+        this.shadowLayer.label = 'shadowLayer';
+        this.debugLayer.label = 'debugLayer';
+
         this.propManager.setPropLayer(this.entityLayer);
         this.propManager.setShadowLayer(this.entityLayer);
 

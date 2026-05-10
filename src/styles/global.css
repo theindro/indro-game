@@ -34,11 +34,16 @@
     color: rgba(255, 255, 255, 0.08);
 }
 
+
+.loot-card {
+    background: radial-gradient(ellipse at 50% 110%, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+}
+
 .item-card.magic {
     border-color: rgba(0, 178, 255, 0.4);
 }
 
-.item-card.magic:after {
+.item-card.magic:after, .loot-card.Magic {
     background: radial-gradient(ellipse at 50% 110%, rgba(0, 140, 255, 0.2) 0%, transparent 70%);
 }
 
@@ -46,7 +51,7 @@
     border-color: rgba(208, 0, 255, 0.25);
 }
 
-.item-card.rare:after {
+.item-card.rare:after, .loot-card.Rare {
     background: radial-gradient(ellipse at 50% 110%, rgba(208, 0, 255, 0.25) 0%, transparent 70%);
 }
 
@@ -54,7 +59,7 @@
     border-color: rgba(208, 0, 255, 0.6);
 }
 
-.item-card.epic:after {
+.item-card.epic:after, .loot-card.Epic {
     background: radial-gradient(ellipse at 50% 110%, rgba(208, 0, 255, 0.6) 0%, transparent 70%);
 }
 
@@ -75,7 +80,7 @@
 
 
 /* Subtle bottom heat glow */
-.item-legendary::after {
+.item-legendary::after, .loot-card.Legendary {
     background: radial-gradient(ellipse at 50% 110%, rgba(255, 120, 0, 0.35) 0%, transparent 70%);
 }
 

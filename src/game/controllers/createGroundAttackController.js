@@ -247,6 +247,9 @@ export class GroundAttack {
                     alpha: alpha * 0.7
                 });
 
+
+           // this.g.blendMode = 'add';
+
             return;
         }
 

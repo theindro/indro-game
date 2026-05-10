@@ -1,6 +1,6 @@
 import { Graphics, Container } from 'pixi.js';
 import { shadowManager } from "./createShadowController.js";
-import {audioManager} from "../utils/audioManager.js";
+import {WeatherDevTool} from "../world/weatherDevTool.js";
 
 export class CreateWeatherController {
     constructor(app) {
@@ -10,6 +10,8 @@ export class CreateWeatherController {
         this.app.stage.addChild(this.container);
         this.app.stage.sortableChildren = true;
 
+        this.devtool = new WeatherDevTool(this, app);
+
         // Transition system
         this.currentWeatherType = null;
         this.targetWeatherType = null;
@@ -17,6 +19,8 @@ export class CreateWeatherController {
         this.transitionDuration = 2.0; // seconds
         this.transitionTimer = 0;
         this.isTransitioning = false;
+
+        this.container.label = 'WeatherController'
 
         // Store current and target effects
         this.currentEffect = null;
@@ -27,6 +31,7 @@ export class CreateWeatherController {
         this.targetShadowConfig = { x: -25, y: 0, skew: -0.3, alpha: 0.15 };
 
         this.ambientOverlay = new Graphics();
+        this.ambientOverlay.blendMode = 'multiply';
         this.container.addChild(this.ambientOverlay);
         this.currentAmbient = { color: 'black', alpha: 0 };
         this.targetAmbient = { color: 'black', alpha: 0 };
@@ -34,7 +39,7 @@ export class CreateWeatherController {
 
     getAmbientForWeather(weatherType, intensity) {
         const ambients = {
-            rain: { color: 'black', alpha: 0.1 * intensity },
+            rain: { color: 'black', alpha: 0.2 * intensity },
             snow: { color: 0x1a2a4a, alpha: 0.15 * intensity },
             embers: { color: 0x262626, alpha: 0.5 * intensity },
             sandstorm: { color: 0x461f06, alpha: 0.2 * intensity },

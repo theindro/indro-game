@@ -68,7 +68,7 @@ export default function Inventory({isOpen, setIsOpen}) {
 
             setTimeout(() => {
                 setLootPopup(null);
-            }, 1000);
+            }, 1500);
         }
 
         prevSlotsRef.current = current;
@@ -106,10 +106,9 @@ export default function Inventory({isOpen, setIsOpen}) {
                 <div
                     style={{
                         position: 'fixed',
-                        top: '45%',
+                        top: '40%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        background: 'rgba(0,0,0,0.7)',
                         padding: '10px 14px',
                         borderRadius: 10,
                         display: 'flex',
@@ -118,8 +117,10 @@ export default function Inventory({isOpen, setIsOpen}) {
                         color: '#fff',
                         fontWeight: 600,
                         zIndex: 99999,
-                        animation: 'fadeUp 1s ease-out'
+                        animation: 'fadeUp 1.5s ease-out'
                     }}
+
+                    className={"loot-card " + ItemDatabase[lootPopup.id]?.rarity?.name}
                 >
                     <img
                         src={ItemDatabase[lootPopup.id]?.texture}
