@@ -4,7 +4,7 @@ import {spawnMob} from '../controllers/createMobController.js';
 import {MOB_RADIUS, BIOME_COLORS} from '../constants.js';
 import {PropManager} from "./PropManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
-import { InteractablePropManager } from './InteractablePropManager.js';   // ADD
+import { InteractablePropManager } from './interactablePropManager.js';   // ADD
 
 const weatherConfig = {
     forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
