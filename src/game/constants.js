@@ -41,7 +41,7 @@ export const CAM_SMOOTH = 0.09;
 // ── Biome colours
 export const BIOME_COLORS = {
     forest: {
-        base: '#8fc632',
+        base: '#a9cb30',
         accent: 0x1a4a22,
         props: true,
         tint: '',

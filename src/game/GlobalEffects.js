@@ -37,7 +37,7 @@ class VisualEffects {
      * @param {number} maxSpd - maximum speed
      */
     burst(x, y, color = 0xffffff) {
-        if (!this.initialized || !this.world) return;
+        if (!this.initialized || !this.entityLayer) return;
 
         const texture = assetManager.getTexture('burst');
 
@@ -51,6 +51,8 @@ class VisualEffects {
         anim.x = x;
         anim.y = y;
 
+        anim.zIndex = y;
+
         anim.tint = color;
         //anim.blendMode = 'add';
 
@@ -62,11 +64,11 @@ class VisualEffects {
         anim.scale.set(0.1);
 
         anim.onComplete = () => {
-            this.world.removeChild(anim);
+            this.entityLayer.removeChild(anim);
             anim.destroy();
         };
 
-        this.world.addChild(anim);
+        this.entityLayer.addChild(anim);
         anim.play();
     }
     /**
@@ -192,6 +194,9 @@ class VisualEffects {
         shadow.x = x;
         shadow.y = y;
 
+        anim.zIndex = y;
+        shadow.zIndex = y - 1;
+        
         this.entityLayer.addChild(shadow);
 
         //anim.blendMode = 'add'; // or 'normal' for less intense

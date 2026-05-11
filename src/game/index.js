@@ -271,7 +271,7 @@ async function initApp() {
 function createWorldContainer(app) {
     const world = new Container();
 
-    world.scale.set(1.25);
+    world.scale.set(1.1);
 
     app.stage.addChild(world);
     app.stage.roundPixels = true;

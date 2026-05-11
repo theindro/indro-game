@@ -267,7 +267,7 @@ export function createDropSystem(ctx) {
                     d.container.x, d.container.y,
                     d.type === 'gold' ? '#ffd700' :
                         d.type === 'hp'   ? '#ff2255' :
-                            d.type === 'void_essence' ? 'purple' :
+                            d.type === 'void_essence' ? '#262626' :
                                 d.item?.rarity?.color || '#ffaa44'
                 );
 
