@@ -254,6 +254,8 @@ export class OpenWorldManager {
     }
 
     getBiomeAt(x, z) {
+        return 'ice';
+
         const scale = this.config.biomeScale;
         const seed = this.worldSeed;
         const value = Math.sin((x + seed) * scale) * Math.cos((z - seed) * scale);

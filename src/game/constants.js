@@ -53,7 +53,7 @@ export const BIOME_COLORS = {
         props: false
     },
     ice: {
-        base: 0x8ec8de,
+        base: '#c9e2ff',
         accent: 0xb8e4f4,
         tint: 0xcceeff,
         props: false
