@@ -111,6 +111,7 @@ const Character = ({isOpen, setIsOpen}) => {
                                                             <ItemCard
                                                                 slotKey={slotKey}
                                                                 item={dbItem}
+                                                                slot={dbItem}
                                                                 onClick={() => handleUnequip(slotKey)}
                                                             />
                                                             ) : (

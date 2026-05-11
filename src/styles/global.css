@@ -5,6 +5,34 @@
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="27" viewBox="0 0 24 27"><polygon points="2,2 22,13 12,13 9,25" fill="%23ffaa44" stroke="%23000" stroke-width="2"/><circle cx="6" cy="8" r="2" fill="white"/></svg>') 4 2, auto !important;
 }
 
+/* Disable text selection + dragging globally */
+html,
+body,
+* {
+    -webkit-user-select: none;
+    user-select: none;
+
+    -webkit-user-drag: none;
+    user-drag: none;
+
+    -webkit-touch-callout: none;
+
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Optional: disable image dragging specifically */
+img {
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+/* Optional: prevent scrolling/bounce on mobile */
+html,
+body {
+    overflow: hidden;
+    touch-action: none;
+}
+
 @keyframes fadeUp {
     0% {
         opacity: 0;

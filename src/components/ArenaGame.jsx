@@ -22,7 +22,7 @@ export default function ArenaGame() {
             {contextHolder}
 
             {/* Top right logo */}
-            <div style={{position: "absolute", top: 0, left: 0, zIndex: 10}}>
+            <div style={{position: "absolute", top: 30, left: 10, zIndex: 10}}>
                 <img src="/templogo.png" alt="Logo" style={{width: 120}}/>
             </div>
 

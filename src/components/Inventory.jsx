@@ -167,7 +167,7 @@ export default function Inventory({isOpen, setIsOpen}) {
                                         const dbItem = ItemDatabase[item?.id];
 
                                         return (
-                                            <ItemCard item={dbItem} quantity={item?.quantity} onClick={handleEquip}   onAction={handleAction}/>
+                                            <ItemCard item={dbItem} quantity={item?.quantity} enchantLevel={item?.enchantLevel} onClick={handleEquip}   onAction={handleAction}/>
                                         )
                                     })}
                                 </div>

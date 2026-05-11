@@ -78,6 +78,27 @@ export async function createGame() {
 
     const chunkMonitor = new ChunkMonitor(openWorld);
 
+    let targetZoom = 1.1;
+    let currentZoom = 1.1;
+
+    app.canvas.addEventListener(
+        'wheel',
+        (e) => {
+            e.preventDefault();
+
+            const zoomSpeed = 0.1;
+
+            if (e.deltaY > 0) {
+                targetZoom -= zoomSpeed;
+            } else {
+                targetZoom += zoomSpeed;
+            }
+
+            targetZoom = Math.max(0.75, Math.min(1.8, targetZoom));
+        },
+        { passive: false }
+    );
+
     // ==================== COMBAT ====================
     const combat = createCombatController({
         world, entities,
@@ -160,6 +181,9 @@ export async function createGame() {
         const {gameState, player: playerState} = store;
         const deltaTime = ticker.deltaTime;
         const dt = deltaTime / 60; // 1 = 60fps baseline
+
+        currentZoom += (targetZoom - currentZoom) * 0.12;
+        world.scale.set(currentZoom);
 
         // Particles & floats
         tickParticles();  // Modify tickParticles to use VFX.particles
@@ -466,7 +490,7 @@ function updateMinimap(minimap, px, py, input, world, mouseWorld) {
     minimap.playerRef.y = py;
 
     mouseWorld.x = (input.mouseX - world.x) / world.scale.x;
-    mouseWorld.y = (input.mouseY - world.y) / world.scale.x;
+    mouseWorld.y = (input.mouseY - world.y) / world.scale.y;
 
     let angleToMouse = Math.atan2(mouseWorld.y - py, mouseWorld.x - px);
     angleToMouse += Math.PI / 2;

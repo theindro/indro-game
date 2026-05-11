@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Badge, Tooltip, Popover } from "antd";
+import { ItemDatabase } from "../../game/items.js";
+import { ENCHANT_BONUS_PER_LEVEL } from "../../stores/gameStore.js";
 
 const rarityClass = {
     Common: "",
@@ -9,16 +11,6 @@ const rarityClass = {
     Legendary: "item-legendary",
 };
 
-const STAT_LABELS = {
-    damage: { label: 'DMG', color: '#e8a825' },
-    chest: { label: 'ARM', color: '#7f77dd' },
-    attackSpeed: { label: 'ASPD', color: '#3b9e75' },
-    critChance: { label: 'CRIT', color: '#e06b6b' },
-    moveSpeed: { label: 'SPD', color: '#4fc3f7' },
-    projectiles: { label: 'PROJ', color: '#ce93d8' },
-    health: { label: 'HP', color: '#3b9e75' },
-};
-
 const EMBER_COLORS_RAW = [
     [255, 220, 80],
     [255, 200, 50],
@@ -26,6 +18,14 @@ const EMBER_COLORS_RAW = [
     [255, 160, 20],
     [255, 140, 10],
 ];
+
+// Returns a color for enchant level badge
+function enchantLevelColor(lvl) {
+    if (lvl <= 3) return '#7dcfee';
+    if (lvl <= 6) return '#aa44ff';
+    if (lvl <= 9) return '#ff44aa';
+    return '#ffaa44';
+}
 
 function initEmberCanvas(canvas) {
     const ctx = canvas.getContext('2d');
@@ -93,19 +93,23 @@ const ACTION_STYLE = {
     userSelect: 'none',
 };
 
-function ContextMenu({ item, onAction, onClose }) {
+function ContextMenu({ item, enchantLevel, onAction, onClose }) {
     const actions = [
-        { key: 'equip',  label: 'Equip',       icon: '',  show: !!item.equipSlot },
-        //{ key: 'craft',  label: 'Craft',        icon: '',  show: true },
-        { key: 'drop',   label: 'Delete',         icon: '',  show: true, danger: true },
-        //{ key: 'sell',   label: `Sell (${Math.floor((item.price || 0) * 0.5)}g)`, icon: '💰', show: true },
+        { key: 'equip',  label: 'Equip',   icon: '', show: !!item.equipSlot },
+        { key: 'drop',   label: 'Delete',  icon: '', show: true, danger: true },
     ].filter(a => a.show);
 
     return (
         <div style={{ minWidth: 140 }}>
-            {/* Item header */}
             <div style={{ padding: '6px 12px 8px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 4 }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{item.name}</div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>
+                    {item.name}
+                    {enchantLevel > 0 && (
+                        <span style={{ marginLeft: 6, color: enchantLevelColor(enchantLevel), fontSize: 12 }}>
+                            +{enchantLevel}
+                        </span>
+                    )}
+                </div>
                 <div style={{ fontSize: 11, color: item.rarity?.color }}>{item.rarity?.name}</div>
             </div>
 
@@ -125,15 +129,29 @@ function ContextMenu({ item, onAction, onClose }) {
     );
 }
 
-const ItemCard = ({ onClick, onAction, item, quantity = 1, showName }) => {
+// ─── ItemCard ────────────────────────────────────────────────────────────────
+// Accepts either:
+//   item = DB item object (from ItemDatabase)        ← existing usage
+//   slot = slot-wrapper { id, quantity, enchantLevel } ← new preferred usage
+//
+// For backward compat, if only `item` is passed the enchantLevel falls back to 0.
+// Callers can also pass enchantLevel explicitly as a prop.
+
+const ItemCard = ({ onClick, onAction, item: itemProp, slot, quantity: quantityProp, showName, enchantLevel: enchantLevelProp }) => {
     const canvasRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
-    const isLegendary = item.rarity?.name === "Legendary";
+
+    // Resolve the DB item and enchant level from either slot or item prop
+    const resolvedSlot = slot ?? null;
+    const dbItem = resolvedSlot ? ItemDatabase[resolvedSlot.id] : itemProp;
+    const enchantLevel = enchantLevelProp ?? resolvedSlot?.enchantLevel ?? itemProp?.enchantLevel ?? 0;
+    const quantity = quantityProp ?? resolvedSlot?.quantity ?? 1;
+
+    const isLegendary = dbItem?.rarity?.name === "Legendary";
 
     useEffect(() => {
         if (!isLegendary || !canvasRef.current) return;
-        const cleanup = initEmberCanvas(canvasRef.current);
-        return cleanup;
+        return initEmberCanvas(canvasRef.current);
     }, [isLegendary]);
 
     const handleContextMenu = (e) => {
@@ -145,59 +163,89 @@ const ItemCard = ({ onClick, onAction, item, quantity = 1, showName }) => {
         if (onAction) onAction(actionKey, item);
     };
 
+    if (!dbItem) return null;
+
+    // Build enchanted stat values for tooltip
+    const multiplier = 1 + enchantLevel * ENCHANT_BONUS_PER_LEVEL;
+    const displayStats = dbItem.stats
+        ? Object.fromEntries(
+            Object.entries(dbItem.stats).map(([k, v]) => [
+                k,
+                enchantLevel > 0 ? +(v * multiplier).toFixed(2) : v,
+            ])
+        )
+        : null;
+
     return (
         <Tooltip
             overlayStyle={{ zIndex: 10001 }}
             title={
                 <div style={{ maxWidth: 260 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{item.name}</div>
-                    <div style={{ fontSize: 12, color: item.rarity?.color }}>
-                        {item.rarity?.name} • {item.type}
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>
+                        {dbItem.name}
+                        {enchantLevel > 0 && (
+                            <span style={{ marginLeft: 6, color: enchantLevelColor(enchantLevel), fontSize: 13 }}>
+                                +{enchantLevel}
+                            </span>
+                        )}
                     </div>
-                    {item.description && (
-                        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>{item.description}</div>
+                    <div style={{ fontSize: 12, color: dbItem.rarity?.color }}>
+                        {dbItem.rarity?.name} • {dbItem.type}
+                    </div>
+                    {dbItem.description && (
+                        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>{dbItem.description}</div>
                     )}
-                    {item.equipSlot && (
-                        <div style={{ marginTop: 6, fontSize: 12 }}>Slot: <b>{item.equipSlot}</b></div>
+                    {dbItem.equipSlot && (
+                        <div style={{ marginTop: 6, fontSize: 12 }}>Slot: <b>{dbItem.equipSlot}</b></div>
                     )}
-                    {item.stats && (
+                    {displayStats && (
                         <div style={{ marginTop: 8 }}>
-                            <div style={{ fontSize: 12, fontWeight: 600 }}>Stats:</div>
-                            {Object.entries(item.stats).map(([key, value]) => (
-                                <div key={key} style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ opacity: 0.8 }}>{key}</span>
-                                    <span style={{ fontWeight: 600 }}>
-                                        {typeof value === 'number' && value > 0 ? `+${value}` : value}
-                                    </span>
-                                </div>
-                            ))}
+                            <div style={{ fontSize: 12, fontWeight: 600 }}>
+                                Stats{enchantLevel > 0 ? ` (enchant +${enchantLevel})` : ''}:
+                            </div>
+                            {Object.entries(displayStats).map(([key, value]) => {
+                                const base = dbItem.stats[key];
+                                const boosted = enchantLevel > 0 && value !== base;
+                                return (
+                                    <div key={key} style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                                        <span style={{ opacity: 0.8 }}>{key}</span>
+                                        <span style={{ fontWeight: 600, color: boosted ? enchantLevelColor(enchantLevel) : undefined }}>
+                                            {typeof value === 'number' && value > 0 ? `+${value}` : value}
+                                            {boosted && (
+                                                <span style={{ opacity: 0.5, fontSize: 10, marginLeft: 4 }}>
+                                                    (base {base})
+                                                </span>
+                                            )}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    )}
-                    {item.price && (
-                        <div style={{ marginTop: 8, fontSize: 12 }}>Price: <b>{item.price} gold</b></div>
                     )}
                 </div>
             }
         >
             <Popover
                 open={menuOpen}
-                onOpenChange={onAction ? setMenuOpen : ""}
+                onOpenChange={onAction ? setMenuOpen : undefined}
                 trigger="contextMenu"
                 overlayStyle={{ zIndex: 10002 }}
                 overlayInnerStyle={{ padding: 4 }}
                 arrow={false}
                 content={
                     <ContextMenu
-                        item={item}
+                        item={dbItem}
+                        enchantLevel={enchantLevel}
                         onAction={handleAction}
                         onClose={() => setMenuOpen(false)}
                     />
                 }
             >
                 <div
-                    onClick={() => onClick(item)}
+                    onClick={() => onClick && onClick(resolvedSlot ?? dbItem)}
                     onContextMenu={handleContextMenu}
-                    className={"item-card " + rarityClass[item.rarity?.name]}
+                    className={"item-card " + (rarityClass[dbItem.rarity?.name] ?? '')}
+                    style={{ position: 'relative' }}
                 >
                     {isLegendary && (
                         <canvas
@@ -215,12 +263,13 @@ const ItemCard = ({ onClick, onAction, item, quantity = 1, showName }) => {
                     )}
 
                     <img
-                        src={item.texture}
+                        src={dbItem.texture}
                         width={24}
                         alt=""
                         style={{ position: 'relative', zIndex: 2 }}
                     />
 
+                    {/* Quantity badge */}
                     {quantity > 1 && (
                         <Badge
                             count={quantity}
@@ -228,13 +277,34 @@ const ItemCard = ({ onClick, onAction, item, quantity = 1, showName }) => {
                             style={{
                                 position: 'absolute',
                                 bottom: 0,
-                                background: 'transparent',
                                 right: 0,
-                                fontSize: 10,
                                 top: 10,
+                                background: 'transparent',
+                                fontSize: 10,
                                 padding: 0,
                             }}
                         />
+                    )}
+
+                    {/* Enchant level badge — bottom-left corner */}
+                    {enchantLevel > 0 && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                bottom: 2,
+                                left: 2,
+                                zIndex: 3,
+                                fontSize: 8,
+                                fontWeight: 800,
+                                lineHeight: 1,
+                                color: enchantLevelColor(enchantLevel),
+                                textShadow: `0 0 4px ${enchantLevelColor(enchantLevel)}`,
+                                pointerEvents: 'none',
+                                letterSpacing: '-0.5px',
+                            }}
+                        >
+                            +{enchantLevel}
+                        </div>
                     )}
                 </div>
             </Popover>

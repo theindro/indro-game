@@ -21,6 +21,7 @@ import {useGameStore} from '../stores/gameStore';
 import Inventory from './Inventory';
 import PauseScreen from "./PauseScreen.jsx";
 import Character from "./Character.jsx";
+import CraftingPanel from "./Crafting.jsx";
 
 const MENU_ITEMS = [
     {
@@ -45,10 +46,9 @@ const MENU_ITEMS = [
     },
     {
         key: 'crafting',
-        icon: <QuestionCircleOutlined/>,
+        icon: '⚒',
         label: 'Crafting',
         hotkey: 'K',
-        disabled: true,
     },
     {
         key: 'skills',
@@ -75,9 +75,9 @@ const CurrencyList = () => {
     const gold = useGameStore((s) => s.inventory?.gold ?? 0);
     const voidEssence = useGameStore((s) => s.inventory?.void_essence ?? 0);
     return (
-        <Space direction="horizontal" size={6} style={{padding: '0 12px'}}>
+        <Space direction="horizontal" size={6} style={{padding: '0 12px', top: 12, left: 0, zIndex: 9999, position: "fixed"}}>
             <Tooltip title="Gold">
-                <Tag style={{display: 'flex', alignItems: 'center', gap: 6}}>
+                <Tag style={{display: 'flex', alignItems: 'center', gap: 6, background: "transparent"}}>
                     <img src="/rpg/coins.png" alt="Gold" width={18} height={18}/>
                     <span style={{fontWeight: 600, color: '#e8a825', fontSize: 15}}>
                                 {gold.toLocaleString()}
@@ -86,9 +86,9 @@ const CurrencyList = () => {
             </Tooltip>
 
             <Tooltip title="Void essence">
-                <Tag style={{display: 'flex', alignItems: 'center', gap: 6}}>
+                <Tag style={{display: 'flex', alignItems: 'center', gap: 6, background: "transparent"}}>
                     <img src="/void_essence.png" alt="Essence" width={18} height={18}/>
-                    <span style={{fontWeight: 600, color: '#c084fc', fontSize: 15}}>
+                    <span style={{fontWeight: 600, color: 'black', fontSize: 15}}>
                                 {voidEssence.toLocaleString()}
                             </span>
                 </Tag>
@@ -120,6 +120,7 @@ const BottomRightMenu = () => {
         const handleKey = (e) => {
             if (e.key.toLowerCase() === 'i') setOpenPanel(openPanel === 'inventory' ? '' : 'inventory');
             if (e.key.toLowerCase() === 'c') setOpenPanel(openPanel === 'character' ? '' : 'character');
+            if (e.key.toLowerCase() === 'k') setOpenPanel(openPanel === 'crafting' ? '' : 'crafting');
             if (!openPanel) {
                 if (e.key === 'Escape') {
                     setOpenPanel(openPanel === 'settings' ? '' : 'settings')
@@ -142,62 +143,69 @@ const BottomRightMenu = () => {
     }, [openPanel]);
 
     return (
-        <div style={{
-            position: 'fixed',
-            bottom: 20,
-            right: 20,
-            zIndex: 9999,
-        }}>
-            <Row type="flex" justify="center" align="middle">
+        <div>
+            <CurrencyList/>
 
-                <CurrencyList/>
+            <div style={{
+                position: 'fixed',
+                bottom: 20,
+                right: 20,
+                zIndex: 9999,
+            }}>
+                <Row type="flex" justify="center" align="middle">
 
-                <Card
-                    style={{
-                        background: 'rgba(10, 12, 16, 0.85)',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        backdropFilter: 'blur(20px)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                        padding: '8px 12px',
-                    }}
-                    styles={{body: {padding: 0}}}
-                >
-                    <Space size={4}>
 
-                        {MENU_ITEMS.map((item) => {
-                            return (
-                                <Tooltip
-                                    key={item.key}
-                                    title={`${item.label} (${item.hotkey})`}
-                                    placement="top"
-                                    overlayStyle={{zIndex: 10001}}
-                                >
-                                    <Button
-                                        disabled={item.disabled}
-                                        type={openPanel === item.key ? "primary" : "text"}
-                                        icon={item.key === 'inventory' ? <img style={{marginBottom: -3}} src={item.icon} width={20} alt=""/> : item.icon }
-                                        onClick={() => togglePanel(item.key)}
-                                        style={{
-                                            width: 52,
-                                            height: 52,
-                                            borderRadius: 10,
-                                            fontSize: 22,
-                                        }}
-                                    />
-                                </Tooltip>
-                            )
-                        })}
+                    <Card
+                        style={{
+                            background: 'rgba(10, 12, 16, 0.85)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            backdropFilter: 'blur(20px)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                            padding: '8px 12px',
+                        }}
+                        styles={{body: {padding: 0}}}
+                    >
+                        <Space size={4}>
 
-                    </Space>
-                </Card>
+                            {MENU_ITEMS.map((item) => {
+                                return (
+                                    <Tooltip
+                                        key={item.key}
+                                        title={`${item.label} (${item.hotkey})`}
+                                        placement="top"
+                                        overlayStyle={{zIndex: 10001}}
+                                    >
+                                        <Button
+                                            disabled={item.disabled}
+                                            type={openPanel === item.key ? "primary" : "text"}
+                                            icon={item.key === 'inventory' ?
+                                                <img style={{marginBottom: -3}} src={item.icon} width={20}
+                                                     alt=""/> : item.icon}
+                                            onClick={() => togglePanel(item.key)}
+                                            style={{
+                                                width: 52,
+                                                height: 52,
+                                                borderRadius: 10,
+                                                fontSize: 22,
+                                            }}
+                                        />
+                                    </Tooltip>
+                                )
+                            })}
 
-                <Inventory isOpen={openPanel === 'inventory'} setOpen={setOpenPanel}/>
+                        </Space>
+                    </Card>
 
-                <Character isOpen={openPanel === 'character'} setOpen={setOpenPanel}/>
+                    <Inventory isOpen={openPanel === 'inventory'} setOpen={setOpenPanel}/>
 
-                <PauseScreen/>
+                    <Character isOpen={openPanel === 'character'} setOpen={setOpenPanel}/>
 
-            </Row>
+                    <CraftingPanel isOpen={openPanel === 'crafting'}/>
+
+                    <PauseScreen/>
+
+                </Row>
+            </div>
         </div>
     );
 }
