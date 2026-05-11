@@ -248,7 +248,7 @@ export class GroundAttack {
                 });
 
 
-           // this.g.blendMode = 'add';
+           this.g.blendMode = 'add';
 
             return;
         }

@@ -32,7 +32,7 @@ export function createPlayerController({hpBar, pBody, world}) {
 
         // Flash red
         if (pBody) {
-            pBody.tint = 0xff3333;
+            pBody.tint = '#0f75ff';
             if (hitTimeout) clearTimeout(hitTimeout);
             hitTimeout = setTimeout(() => {
                 if (pBody) pBody.tint = 0xffffff;
@@ -46,7 +46,7 @@ export function createPlayerController({hpBar, pBody, world}) {
         if (world && pBody) {
             const color = hitType === 'ice' ? 0x00ccff : hitType === 'fire' ? 0xff4400 : hitType === 'poison' ? 0x44ff44 : 0xff6600;
 
-            VFX.burst(playerX, playerY, color);
+            VFX.burst(playerX, playerY, '0x00ccff');
         }
 
         VFX.addFloat(`-${damage}`, playerX, playerY - 30, 'red');

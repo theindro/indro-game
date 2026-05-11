@@ -54,9 +54,9 @@ export class TankArchetype {
         // Create ground slam effect using GroundAttackController
         this.groundAttacks.addAttack(px, py, {
             shape: 'circle',
-            color: 'black',
+            color: 'rgba(171,231,255,0.5)',
             warningColor: '#ff5454',
-            innerColor: 'black',
+            innerColor: 'rgba(0,187,255,0.5)',
             radius: this.slamRadius,
             warningDuration: 200, // frames (~0.5 seconds at 60fps)
             damage: 25,

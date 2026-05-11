@@ -54,7 +54,9 @@ class VisualEffects {
         anim.zIndex = y;
 
         anim.tint = color;
-        //anim.blendMode = 'add';
+        if (color !== 'black') {
+            anim.blendMode = 'add';
+        }
 
         anim.animationSpeed = 0.6;
         anim.loop = false;
@@ -196,7 +198,7 @@ class VisualEffects {
 
         anim.zIndex = y;
         shadow.zIndex = y - 1;
-        
+
         this.entityLayer.addChild(shadow);
 
         //anim.blendMode = 'add'; // or 'normal' for less intense
