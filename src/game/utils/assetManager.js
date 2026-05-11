@@ -1,11 +1,12 @@
 // utils/assetManager.js
-import {Rectangle, Texture, Assets} from "pixi.js";
+import {Rectangle, Texture, Sprite, AnimatedSprite, Assets} from "pixi.js";
 
 class AssetManager {
     constructor() {
         this.textures = new Map();
         this.propTextures = new Map(); // Store props by type
         this.animationFrames = new Map();
+        this.vfxMeta = new Map(); // ✅ NEW
         this.loaded = false;
     }
 
@@ -124,10 +125,42 @@ class AssetManager {
         ];
 
         const VFX = [
-            { file: '/vfx/burst.png', id: 'burst', type: 'vfx', itemId: null },
-            { file: '/vfx/explosion.png', id: 'explosion', type: 'vfx', itemId: null },
-            { file: '/vfx/explosion_v2.png', id: 'explosion_v2', type: 'vfx', itemId: null },
+            {
+                file: '/vfx/burst.png',
+                id: 'burst',
+                type: 'vfx',
+                animated: true,
+                frameWidth: 1024,
+                frameHeight: 1024,
+                cols: 4,
+                rows: 4,
+                fps: 16
+            },
+            {
+                file: '/vfx/explosion.png',
+                id: 'explosion',
+                type: 'vfx',
+                animated: true,
+                frameWidth: 256,
+                frameHeight: 256,
+                cols: 8,
+                rows: 8,
+                fps: 12
+            },
+            {
+                file: '/vfx/explosion_v2.png',
+                id: 'explosion_v2',
+                type: 'vfx',
+                animated: true,
+                frameWidth: 400,
+                frameHeight: 288,
+                cols: 5,
+                rows: 2,
+                fps: 14
+            },
         ];
+
+        this.registerVFXMeta(VFX);
 
         // ============= DROP TEXTURES =============
         const dropFiles = [
@@ -179,12 +212,59 @@ class AssetManager {
             }
         }
 
-        this.preloadAnimations();
 
         this.loaded = true;
         console.log('✓ All assets loaded successfully');
         console.log(`Total textures loaded: ${this.textures.size}`);
         console.log('Prop textures by type:', Array.from(this.propTextures.keys()));
+    }
+
+    registerVFXMeta(vfxList) {
+        for (const vfx of vfxList) {
+            this.vfxMeta.set(vfx.id, vfx);
+        }
+    }
+
+    createRenderable(id, isAnimated) {
+        const texture = this.textures.get(id);
+
+        if (!texture) {
+            console.warn("Missing texture:", id);
+            return null;
+        }
+
+        // ✅ GET REAL META
+        const meta = this.vfxMeta.get(id);
+
+        const shouldAnimate = isAnimated || meta?.animated;
+
+        if (!shouldAnimate) {
+            return new Sprite(texture);
+        }
+
+        if (!meta) {
+            console.warn("Missing VFX meta for:", id);
+            return new Sprite(texture);
+        }
+
+        const frames = this.getAnimationFrames(
+            id,
+            meta.frameWidth,
+            meta.frameHeight,
+            meta.cols,
+            meta.rows
+        );
+
+        if (!frames) return new Sprite(texture);
+
+        const anim = new AnimatedSprite(frames);
+
+        anim.animationSpeed = (meta.fps || 12) / 60;
+        anim.loop = true;
+        anim.play();
+        anim.anchor.set(0.5);
+
+        return anim;
     }
 
     getRandomPropTexture(type) {
@@ -242,35 +322,6 @@ class AssetManager {
         return frames;
     }
 
-    /**
-     * 🆕 Preload common animations
-     * Call this after loading assets
-     */
-    preloadAnimations() {
-        // Pre-cache burst animation frames
-        const burstTexture = this.textures.get('burst');
-        if (burstTexture) {
-            // Cache different sizes if needed
-            this.getAnimationFrames('burst', 256, 256, 4, 4);
-        }
-
-        // 🆕 Pre-cache explosion animation frames (8x8 grid, 2048x2048 spritesheet)
-        const explosionTexture = this.textures.get('explosion');
-        if (explosionTexture) {
-            // 2048 / 8 = 256px per frame
-            this.getAnimationFrames('explosion', 256, 256, 8, 8); // 64 frames total
-        }
-
-        // 🆕 Pre-cache explosion animation frames (8x8 grid, 2048x2048 spritesheet)
-        const explosionTexture2 = this.textures.get('explosion_v2');
-        if (explosionTexture2) {
-            // 2048 / 8 = 256px per frame
-            this.getAnimationFrames('explosion_v2', 256, 256, 5, 2); // 64 frames total
-        }
-
-        console.log('⚡ Animations preloaded and cached');
-    }
-
     async loadTexture(name, path, type = null, itemId = null) {
         try {
             // Skip if already loaded
@@ -299,82 +350,6 @@ class AssetManager {
             console.warn(`Texture not found: ${name}`);
         }
         return texture;
-    }
-
-    getItemTexture(itemId) {
-        // Try direct item ID first
-        let texture = this.textures.get(itemId);
-        if (texture) return texture;
-
-        // Try to find by mapping
-        const textureMap = {
-            'leather_boots': 'boots_1',
-            'iron_boots': 'boots_2',
-            'steel_boots': 'boots_3',
-            'swift_boots': 'boots_4',
-            'dragon_boots': 'boots_5',
-            'shadow_boots': 'boots_6',
-            'leather_gloves': 'gloves_16',
-            'iron_gloves': 'gloves_17',
-            'steel_gloves': 'gloves_18',
-            'gold_gloves': 'gloves_19',
-            'spell_gloves': 'gloves_20',
-            'dragon_gloves': 'gloves_21',
-            'assassin_gloves': 'gloves_22',
-            'holy_gloves': 'gloves_23',
-            'frost_gloves': 'gloves_24',
-            'leather_armor': 'chest_30',
-            'iron_armor': 'chest_31',
-            'steel_armor': 'chest_32',
-            'gold_armor': 'chest_33',
-            'dragon_armor': 'chest_34',
-            'shadow_armor': 'chest_35',
-            'leather_helmet': 'helmet_48',
-            'iron_helmet': 'helmet_49',
-            'steel_helmet': 'helmet_50',
-            'crown': 'helmet_51',
-            'dragon_helmet': 'helmet_52',
-            'short_bow': 'bow_86',
-            'long_bow': 'bow_87',
-            'crossbow': 'bow_88',
-            'windbow': 'bow_89',
-            'ring_of_strength': 'ring_90',
-            'ring_of_dexterity': 'ring_91',
-            'ring_of_intellect': 'ring_92',
-            'ring_of_health': 'ring_93',
-            'ring_of_speed': 'ring_94',
-            'ring_of_crit': 'ring_95',
-            'ring_of_magic': 'ring_96',
-            'ring_of_protection': 'ring_97',
-            'ring_of_fire': 'ring_98',
-            'ring_of_life': 'ring_99',
-            'ring_of_power': 'ring_100',
-            'amulet_of_health': 'amulet_107',
-            'amulet_of_strength': 'amulet_108',
-            'amulet_of_magic': 'amulet_109',
-            'amulet_of_protection': 'amulet_110',
-            'amulet_of_speed': 'amulet_111',
-            'amulet_of_crit': 'amulet_112',
-            'amulet_of_swiftness': 'amulet_113',
-            'amulet_of_gods': 'amulet_114',
-        };
-
-        const mappedId = textureMap[itemId];
-        if (mappedId) {
-            texture = this.textures.get(mappedId);
-            if (texture) return texture;
-        }
-
-        console.warn(`Item texture not found for: ${itemId}`);
-        return null;
-    }
-
-    isLoaded() {
-        return this.loaded;
-    }
-
-    getLoadedTextureCount() {
-        return this.textures.size;
     }
 }
 

@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Card, Row, Col, Typography, Tabs, Button, Progress, message } from 'antd';
-import { useGameStore } from '../stores/gameStore';
-import { ItemDatabase, ItemRarity } from '../game/items.js';
-import ItemCard from './Items/ItemCard.jsx';
+import { useGameStore } from '../../stores/gameStore.js';
+import { ItemDatabase, ItemRarity } from '../../game/items.js';
+import ItemCard from '../Items/ItemCard.jsx';
 
 const { Text } = Typography;
 

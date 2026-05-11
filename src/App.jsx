@@ -1,10 +1,10 @@
 // App.jsx
 import {useEffect, useState} from 'react';
-import ArenaGame from "./components/ArenaGame";
+import GameApp from "./components/GameApp.jsx";
 import { useGameStore } from "./stores/gameStore";
 import { audioManager } from "./game/utils/audioManager.js";
 import "./index.css";
-import LoadingScreen from "./components/LoadingScreen.jsx";
+import LoadingScreen from "./components/screens/LoadingScreen.jsx";
 
 window.audioManager = audioManager;
 
@@ -47,5 +47,5 @@ export default function App() {
     return <LoadingScreen onComplete={handleAssetsLoaded} />;
   }
 
-  return <ArenaGame />;
+  return <GameApp />;
 }

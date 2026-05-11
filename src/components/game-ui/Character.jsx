@@ -10,9 +10,9 @@ import {
     Typography,
     Badge,
 } from 'antd';
-import { useGameStore } from '../stores/gameStore';
-import { audioManager } from "../game/utils/audioManager.js";
-import ItemCard from "./Items/ItemCard.jsx";
+import { useGameStore } from '../../stores/gameStore.js';
+import { audioManager } from "../../game/utils/audioManager.js";
+import ItemCard from "../Items/ItemCard.jsx";
 
 const { Text } = Typography;
 

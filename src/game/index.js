@@ -72,7 +72,7 @@ export async function createGame() {
     };
 
     // ==================== WORLD ====================
-    const openWorld = new OpenWorldManager(world, colliders, app.renderer);
+    const openWorld = new OpenWorldManager(world, colliders, app);
 
     openWorld.setEntitiesList(entities);
 
@@ -268,6 +268,9 @@ export async function createGame() {
 
         // Debug
         debug.tickUpdate();
+
+        // Editor
+        //openWorld.editor.update(dt);
 
         // Death check
         checkDeath(playerState, gameState, killsRef);

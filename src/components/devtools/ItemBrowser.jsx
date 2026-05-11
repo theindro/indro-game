@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Modal, InputNumber, Tooltip, message, Input, Divider } from "antd";
-import { ItemDatabase } from "../game/items";
-import { useGameStore } from "../stores/gameStore";
-import ItemCard from "./Items/ItemCard.jsx";
+import { ItemDatabase } from "../../game/items.js";
+import { useGameStore } from "../../stores/gameStore.js";
+import ItemCard from "../Items/ItemCard.jsx";
 
 const rarityClass = {
     Common: "",

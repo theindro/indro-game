@@ -14,7 +14,7 @@ import {
     UserOutlined,
     ThunderboltOutlined,
 } from "@ant-design/icons";
-import {useGameStore} from "../stores/gameStore";
+import {useGameStore} from "../../stores/gameStore.js";
 
 const ABILITY_UNLOCK_LEVELS = {
     1: 3,

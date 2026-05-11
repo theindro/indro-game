@@ -6,6 +6,9 @@ import {PropManager} from "./PropManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import { InteractablePropManager } from './interactablePropManager.js';   // ADD
 
+import { WorldEditorController } from "../devtools/WorldEditorController";
+import {editorBridge} from "../../components/devtools/editorBridge.js";
+
 const weatherConfig = {
     forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
     desert: {type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44'},
@@ -13,12 +16,11 @@ const weatherConfig = {
     lava: {type: '🔥 Embers', intensity: 0.8, color: '#ff4400'}
 };
 
-
 export class OpenWorldManager {
-    constructor(world, colliders, renderer) {
+    constructor(world, colliders, app) {
         this.world = world;
         this.colliders = colliders;
-        this.renderer = renderer;
+        this.renderer = app.renderer;
         this.chunkSize = 32;
         this.tileSize = 64;
         this.renderDistance = 1;
@@ -60,6 +62,22 @@ export class OpenWorldManager {
         this.persistedProps = new Set();
         this.persistedMobs = new Set();
         this.onChunkChangeCallback = null; // ADD THIS LINE
+
+        // World editor
+        this.editorLayer = new Container();
+        this.editorLayer.label = "editorLayer";
+        this.editorLayer.zIndex = 99999;
+
+        // IMPORTANT: do NOT parent it to world
+        this.world.addChild(this.editorLayer);
+
+        this.editorMode = false;
+        this.selectedPropId = null;
+        this.ghostSprite = null;
+        this.world.sortableChildren = true;
+        this.editor = new WorldEditorController(this, app);
+        editorBridge.setController(this.editor);
+        // World editor end
 
         // Create PropManager
         this.propManager = new PropManager(world, colliders, this.worldSeed);
@@ -113,6 +131,17 @@ export class OpenWorldManager {
         // For debug
         this._debugTimer = 0;
         this._debugInterval = 5000; // 5 seconds
+
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "l") {
+                this.toggleEditorMode();
+            }
+        });
+    }
+
+    toggleEditorMode() {
+        this.editorMode = !this.editorMode;
+        this.editor.setEnabled(this.editorMode);
     }
 
     generateChunkData(chunkX, chunkZ) {
@@ -171,7 +200,13 @@ export class OpenWorldManager {
         }
 
         if (type === 'poi') {
-            //data.poi = this.generatePOI(chunkX, chunkZ, biome, seed);
+            const key = `${chunkX},${chunkZ}`;
+
+            const poi = this.spawnedPOIs.get(key);
+
+            if (poi) {
+                data.poi = poi;
+            }
         }
 
         this.chunkData.set(key, data);

@@ -1,7 +1,7 @@
 // components/LevelUpEffect.jsx
 import React, {useEffect, useState} from "react";
-import {useGameStore} from "../stores/gameStore";
-import {audioManager} from "../game/utils/audioManager.js";
+import {useGameStore} from "../../stores/gameStore.js";
+import {audioManager} from "../../game/utils/audioManager.js";
 
 const ABILITY_UNLOCK_LEVELS = {
     3: "Arrow Barrage",

@@ -17,9 +17,9 @@ import {
     ExclamationCircleOutlined,
     PlusCircleOutlined, HeatMapOutlined, FireOutlined,
 } from '@ant-design/icons';
-import {useGameStore} from '../stores/gameStore';
-import Inventory from './Inventory';
-import PauseScreen from "./PauseScreen.jsx";
+import {useGameStore} from '../../stores/gameStore.js';
+import Inventory from './Inventory.jsx';
+import PauseScreen from "../screens/PauseScreen.jsx";
 import Character from "./Character.jsx";
 import CraftingPanel from "./Crafting.jsx";
 

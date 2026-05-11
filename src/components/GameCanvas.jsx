@@ -1,8 +1,8 @@
-// ArenaHUD.jsx
+// GameCanvas.jsx
 import { useEffect, useRef } from 'react';
 import { useGame } from '../hooks/useGame.js';
 
-export default function ArenaHUD() {
+export default function GameCanvas() {
     const containerRef = useRef(null);
 
     useGame(containerRef); // Pass container ref to game

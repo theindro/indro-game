@@ -8,7 +8,7 @@ import {
     HomeOutlined,
     ReloadOutlined,
 } from '@ant-design/icons';
-import { useGameStore } from '../stores/gameStore';
+import { useGameStore } from '../../stores/gameStore.js';
 
 const { Title, Text } = Typography;
 
