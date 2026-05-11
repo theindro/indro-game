@@ -8,14 +8,16 @@ class VisualEffects {
         this.floats = [];
         this.particles = [];
         this.shakeRef = { value: 0 };
+        this.entityLayer = null;  // Need world reference for adding particles
         this.world = null;  // Need world reference for adding particles
         this.initialized = false;
     }
 
-    init(world, particlesArray) {
+    init(world, particlesArray, entityLayer) {
         this.world = world;
         this.particles = particlesArray;
         this.initialized = true;
+        this.entityLayer = entityLayer;
         console.log('✅ VisualEffects initialized');
     }
 
@@ -42,13 +44,7 @@ class VisualEffects {
         if (!texture) return;
 
         // 🔥 IMPORTANT: adjust based on your spritesheet
-        const frames = assetManager.getAnimationFrames('burst',
-            1024,  // frame width
-            1024,  // frame height
-            4,   // columns
-            4    // rows (16 frames)
-        );
-
+        const frames = assetManager.getAnimationFrames('burst', 1024,  1024,  4,   4);
         const anim = new AnimatedSprite(frames);
 
         anim.anchor.set(0.5);
@@ -56,7 +52,7 @@ class VisualEffects {
         anim.y = y;
 
         anim.tint = color;
-        anim.blendMode = 'add';
+        //anim.blendMode = 'add';
 
         anim.animationSpeed = 0.6;
         anim.loop = false;
@@ -79,14 +75,14 @@ class VisualEffects {
      * @param {number} y - world y position
      */
     smoke(x, y) {
-        if (!this.initialized || !this.world) return;
+        if (!this.initialized || !this.entityLayer) return;
 
         const size = 6 + Math.random() * 8;
         const p = new Graphics();
         p.circle(0, 0, size).fill({ color: 0x554444, alpha: 0.35 });
         p.x = x + (Math.random() - 0.5) * 14;
         p.y = y;
-        this.world.addChild(p);
+        this.entityLayer.addChild(p);
 
         const maxLife = 55 + Math.random() * 40;
         this.particles.push({
@@ -105,13 +101,13 @@ class VisualEffects {
      * @param {number} y - world y position
      */
     ember(x, y) {
-        if (!this.initialized || !this.world) return;
+        if (!this.initialized || !this.entityLayer) return;
 
         const p = new Graphics();
         p.circle(0, 0, 1.5 + Math.random() * 2).fill({ color: 0xff4400, alpha: 1 });
         p.x = x + (Math.random() - 0.5) * 20;
         p.y = y;
-        this.world.addChild(p);
+        this.entityLayer.addChild(p);
 
         const maxLife = 40 + Math.random() * 50;
         this.particles.push({
@@ -159,11 +155,12 @@ class VisualEffects {
         this.shakeRef.value = intensity;
     }
 
-    explosion(x, y, color = null, scale = 1) {
-        if (!this.initialized || !this.world) return;
+    explosion(x, y, color = null, scale = 1, size) {
+        if (!this.initialized || !this.entityLayer) return;
 
         // Get cached frames (8x8 grid with 256px frames)
-        const frames = assetManager.getAnimationFrames('explosion', 256, 256, 8, 8);
+        //const frames = assetManager.getAnimationFrames('explosion', 256, 256, 8, 8);
+        const frames = assetManager.getAnimationFrames('explosion_v2', 400, 288, 5, 2);
 
         if (!frames || frames.length === 0) {
             console.warn('Failed to get explosion animation frames');
@@ -182,25 +179,39 @@ class VisualEffects {
             anim.tint = color;
         }
 
-        anim.blendMode = 'add'; // or 'normal' for less intense
-        anim.animationSpeed = 1.5; // Slower for explosion (adjust as needed)
+        // Shadow
+        const shadow = new Graphics();
+
+        shadow
+            .ellipse(0, size + 0, size + 10, 6)
+            .fill({
+                color: 0x000000,
+                alpha: 0.15
+            });
+
+        shadow.x = x;
+        shadow.y = y;
+
+        this.entityLayer.addChild(shadow);
+
+        //anim.blendMode = 'add'; // or 'normal' for less intense
+        anim.animationSpeed = 0.35; // Slower for explosion (adjust as needed)
         anim.loop = false;
-        anim.rotation = Math.random() * Math.PI * 2; // Random rotation
+        //anim.rotation = Math.random() * Math.PI * 2; // Random rotation
         anim.scale.set(scale);
 
-        // Optional: Add screen shake on explosion
-        if (scale > 0.8) {
-            this.shake(Math.min(8, Math.floor(scale * 5)));
-        }
 
         anim.onComplete = () => {
-            if (this.world && !this.world.destroyed) {
-                this.world.removeChild(anim);
+            if (this.entityLayer && !this.entityLayer.destroyed) {
+                this.entityLayer.removeChild(anim);
+                this.entityLayer.removeChild(shadow);
             }
+
+            shadow.destroy();
             anim.destroy();
         };
 
-        this.world.addChild(anim);
+        this.entityLayer.addChild(anim);
         anim.play();
     }
 
@@ -214,10 +225,10 @@ class VisualEffects {
             this.floats.length = 0;
         }
 
-        if (this.particles && this.world) {
+        if (this.particles && this.entityLayer) {
             for (const p of this.particles) {
                 if (p.g && !p.g.destroyed) {
-                    this.world.removeChild(p.g);
+                    this.entityLayer.removeChild(p.g);
                     p.g.destroy();
                 }
             }

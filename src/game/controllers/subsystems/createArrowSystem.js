@@ -125,6 +125,19 @@ export function createArrowSystem(ctx) {
         //VFX.burst(x, y, 0xff4466, 8, 3);
         //VFX.shake(6)
 
+        const minMobSize = 12;
+        const maxMobSize = 40;
+
+        const minScale = 0.2;
+        const maxScale = 0.5;
+
+        const scale =
+            minScale +
+            ((mob.size - minMobSize) / (maxMobSize - minMobSize)) *
+            (maxScale - minScale);
+
+        VFX.explosion(x, y, '', scale,  mob.size);
+
         // Update stats
         useGameStore.getState().addKills(1);
 
@@ -244,7 +257,7 @@ export function createArrowSystem(ctx) {
     function applyHitEffects(x, y, damage, isCrit, isBoss = false, elementalType = 'normal') {
         const particleCount = isCrit ? (isBoss ? 15 : 12) : (isBoss ? 10 : 7);
         const textColor = '#fff';
-        const burstColor = STATUS_COLORS_RGBA[elementalType];
+        const burstColor = 'black';
         const damageText = isCrit ? `${parseInt(damage)} CRIT!` : `${parseInt(damage)}`;
 
 
@@ -302,7 +315,12 @@ export function createArrowSystem(ctx) {
             // Check collision with mobs
             for (let mi = 0; mi < mobs.length; mi++) {
                 const mob = mobs[mi];
-                if (Math.hypot(mob.x - arrow.c.x, mob.y - arrow.c.y) >= COLLISION_RADIUS) continue;
+                if (!mob.c || mob.hp <= 0) continue; // ← ADD THIS guard
+
+                const mobRadius = (mob.size ?? COLLISION_RADIUS);
+
+                if (Math.hypot(mob.x - arrow.c.x, mob.y - arrow.c.y) >= mobRadius) continue;
+
                 if (arrow.chainHitMobs?.has(mob)) continue;
 
                 // Calculate damage

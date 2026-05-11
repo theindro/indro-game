@@ -159,6 +159,8 @@ export class ExploderArchetype {
         }
 
         // CRITICAL: Mark as destroyed and remove mob
+        m.hp = 0; // ← ADD THIS — arrow system skips mobs with hp <= 0
+
         if (m.c && !m.c.destroyed) {
 
             // Flash white before removal

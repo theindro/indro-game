@@ -43,9 +43,6 @@ export async function createGame() {
     let killsRef = {value: 0};
     let bossActiveRef = {value: null};
 
-    // Initialize global VFX with our arrays
-    VFX.init(world, particles);
-
     // ==================== SYSTEMS ====================
     const weatherSystem = initWeatherSystem(app);
 
@@ -150,6 +147,9 @@ export async function createGame() {
         // Optionally spawn floating text / particles at (x, y)
         // VFX.floatText(`+${loot.map(d => d.amount + 'x ' + d.id).join(', ')}`, x, y);
     };
+
+    // Initialize global VFX with our arrays
+    VFX.init(world, particles, openWorld.entityLayer);
 
     // Test light
     //lighting.addLight(400, 300, 400, 0.2, '#ffb700');

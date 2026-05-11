@@ -126,6 +126,7 @@ class AssetManager {
         const VFX = [
             { file: '/vfx/burst.png', id: 'burst', type: 'vfx', itemId: null },
             { file: '/vfx/explosion.png', id: 'explosion', type: 'vfx', itemId: null },
+            { file: '/vfx/explosion_v2.png', id: 'explosion_v2', type: 'vfx', itemId: null },
         ];
 
         // ============= DROP TEXTURES =============
@@ -260,6 +261,12 @@ class AssetManager {
             this.getAnimationFrames('explosion', 256, 256, 8, 8); // 64 frames total
         }
 
+        // 🆕 Pre-cache explosion animation frames (8x8 grid, 2048x2048 spritesheet)
+        const explosionTexture2 = this.textures.get('explosion_v2');
+        if (explosionTexture2) {
+            // 2048 / 8 = 256px per frame
+            this.getAnimationFrames('explosion_v2', 256, 256, 5, 2); // 64 frames total
+        }
 
         console.log('⚡ Animations preloaded and cached');
     }
