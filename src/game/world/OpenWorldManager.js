@@ -3,11 +3,12 @@ import {Container, Graphics, Sprite, Assets, TilingSprite, BlurFilter} from 'pix
 import {BIOME_COLORS} from '../constants.js';
 import {PropManager} from "./PropManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
-import { InteractablePropManager } from './interactablePropManager.js';
-import { WorldObjectManager } from './WorldObjectManager.js';
+import {InteractablePropManager} from './interactablePropManager.js';
+import {WorldObjectManager} from './WorldObjectManager.js';
 
-import { WorldEditorController } from "../devtools/WorldEditorController";
+import {WorldEditorController} from "../devtools/WorldEditorController";
 import {editorBridge} from "../../components/devtools/editorBridge.js";
+
 const weatherConfig = {
     forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
     desert: {type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44'},
@@ -109,7 +110,7 @@ export class OpenWorldManager {
         this.interactablePropManager = new InteractablePropManager(
             this.worldObjects,
             this.worldSeed,
-            { persistedProps: this.persistedProps }
+            {persistedProps: this.persistedProps}
         );
 
         this.chunkTypes = {
@@ -120,6 +121,10 @@ export class OpenWorldManager {
             elite: 0.04,
             boss: 0.01
         };
+
+        // Chunk debug
+        this.chunkDebugGraphics = new Graphics();
+        this.debugLayer.addChild(this.chunkDebugGraphics);
 
         // For debug
         this._debugTimer = 0;
@@ -244,7 +249,7 @@ export class OpenWorldManager {
             if (chunk.parent) {
                 chunk.parent.removeChild(chunk);
             }
-            chunk.destroy({ children: true });
+            chunk.destroy({children: true});
         }
 
         this.loadedChunks.clear();
@@ -278,6 +283,33 @@ export class OpenWorldManager {
     seededRandom(seed) {
         const x = Math.sin(seed) * 10000;
         return x - Math.floor(x);
+    }
+
+    drawChunkDebug(centerChunkX, centerChunkZ) {
+        const g = this.chunkDebugGraphics;
+        g.clear();
+
+        const size = this.chunkSize * this.tileSize;
+        const range = this.renderDistance;
+
+        for (let dx = -range; dx <= range; dx++) {
+            for (let dz = -range; dz <= range; dz++) {
+
+                const chunkX = centerChunkX + dx;
+                const chunkZ = centerChunkZ + dz;
+
+                const x = chunkX * size;
+                const y = chunkZ * size;
+
+                // rectangle outline
+                g.rect(x, y, size, size);
+                g.stroke({width: 2, color: 0x00ff00});
+
+                // optional center dot
+                g.circle(x + size / 2, y + size / 2, 4);
+                g.fill(0xff0000);
+            }
+        }
     }
 
     getBiomeAt(x, z) {
@@ -358,7 +390,7 @@ export class OpenWorldManager {
 
         if (this.spawnedEntities.has(key)) return;
 
-        const entities = { mobs: [] };
+        const entities = {mobs: []};
 
         for (const pack of chunkData.packs) {
 
@@ -373,6 +405,22 @@ export class OpenWorldManager {
 
                 // TODO: Dont respawn mobs that are killed
                 //if (this.persistedMobs.has(mobId)) continue;
+
+                // Check if collision is ok for spawn
+                const isBlocked = this.worldObjects.colliders.some(c => {
+                    if (!c.collision) return false;
+
+                    const dx = c.x - x;
+                    const dy = c.y - z;
+
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    const minDist = Math.max(c.width || 40, c.height || 40) * 0.5;
+
+                    return dist < minDist;
+                });
+
+                if (isBlocked) continue;
 
                 const mob = this.worldObjects.spawnMob(
                     x,
@@ -400,13 +448,22 @@ export class OpenWorldManager {
         return this.worldMode === 'procedural';
     }
 
+
     async update(playerX, playerZ, dt) {
         if (!this.initialized) return;
+        const debugEnabled = useGameStore.getState().debug.enabled;
 
         const now = Date.now();
         const chunkSizeWorld = this.chunkSize * this.tileSize;
         const centerChunkX = Math.floor(playerX / chunkSizeWorld);
         const centerChunkZ = Math.floor(playerZ / chunkSizeWorld);
+
+        // Debug only
+        if (debugEnabled) {
+            this.drawChunkDebug(centerChunkX, centerChunkZ);
+        } else {
+            this.chunkDebugGraphics.clear();
+        }
 
         // 🔥 CHECK FOR CHUNK CHANGE 🔥
         if (centerChunkX !== this.lastPlayerChunk.x || centerChunkZ !== this.lastPlayerChunk.z) {
