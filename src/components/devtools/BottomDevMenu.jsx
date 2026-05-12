@@ -7,7 +7,7 @@ import {
     Button, Tag, Row,
 } from 'antd';
 import {
-    PauseCircleOutlined, SearchOutlined, EditOutlined, SaveOutlined, LoadingOutlined,
+    PauseCircleOutlined, SearchOutlined, EditOutlined, SaveOutlined, LoadingOutlined, UploadOutlined,
 } from '@ant-design/icons';
 import {useGameStore} from '../../stores/gameStore.js';
 import WorldEditorModal from "./WorldEditorModal.jsx";
@@ -41,7 +41,7 @@ const MENU_ITEMS = [
     },
     {
         key: 'load-world-from-json',
-        icon: <LoadingOutlined/>,
+        icon: <UploadOutlined/>,
         label: 'load-world-from-json',
         hotkey: '',
     },

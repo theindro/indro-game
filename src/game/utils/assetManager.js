@@ -159,7 +159,18 @@ class AssetManager {
                 rows: 2,
                 fps: 14
             },
-        ];
+            {
+                file: '/vfx/blue-fire.png',
+                id: 'blue_fire',
+                type: 'vfx',
+                animated: true,
+                frameWidth: 126,
+                frameHeight: 274,
+                cols: 4,
+                rows: 3,
+                fps: 14
+            }
+            ];
 
         this.registerVFXMeta(VFX);
 

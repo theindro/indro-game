@@ -133,7 +133,8 @@ export class PropManager {
                     x: spr.x,
                     y: spr.y,
                     scale: spr.scale?.x ?? 1,
-                    rotation: spr.rotation ?? 0
+                    rotation: spr.rotation ?? 0,
+                    collision: spr.editorData?.collidable,
                 });
             }
         }
@@ -182,6 +183,10 @@ export class PropManager {
             console.warn(`[PropManager] Missing asset for prop id: ${p.id}`);
             return;
         }
+
+        propVisual.editorData = {
+            collidable: p.collision,
+        };
 
         if (propVisual instanceof AnimatedSprite) {
             propVisual.play?.();
@@ -235,7 +240,11 @@ export class PropManager {
             entry.shadowsList.push(shadow);
         }
 
-        const wantsCollision = propType ? propType.collision : true;
+        const wantsCollision =
+            p.collision !== undefined
+                ? p.collision
+                : (propType ? propType.collision : true);
+
         if (wantsCollision) {
             const baseWidth = Math.max(20, propVisual.width || 30);
             const baseHeight = Math.max(20, propVisual.height || 30);

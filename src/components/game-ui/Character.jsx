@@ -18,7 +18,7 @@ const { Text } = Typography;
 
 const EQUIPMENT_LAYOUT = [
     [null, 'helmet', null],
-    ['gloves', 'chest', 'weapon'],
+    ['weapon', 'chest', 'gloves'],
     [null, 'pants', null],
     ['amulet', 'boots', 'ring'],
 ];

@@ -7,9 +7,9 @@ import {
     Container
 } from "pixi.js";
 
-import { OutlineFilter } from "pixi-filters";
+import {OutlineFilter} from "pixi-filters";
 
-import { assetManager } from "../utils/assetManager";
+import {assetManager} from "../utils/assetManager";
 
 import {
     createMobEntity
@@ -95,7 +95,7 @@ export class WorldEditorController {
         this.hovered = null;
 
         if (this.ghost) {
-            this.ghost.destroy({ children: true });
+            this.ghost.destroy({children: true});
             this.ghost = null;
         }
 
@@ -138,7 +138,7 @@ export class WorldEditorController {
 
         if (this.ghost) {
             this.world.editorLayer.removeChild(this.ghost);
-            this.ghost.destroy({ children: true });
+            this.ghost.destroy({children: true});
         }
 
         this.ghost = preview;
@@ -194,7 +194,7 @@ export class WorldEditorController {
 
         if (!stats) return null;
 
-        const { c } = createMobEntity(
+        const {c} = createMobEntity(
             this.app.renderer,
             "forest",
             stats.size,
@@ -202,7 +202,7 @@ export class WorldEditorController {
             stats.type
         );
 
-        const fakeMob = { c };
+        const fakeMob = {c};
 
         applyArchetypeVisuals(
             fakeMob,
@@ -301,9 +301,11 @@ export class WorldEditorController {
         // LEFT CLICK
         if (e.button === 0) {
 
-            // PICK FIRST
-            if (this.tryPick(e)) {
-                return;
+            // Only allow picking when no active preview exists
+            if (!this.ghost) {
+                if (this.tryPick(e)) {
+                    return;
+                }
             }
 
             // PLACE
@@ -425,7 +427,12 @@ export class WorldEditorController {
 
         const sx = sprite.x;
         const sy = sprite.y;
-        const settings = this.extractSettings(sprite);
+        const settings = {
+            ...this.extractSettings(sprite),
+
+            collidable: sprite.editorData?.collidable,
+        };
+
         const id = sprite.worldPropRecord?.id ?? this.selectedId;
 
         this.world.propManager.removePropVisual(sprite);
@@ -516,7 +523,10 @@ export class WorldEditorController {
                 x,
                 y,
                 scale: this.selectedSettings.scale ?? 1,
-                rotation: this.selectedSettings.rotation ?? 0
+                rotation: this.selectedSettings.rotation ?? 0,
+
+                collision: this.selectedSettings.collidable,
+                //shadow: this.selectedExtra.shadow
             },
             chunkKey,
             biome
@@ -524,7 +534,10 @@ export class WorldEditorController {
 
         if (!spr) return;
 
-        spr.editorData = { type: "prop" };
+        spr.editorData = {
+            type: "prop",
+            collidable: this.selectedSettings.collidable,
+        };
 
         this.applySettingsToSprite(spr, this.selectedSettings);
 
