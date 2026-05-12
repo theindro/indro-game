@@ -7,6 +7,7 @@ class AssetManager {
         this.propTextures = new Map(); // Store props by type
         this.animationFrames = new Map();
         this.vfxMeta = new Map(); // ✅ NEW
+        this.assetMeta = new Map();
         this.loaded = false;
     }
 
@@ -182,6 +183,10 @@ class AssetManager {
             ...VFX
         ];
 
+        for (const item of allItems) {
+            this.assetMeta.set(item.id, item);
+        }
+
         const loadPromises = [];
 
         // Load all textures
@@ -350,6 +355,37 @@ class AssetManager {
             console.warn(`Texture not found: ${name}`);
         }
         return texture;
+    }
+
+    getAssetMeta(id) {
+        return this.assetMeta.get(id);
+    }
+
+    getEditorAssets() {
+        const result = [];
+
+        for (const [id, meta] of this.assetMeta.entries()) {
+
+            // ONLY world-placeable assets
+            const allowed =
+                meta.type === 'tree' ||
+                meta.type === 'stone' ||
+                meta.type === 'snow_stone' ||
+                meta.type === 'bush' ||
+                meta.type === 'vfx';
+
+            if (!allowed) continue;
+
+            result.push({
+                id,
+                type: meta.type,
+                animated: !!meta.animated,
+                texture: this.textures.get(id),
+                meta
+            });
+        }
+
+        return result;
     }
 }
 

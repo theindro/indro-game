@@ -12,27 +12,14 @@ const rarityClass = {
     Legendary: "item-legendary",
 };
 
-const ItemBrowser = () => {
+const ItemBrowser = ({open, setOpen}) => {
     const addItem = useGameStore((s) => s.addItem);
 
-    const [open, setOpen] = useState(false);
     const [qty, setQty] = useState(1);
     const [search, setSearch] = useState("");
     const [messageApi, contextHolder] = message.useMessage();
 
     const items = useMemo(() => Object.values(ItemDatabase), []);
-
-    useEffect(() => {
-        const onKeyDown = (e) => {
-            if (e.key === "x") {
-                e.preventDefault();
-                setOpen((prev) => !prev);
-            }
-        };
-
-        window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
-    }, []);
 
     const handleGiveItem = (item) => {
         let quantity = item.type === 'crafting' ? qty : 1;

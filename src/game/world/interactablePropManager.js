@@ -667,4 +667,60 @@ export class InteractablePropManager {
         }
         return stats;
     }
+
+    spawnManualProp(typeId, x, z, scale = 1) {
+
+        const def = INTERACTABLE_PROP_TYPES[typeId];
+
+        if (!def) return null;
+
+        const prop = this._createProp(
+            def,
+            x,
+            z,
+            scale,
+            "editor"
+        );
+
+        this.allProps.push(prop);
+
+        return prop;
+    }
+
+    removeProp(prop) {
+
+        this._destroyProp(prop);
+
+        this.allProps =
+            this.allProps.filter(p => p !== prop);
+
+        const index =
+            this.colliders.indexOf(prop.collider);
+
+        if (index !== -1) {
+            this.colliders.splice(index, 1);
+        }
+    }
+
+    clear() {
+        // 1. Remove all interactable props
+        for (const prop of this.allProps) {
+            this._destroyProp(prop);
+        }
+
+        // 2. Clear all colliders belonging to interactables
+        if (this.colliders) {
+            for (let i = this.colliders.length - 1; i >= 0; i--) {
+                if (this.colliders[i].type === 'interactable') {
+                    this.colliders.splice(i, 1);
+                }
+            }
+        }
+
+        // 3. Reset state
+        this.allProps = [];
+        this.activeChunks.clear();
+        this._highlighted = null;
+        this._elapsed = 0;
+    }
 }

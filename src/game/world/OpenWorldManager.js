@@ -8,6 +8,7 @@ import { InteractablePropManager } from './interactablePropManager.js';   // ADD
 
 import { WorldEditorController } from "../devtools/WorldEditorController";
 import {editorBridge} from "../../components/devtools/editorBridge.js";
+import {assetManager} from "../utils/assetManager.js";
 
 const weatherConfig = {
     forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
@@ -33,6 +34,11 @@ export class OpenWorldManager {
             minY: -200000,
             maxY: 200000
         };
+        this.worldMode = "procedural";// "procedural" | "editor" | "loaded"
+        this.worldData = {
+            chunks: new Map()
+        };
+
         this.entitiesList = null;
         this.initialized = false;
         this.worldSeed = Math.floor(Math.random() * 1000000);
@@ -131,17 +137,6 @@ export class OpenWorldManager {
         // For debug
         this._debugTimer = 0;
         this._debugInterval = 5000; // 5 seconds
-
-        window.addEventListener("keydown", (e) => {
-            if (e.key === "l") {
-                this.toggleEditorMode();
-            }
-        });
-    }
-
-    toggleEditorMode() {
-        this.editorMode = !this.editorMode;
-        this.editor.setEnabled(this.editorMode);
     }
 
     generateChunkData(chunkX, chunkZ) {
@@ -255,32 +250,46 @@ export class OpenWorldManager {
         }
     }
 
-    spawnPOIInChunk(chunkX, chunkZ, biome) {
-        const key = `${chunkX},${chunkZ}`;
-        if (this.spawnedPOIs.has(key)) return;
-        const seed = this.worldSeed ^ (chunkX * 73856093) ^ (chunkZ * 19349663);
-        const rand = this.seededRandom(seed + 999);
-        const biomeConfig = this.config.biomeSettings[biome];
-        const chance = this.config.poi.spawnChance * (biomeConfig?.poiWeight || 1);
-        if (rand > chance) return;
-        for (let dx = -this.config.poi.minDistance; dx <= this.config.poi.minDistance; dx++) {
-            for (let dz = -this.config.poi.minDistance; dz <= this.config.poi.minDistance; dz++) {
-                if (this.spawnedPOIs.has(`${chunkX + dx},${chunkZ + dz}`)) return;
+    resetWorld() {
+
+        // 1. Remove chunks
+        for (const [, chunk] of this.loadedChunks) {
+            if (chunk.parent) {
+                chunk.parent.removeChild(chunk);
             }
+            chunk.destroy({ children: true });
         }
-        const chunkSizeWorld = this.chunkSize * this.tileSize;
-        const x = chunkX * chunkSizeWorld + chunkSizeWorld / 2;
-        const z = chunkZ * chunkSizeWorld + chunkSizeWorld / 2;
-        const typeRand = this.seededRandom(seed + 5000);
-        let type = 'event';
-        if (typeRand > 0.7) type = 'boss';
-        else if (typeRand > 0.4) type = 'loot';
-        const g = new Graphics();
-        g.circle(0, 0, 80).fill({color: type === 'boss' ? 0xff0000 : 0x00ff00});
-        g.x = x;
-        g.y = z;
-        this.world.addChild(g);
-        this.spawnedPOIs.set(key, {type, x, z, biome});
+
+        this.loadedChunks.clear();
+        this.spawnedEntities.clear();
+        this.chunkData.clear();
+
+        // 2. Remove all props
+        this.propManager?.clear?.();
+
+        // 3. Remove interactables
+        this.interactablePropManager?.clear?.();
+
+        // 4. Remove mobs
+        for (const m of this.entitiesList?.mobs || []) {
+            if (m.c?.parent) {
+                m.c.parent.removeChild(m.c);
+            }
+            m.c?.destroy?.();
+        }
+
+        this.entitiesList.mobs = [];
+
+        // 5. Clear colliders
+        this.colliders.length = 0;
+
+        // 6. Reset chunks tracking
+        this.worldData.chunks.clear();
+
+        // 7. Reset procedural systems state
+        this.pendingChunks.clear();
+
+        console.log("WORLD RESET DONE");
     }
 
     seededRandom(seed) {
@@ -305,7 +314,9 @@ export class OpenWorldManager {
 
     async getBiomeTexture(biome) {
         if (this.biomeTextures.has(biome)) return this.biomeTextures.get(biome);
+
         const biomeData = BIOME_COLORS[biome];
+
         if (biomeData?.texture) {
             try {
                 const texture = await Assets.load(biomeData.texture);
@@ -315,6 +326,7 @@ export class OpenWorldManager {
                 return null;
             }
         }
+
         return null;
     }
 
@@ -403,6 +415,10 @@ export class OpenWorldManager {
         this.spawnedEntities.set(key, entities);
     }
 
+    shouldGenerateProceduralChunks() {
+        return this.worldMode === 'procedural';
+    }
+
     async update(playerX, playerZ, dt) {
         if (!this.initialized) return;
 
@@ -472,7 +488,13 @@ export class OpenWorldManager {
             // Queue chunks to load
             for (const key of activeChunks) {
                 if (!this.loadedChunks.has(key) && !this.pendingChunks.has(key)) {
-                    this.pendingChunks.add(key);
+
+                    if (this.shouldGenerateProceduralChunks()) {
+                        this.pendingChunks.add(key);
+                    } else if (this.worldData.chunks.has(key)) {
+                        // loaded world: only enqueue if it exists in JSON
+                        this.pendingChunks.add(key);
+                    }
                 }
             }
 
@@ -498,6 +520,11 @@ export class OpenWorldManager {
 
         // Only update mobs (no chunk loading this frame)
         for (const m of this.entitiesList.mobs) {
+            if (this.editor.enabled) {
+                // freeze AI
+                continue;
+            }
+
             const mobChunkX = Math.floor(m.x / chunkSizeWorld);
             const mobChunkZ = Math.floor(m.y / chunkSizeWorld);
             if (activeChunks.has(`${mobChunkX},${mobChunkZ}`)) {
@@ -618,37 +645,109 @@ export class OpenWorldManager {
 
     async loadChunk(chunkX, chunkZ, playerX, playerZ) {
         const key = `${chunkX},${chunkZ}`;
-        if (this.loadedChunks.has(key)) return;
 
+        console.log("LOOKUP KEY:", key);
+        console.log("AVAILABLE KEYS:", [...this.worldData.chunks.keys()]);
+
+        // 1. Editor / loaded world has priority
+        if (this.worldMode === "loaded" && this.worldData.chunks.has(key)) {
+            const data = this.worldData.chunks.get(key);
+            return this.loadEditorChunk(chunkX, chunkZ, data);
+        }
+
+        // 2. Procedural fallback
+        return this.loadProceduralChunk(chunkX, chunkZ, playerX, playerZ);
+    }
+
+    loadWorldFromJson(data) {
+
+        this.worldMode = "loaded";
+
+        // 🔥 IMPORTANT: wipe old procedural world first
+        this.resetWorld();
+
+        this.worldData.chunks.clear();
+
+        for (const chunk of data.chunks) {
+            const key = `${chunk.chunkX},${chunk.chunkZ}`;
+            this.worldData.chunks.set(key, chunk);
+        }
+
+        this.loadedChunks.clear();
+
+        // force reload center area
+        this.update(0, 0);
+    }
+
+    async loadProceduralChunk(chunkX, chunkZ, playerX, playerZ) {
         const chunk = await this.generateChunk(chunkX, chunkZ);
-        // Store biome with chunk for cleanup
-        chunk.biome = this.getBiomeAtChunk(chunkX, chunkZ);
-        chunk.chunkX = chunkX;
-        chunk.chunkZ = chunkZ;
 
-        // Chunk ground
         this.groundLayer.addChild(chunk);
 
-        // Chunk props
-        await this.propManager.generateChunkProps(chunkX, chunkZ, chunk.biome, this.chunkSize, this.tileSize);
+        await this.propManager.generateChunkProps(chunkX, chunkZ, 'ice', this.chunkSize, this.tileSize);
+        await this.interactablePropManager.generateChunkProps(chunkX, chunkZ, 'ice', this.chunkSize, this.tileSize);
 
-        // Chunk interactable props
-        await this.interactablePropManager.generateChunkProps(
-            chunkX, chunkZ, chunk.biome, this.chunkSize, this.tileSize
-        );
-
-        // Chunk mobs
         const chunkData = this.generateChunkData(chunkX, chunkZ);
 
-        chunk.chunkData = chunkData;
+        await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData);
 
-        await this.spawnMobsInChunk(
-            chunkX,
-            chunkZ,
-            playerX,
-            playerZ,
-            chunkData
-        );
+        this.loadedChunks.set(`${chunkX},${chunkZ}`, chunk);
+    }
+
+    async loadEditorChunk(chunkX, chunkZ, data) {
+        const key = `${chunkX},${chunkZ}`;
+
+        const chunk = new Container();
+
+        const biome = data.biome || "forest";
+        const size = this.chunkSize * this.tileSize;
+        const color = this.getBiomeColor(biome);
+
+        const worldX = chunkX * size;
+        const worldY = chunkZ * size;
+
+        const rect = new Graphics();
+
+        rect.rect(worldX, worldY, size, size);
+        rect.fill(color);
+
+        chunk.addChild(rect);
+
+        this.groundLayer.addChild(chunk);
+
+        // ===== PROPS =====
+        for (const p of data.props || []) {
+            const sprite = assetManager.createRenderable(p.id, false);
+
+            sprite.x = p.x;
+            sprite.y = p.y;
+            sprite.scale.set(p.scale || 1);
+
+            this.entityLayer.addChild(sprite);
+
+            this.colliders.push({
+                type: "prop",
+                id: p.id,
+                x: p.x,
+                y: p.y,
+                sprite
+            });
+        }
+
+        // ===== MOBS =====
+        for (const m of data.mobs || []) {
+            const mob = spawnMob(
+                this.renderer,
+                this.entityLayer,
+                m.x,
+                m.y,
+                biome,
+                m.archetype,
+                1
+            );
+
+            this.entitiesList.mobs.push(mob);
+        }
 
         this.loadedChunks.set(key, chunk);
     }

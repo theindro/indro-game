@@ -11,13 +11,14 @@ import {
     Typography,
     Button,
     InputNumber,
-    Select,
+    Tabs,
     Collapse,
     Space,
     Switch,
 } from "antd";
 
 import {assetManager} from "../../game/utils/assetManager.js";
+import {EDITOR_INTERACTABLES, EDITOR_MOBS} from "./editorRegistry.js";
 
 const {Text} = Typography;
 
@@ -56,89 +57,22 @@ const WorldEditorModal = ({
     const [snapToGrid, setSnapToGrid] = useState(true);
     const [spawnChance, setSpawnChance] = useState(1);
 
-    useEffect(() => {
-        const onKeyDown = (e) => {
-            if (e.key === "z") {
-                setWorldEditor(!open)
-            }
-        };
+    const editorData = [
+        {
+            category: 'Props',
+            assets: assetManager.getEditorAssets()
+        },
 
-        window.addEventListener("keydown", onKeyDown);
+        {
+            category: 'Mobs',
+            assets: EDITOR_MOBS
+        },
 
-        return () => {
-            window.removeEventListener("keydown", onKeyDown);
-        };
-    }, [open]);
-
-    // Build asset database from assetManager
-    const assets = useMemo(() => {
-        const arr = [];
-
-        for (const [id, texture] of assetManager.textures.entries()) {
-
-            // skip aliases
-            if (!texture?.source?.resource?.url && !texture?.baseTexture) {
-                continue;
-            }
-
-            let type = "unknown";
-
-            // detect type from ID
-            if (id.includes("tree")) type = "tree";
-            else if (id.includes("bush")) type = "bush";
-            else if (id.includes("stone")) type = "stone";
-            else if (id.includes("snow")) type = "snow_stone";
-            else if (id.includes("explosion") || id.includes("burst")) type = "vfx";
-            else if (id.includes("ground")) type = "ground";
-            else if (id.includes("boots")) type = "boots";
-            else if (id.includes("gloves")) type = "gloves";
-            else if (id.includes("helmet")) type = "helmet";
-            else if (id.includes("chest")) type = "chest";
-            else if (id.includes("bow")) type = "bow";
-            else if (id.includes("ring")) type = "ring";
-            else if (id.includes("amulet")) type = "amulet";
-
-            arr.push({
-                id,
-                type,
-                texture,
-                width: texture.width,
-                height: texture.height,
-                source:
-                    texture?.source?.label ||
-                    texture?.baseTexture?.resource?.url ||
-                    "unknown",
-            });
+        {
+            category: 'Interactables',
+            assets: EDITOR_INTERACTABLES
         }
-
-        return arr;
-    }, []);
-
-    const filteredAssets = useMemo(() => {
-        return assets.filter((a) => {
-            return (
-                a.id.toLowerCase().includes(search.toLowerCase()) ||
-                a.type.toLowerCase().includes(search.toLowerCase())
-            );
-        });
-    }, [assets, search]);
-
-    const groupedAssets = useMemo(() => {
-
-        const groups = {};
-
-        for (const asset of filteredAssets) {
-
-            if (!groups[asset.type]) {
-                groups[asset.type] = [];
-            }
-
-            groups[asset.type].push(asset);
-        }
-
-        return groups;
-
-    }, [filteredAssets]);
+    ]
 
     const handlePlace = () => {
 
@@ -181,119 +115,75 @@ const WorldEditorModal = ({
 
                 {/* LEFT SIDE */}
                 <Col span={16}>
+                    <Tabs
+                        defaultActiveKey="props"
+                        items={editorData.map((group) => ({
+                            key: group.category.toLowerCase(),
+                            label: group.category,
+                            children: (
+                                <div style={{ overflowY: "auto", height: "72vh", paddingRight: 8 }}>
+                                    <div
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+                                            gap: 10,
+                                        }}
+                                    >
+                                        {group.assets
+                                            .filter((a) =>
+                                                a.id.toLowerCase().includes(search.toLowerCase()) ||
+                                                a.type?.toLowerCase?.().includes(search.toLowerCase())
+                                            )
+                                            .map((asset) => {
+                                                const isSelected = selectedAsset?.id === asset.id;
 
-                    <div style={{
-                        display: "flex",
-                        gap: 10,
-                        marginBottom: 12,
-                    }}>
-                        <Input
-                            placeholder="Search props, VFX, sprites..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-
-                    <div style={{
-                        overflowY: "auto",
-                        height: "72vh",
-                        paddingRight: 8,
-                    }}>
-
-                        {Object.entries(groupedAssets).map(([type, list]) => (
-
-                            <div key={type}>
-
-                                <Divider orientation="left">
-                                    <Space>
-                                        <Tag color={typeColors[type]}>
-                                            {type.toUpperCase()}
-                                        </Tag>
-
-                                        <Text type="secondary">
-                                            {list.length}
-                                        </Text>
-                                    </Space>
-                                </Divider>
-
-                                <div
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
-                                        gap: 10,
-                                        marginBottom: 18,
-                                    }}
-                                >
-
-                                    {list.map((asset) => {
-
-                                        const isSelected =
-                                            selectedAsset?.id === asset.id;
-
-                                        return (
-                                            <Card
-                                                key={asset.id}
-                                                hoverable
-                                                size="small"
-                                                onClick={() => setSelectedAsset(asset)}
-                                                style={{
-                                                    cursor: "pointer",
-                                                    border: isSelected
-                                                        ? "2px solid #1677ff"
-                                                        : "1px solid #303030",
-                                                    background: "#111",
-                                                }}
-                                                bodyStyle={{
-                                                    padding: 8,
-                                                }}
-                                            >
-
-                                                <div
-                                                    style={{
-                                                        height: 70,
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        marginBottom: 6,
-                                                    }}
-                                                >
-                                                    <img
-                                                        src={asset.source}
-                                                        alt={asset.id}
+                                                return (
+                                                    <Card
+                                                        key={asset.id}
+                                                        hoverable
+                                                        size="small"
+                                                        onClick={() => setSelectedAsset(asset)}
                                                         style={{
-                                                            maxWidth: "100%",
-                                                            maxHeight: "100%",
-                                                            imageRendering: "pixelated",
+                                                            cursor: "pointer",
+                                                            border: isSelected
+                                                                ? "2px solid #1677ff"
+                                                                : "1px solid #303030",
+                                                            background: "#111",
                                                         }}
-                                                    />
-                                                </div>
+                                                        bodyStyle={{ padding: 8 }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                height: 70,
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                marginBottom: 6,
+                                                            }}
+                                                        >
+                                                            <img
+                                                                src={asset?.meta?.file}
+                                                                alt={asset.id}
+                                                                style={{
+                                                                    maxWidth: "100%",
+                                                                    maxHeight: "100%",
+                                                                    imageRendering: "pixelated",
+                                                                }}
+                                                            />
+                                                        </div>
 
-                                                <Text
-                                                    style={{
-                                                        fontSize: 11,
-                                                        display: "block",
-                                                        lineHeight: 1.2,
-                                                    }}
-                                                >
-                                                    {asset.id}
-                                                </Text>
-
-                                                <Text
-                                                    type="secondary"
-                                                    style={{
-                                                        fontSize: 10,
-                                                    }}
-                                                >
-                                                    {asset.width}x{asset.height}
-                                                </Text>
-
-                                            </Card>
-                                        );
-                                    })}
+                                                        <Text style={{ fontSize: 11 }}>{asset.id}</Text>
+                                                        <Text type="secondary" style={{ fontSize: 10 }}>
+                                                            {asset.width}x{asset.height}
+                                                        </Text>
+                                                    </Card>
+                                                );
+                                            })}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ),
+                        }))}
+                    />
                 </Col>
 
                 {/* RIGHT SIDE */}

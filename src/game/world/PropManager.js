@@ -298,4 +298,39 @@ export class PropManager {
         const biomeColors = colors[biome] || colors.forest;
         return biomeColors[propType?.type] || 0x808080;
     }
+
+    clear() {
+        // 1. Remove all chunk props
+        for (const [, data] of this.activeChunks) {
+
+            // remove prop visuals
+            if (data.propsList) {
+                for (const prop of data.propsList) {
+                    prop?.parent?.removeChild(prop);
+                    prop?.destroy?.({ children: true });
+                }
+            }
+
+            // remove shadows
+            if (data.shadowsList) {
+                for (const shadow of data.shadowsList) {
+                    shadow?.parent?.removeChild(shadow);
+                    shadow?.destroy?.({ children: true });
+                }
+            }
+        }
+
+        // 2. Clear colliders belonging to props
+        if (this.colliders) {
+            for (let i = this.colliders.length - 1; i >= 0; i--) {
+                if (this.colliders[i].type === 'prop') {
+                    this.colliders.splice(i, 1);
+                }
+            }
+        }
+
+        // 3. Reset state
+        this.activeChunks.clear();
+        this.shadowRegistry.clear();
+    }
 }

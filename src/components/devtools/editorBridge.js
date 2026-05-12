@@ -22,6 +22,14 @@ class EditorBridge {
     enableEditor(v) {
         this.controller?.setEnabled(v);
     }
+
+    saveWorldAsJson() {
+        this.controller.saveWorldAsJson()
+    }
+
+    loadWorldFromJson(data) {
+        this.controller.loadWorld(data);
+    }
 }
 
 export const editorBridge = new EditorBridge();
