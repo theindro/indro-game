@@ -63,6 +63,16 @@ export const PROP_TYPES = {
     }
 };
 
+/** Resolve procedural prop definition from a placed asset id (e.g. tree2, snowstone1). */
+export function getPropTypeByAssetId(assetId) {
+    if (!assetId) return null;
+    for (const def of Object.values(PROP_TYPES)) {
+        if (def.name === assetId) return def;
+        if (def.variants?.includes(assetId)) return def;
+    }
+    return null;
+}
+
 // Biome configurations - Easy to adjust density per biome
 // propConfig.js - Move density to root level
 export const BIOME_PROP_CONFIG = {

@@ -26,7 +26,7 @@ export function createArrowSystem(ctx) {
         spawnDrops
     } = ctx;
 
-    const {mobs, bosses, arrows, drops} = entities;
+    const { arrows, drops } = entities;
     const entityLayer = openWorld.entityLayer;
 
     /**
@@ -36,7 +36,7 @@ export function createArrowSystem(ctx) {
         let nearest = null;
         let nearestDistSq = maxRange * maxRange;
 
-        for (const mob of mobs) {
+        for (const mob of entities.mobs) {
             if (hitMobsSet.has(mob) || mob.hp <= 0) continue;
 
             const dx = mob.x - fromX;
@@ -164,7 +164,7 @@ export function createArrowSystem(ctx) {
             mob.c.parent.removeChild(mob.c);
             mob.c.destroy();
         }
-        mobs.splice(index, 1);
+        entities.mobs.splice(index, 1);
     }
 
     /**
@@ -313,8 +313,8 @@ export function createArrowSystem(ctx) {
             let hit = false;
 
             // Check collision with mobs
-            for (let mi = 0; mi < mobs.length; mi++) {
-                const mob = mobs[mi];
+            for (let mi = 0; mi < entities.mobs.length; mi++) {
+                const mob = entities.mobs[mi];
                 if (!mob.c || mob.hp <= 0) continue; // ← ADD THIS guard
 
                 const mobRadius = (mob.size ?? COLLISION_RADIUS);
@@ -373,8 +373,8 @@ export function createArrowSystem(ctx) {
             if (hit) continue;
 
             // Check collision with bosses
-            for (let bi = 0; bi < bosses.length; bi++) {
-                const boss = bosses[bi];
+            for (let bi = 0; bi < entities.bosses.length; bi++) {
+                const boss = entities.bosses[bi];
                 if (boss.dead) continue;
                 if (Math.hypot(boss.x - arrow.c.x, boss.y - arrow.c.y) >= BOSS_RADIUS) continue;
 
@@ -399,7 +399,7 @@ export function createArrowSystem(ctx) {
                 // Handle boss death
                 if (boss.hp <= 0) {
                     handleBossDeath(boss, boss.x, boss.y);
-                    bosses.splice(bi, 1);
+                    entities.bosses.splice(bi, 1);
                     bi--; // Adjust index after deletion
                 }
 

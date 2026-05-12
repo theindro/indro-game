@@ -191,7 +191,10 @@ export function createMobController(mob, entityLayer) {
 
 
 export function spawnMob(renderer,world, x, y, biome = 'forest', archetype = null, difficulty = 1) {
-    const finalArchetype = archetype || Object.values(ARCHETYPES)[Math.floor(Math.random() * Object.values(ARCHETYPES).length)];
+    let finalArchetype = archetype;
+    if (!finalArchetype || !ARCHETYPE_STATS[finalArchetype]) {
+        finalArchetype = Object.values(ARCHETYPES)[Math.floor(Math.random() * Object.values(ARCHETYPES).length)];
+    }
 
     const stats = ARCHETYPE_STATS[finalArchetype];
     const size = stats.size;

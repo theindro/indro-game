@@ -65,7 +65,7 @@ export function drawDebugColliders(world, colliders) {
     return g;
 }
 
-export function createDebugColliderToggle(world, colliders) {
+export function createDebugColliderToggle(world, colliders, getMobs = null) {
     let debugGraphics = null;
 
     function draw() {
@@ -93,6 +93,18 @@ export function createDebugColliderToggle(world, colliders) {
             debugGraphics.circle(col.x, col.y, 3)
                 .fill({ color: 0x00ff00, alpha: 0.8 });
         });
+
+        if (typeof getMobs === 'function') {
+            const mobs = getMobs() || [];
+            for (const mob of mobs) {
+                if (!mob || mob.hp <= 0) continue;
+                const r = mob.size ?? 16;
+                debugGraphics.circle(mob.x, mob.y, r)
+                    .stroke({ width: 2, color: 0x00ffff, alpha: 0.9 });
+                debugGraphics.circle(mob.x, mob.y, 3)
+                    .fill({ color: 0x00ffff, alpha: 0.8 });
+            }
+        }
 
         world.addChild(debugGraphics);
     }

@@ -43,11 +43,19 @@ export async function createGame() {
     let killsRef = {value: 0};
     let bossActiveRef = {value: null};
 
+    const entities = {
+        mobs: [],
+        bosses: [],
+        arrows: [],
+        enemyProjs: [],
+        drops: [],
+    };
+
     // ==================== SYSTEMS ====================
     const weatherSystem = initWeatherSystem(app);
 
     const input = createInputManager(app.canvas);
-    const debug = createDebugColliderToggle(world, colliders);
+    const debug = createDebugColliderToggle(world, colliders, () => entities.mobs);
     const perfMonitor = new PerformanceMonitor();
 
     createDevTool(useGameStore);
@@ -61,15 +69,6 @@ export async function createGame() {
     });
 
     const playerState = useGameStore.getState().player;
-
-    // ==================== ENTITIES ====================
-    const entities = {
-        mobs: [],
-        bosses: [],
-        arrows: [],
-        enemyProjs: [],
-        drops: [],
-    };
 
     // ==================== WORLD ====================
     const openWorld = new OpenWorldManager(world, colliders, app);

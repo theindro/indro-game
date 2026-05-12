@@ -10,7 +10,7 @@ import { useFrostArrow } from "../abilities/FrostArrow.js";
 
 export function createCombatController(ctx) {
     const { world, entities, openWorld, colliders } = ctx;
-    const { mobs, bosses, arrows, drops, enemyProjs } = entities;
+    const { arrows, drops, enemyProjs } = entities;
     const { x, y } = useGameStore.getState().player;
     const entityLayer = openWorld.entityLayer;
 
@@ -71,7 +71,12 @@ export function createCombatController(ctx) {
     }
 
     function useFrostArrowWrapper(targetX, targetY) {
-        const abilityCtx = { ...ctx, arrows, mobs, bosses };
+        const abilityCtx = {
+            ...ctx,
+            arrows,
+            mobs: entities.mobs,
+            bosses: entities.bosses
+        };
 
         return useFrostArrow(abilityCtx, targetX, targetY);
     }

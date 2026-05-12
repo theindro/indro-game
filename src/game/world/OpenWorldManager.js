@@ -1,15 +1,13 @@
 // world/OpenWorldManager.js
 import {Container, Graphics, Sprite, Assets, TilingSprite, BlurFilter} from 'pixi.js';
-import {spawnMob} from '../controllers/createMobController.js';
-import {MOB_RADIUS, BIOME_COLORS} from '../constants.js';
+import {BIOME_COLORS} from '../constants.js';
 import {PropManager} from "./PropManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
-import { InteractablePropManager } from './interactablePropManager.js';   // ADD
+import { InteractablePropManager } from './interactablePropManager.js';
+import { WorldObjectManager } from './WorldObjectManager.js';
 
 import { WorldEditorController } from "../devtools/WorldEditorController";
 import {editorBridge} from "../../components/devtools/editorBridge.js";
-import {assetManager} from "../utils/assetManager.js";
-
 const weatherConfig = {
     forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
     desert: {type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44'},
@@ -83,12 +81,7 @@ export class OpenWorldManager {
         this.world.sortableChildren = true;
         this.editor = new WorldEditorController(this, app);
         editorBridge.setController(this.editor);
-        // World editor end
 
-        // Create PropManager
-        this.propManager = new PropManager(world, colliders, this.worldSeed);
-
-        // Create layers
         this.groundLayer = new Container();
         this.shadowLayer = new Container();
         this.debugLayer = new Container();
@@ -101,29 +94,23 @@ export class OpenWorldManager {
         this.shadowLayer.label = 'shadowLayer';
         this.debugLayer.label = 'debugLayer';
 
-        this.propManager.setPropLayer(this.entityLayer);
-        this.propManager.setShadowLayer(this.entityLayer);
-
         this.world.addChild(this.groundLayer);
         this.world.addChild(this.debugLayer);
         this.world.addChild(this.entityLayer);
-        //this.world.addChild(this.shadowLayer);
-        //this.world.addChild(this.propLayer);
-
 
         this.entityLayer.sortableChildren = true;
 
-        // NOW construct interactablePropManager  ← moved down here
+        this.worldObjects = new WorldObjectManager(colliders, this.entityLayer, this.renderer);
+
+        this.propManager = new PropManager(this.worldObjects, this.worldSeed);
+        this.propManager.setPropLayer(this.entityLayer);
+        this.propManager.setShadowLayer(this.entityLayer);
+
         this.interactablePropManager = new InteractablePropManager(
-            this,
-            colliders,
+            this.worldObjects,
             this.worldSeed,
-            (loot, propDef, x, y) => {
-                if (this.onLootCallback) this.onLootCallback(loot, propDef, x, y);
-            }
+            { persistedProps: this.persistedProps }
         );
-        this.interactablePropManager.setLayer(this.entityLayer); // ← entityLayer exists now ✓
-        this.onLootCallback = null;
 
         this.chunkTypes = {
             empty: 0.25,
@@ -270,18 +257,14 @@ export class OpenWorldManager {
         // 3. Remove interactables
         this.interactablePropManager?.clear?.();
 
-        // 4. Remove mobs
         for (const m of this.entitiesList?.mobs || []) {
-            if (m.c?.parent) {
-                m.c.parent.removeChild(m.c);
-            }
-            m.c?.destroy?.();
+            this.worldObjects.destroyMob(m);
         }
 
-        this.entitiesList.mobs = [];
+        // Keep the same array reference — combat/abilities hold a closure to entities.mobs from init.
+        this.entitiesList.mobs.length = 0;
 
-        // 5. Clear colliders
-        this.colliders.length = 0;
+        this.worldObjects.clearColliders();
 
         // 6. Reset chunks tracking
         this.worldData.chunks.clear();
@@ -391,9 +374,7 @@ export class OpenWorldManager {
                 // TODO: Dont respawn mobs that are killed
                 //if (this.persistedMobs.has(mobId)) continue;
 
-                const mob = spawnMob(
-                    this.renderer,
-                    this.entityLayer,
+                const mob = this.worldObjects.spawnMob(
                     x,
                     z,
                     chunkData.biome,
@@ -565,21 +546,11 @@ export class OpenWorldManager {
         const entities = this.spawnedEntities.get(key);
         if (entities) {
             for (const mob of entities.mobs) {
-                // Remove from global active list
                 const index = this.entitiesList?.mobs?.indexOf(mob);
                 if (index > -1) {
                     this.entitiesList.mobs.splice(index, 1);
                 }
-                // Remove from world
-                if (mob.c && mob.c.parent) {
-                    this.entityLayer.removeChild(mob.c);
-                }
-                // Destroy mob
-                if (mob.c) {
-                    mob.c.destroy({children: true});
-                }
-                // Kill controller reference
-                mob.controller = null;
+                this.worldObjects.destroyMob(mob);
             }
         }
 
@@ -715,30 +686,25 @@ export class OpenWorldManager {
 
         this.groundLayer.addChild(chunk);
 
-        // ===== PROPS =====
+        // ===== PROPS (shadows + gameplay colliders match procedural props) =====
         for (const p of data.props || []) {
-            const sprite = assetManager.createRenderable(p.id, false);
+            this.propManager.placeLoadedProp(p, key, biome);
+        }
 
-            sprite.x = p.x;
-            sprite.y = p.y;
-            sprite.scale.set(p.scale || 1);
-
-            this.entityLayer.addChild(sprite);
-
-            this.colliders.push({
-                type: "prop",
-                id: p.id,
-                x: p.x,
-                y: p.y,
-                sprite
-            });
+        // ===== INTERACTABLES =====
+        for (const it of data.interactables || []) {
+            this.interactablePropManager.spawnManualProp(
+                it.id,
+                it.x,
+                it.y,
+                it.scale ?? 1,
+                key
+            );
         }
 
         // ===== MOBS =====
         for (const m of data.mobs || []) {
-            const mob = spawnMob(
-                this.renderer,
-                this.entityLayer,
+            const mob = this.worldObjects.spawnMob(
                 m.x,
                 m.y,
                 biome,

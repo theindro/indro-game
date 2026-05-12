@@ -12,10 +12,6 @@ import { OutlineFilter } from "pixi-filters";
 import { assetManager } from "../utils/assetManager";
 
 import {
-    spawnMob
-} from "../controllers/createMobController.js";
-
-import {
     createMobEntity
 } from "../entities/createMobEntity.js";
 
@@ -129,8 +125,15 @@ export class WorldEditorController {
 
         preview.alpha = 0.5;
 
+        // Match PropManager.placeLoadedProp: foot at cursor (ghost was center-anchored, props sat "above").
         if (preview.anchor?.set) {
-            preview.anchor.set(0.5);
+            if (this.selectedType === 'prop') {
+                preview.anchor.set(0.5, 1);
+            } else if (this.selectedType === 'interactable') {
+                preview.anchor.set(0.5, 1);
+            } else {
+                preview.anchor.set(0.5);
+            }
         }
 
         if (this.ghost) {
@@ -378,26 +381,14 @@ export class WorldEditorController {
             }
         }
 
-        // DECORATIVE PROPS
-        for (const c of [...this.world.colliders].reverse()) {
-
-            if (c.type !== "prop") continue;
-
-            if (!c.sprite) continue;
-
-            const dist = Math.hypot(
-                c.sprite.x - pos.x,
-                c.sprite.y - pos.y
-            );
-
-            if (dist < 40) {
-
-                return {
-                    type: "prop",
-                    ref: c,
-                    sprite: c.sprite
-                };
-            }
+        // Decorative props (same pipeline: procedural, JSON, editor — all in PropManager)
+        const propSprite = this.world.propManager.hitTestPropAt(pos.x, pos.y);
+        if (propSprite) {
+            return {
+                type: "prop",
+                ref: propSprite,
+                sprite: propSprite
+            };
         }
 
         return null;
@@ -409,14 +400,10 @@ export class WorldEditorController {
 
     pickMob(mob) {
 
-        if (mob.c?.parent) {
-            mob.c.parent.removeChild(mob.c);
-        }
+        this.world.worldObjects.destroyMob(mob);
 
-        mob.c?.destroy({ children: true });
-
-        this.world.entitiesList.mobs =
-            this.world.entitiesList.mobs.filter(m => m !== mob);
+        const mi = this.world.entitiesList.mobs.indexOf(mob);
+        if (mi !== -1) this.world.entitiesList.mobs.splice(mi, 1);
 
         this.startPlacement({
             type: "mob",
@@ -434,21 +421,23 @@ export class WorldEditorController {
         });
     }
 
-    pickProp(hit) {
+    pickProp(sprite) {
 
-        this.world.entityLayer.removeChild(hit.sprite);
+        const sx = sprite.x;
+        const sy = sprite.y;
+        const settings = this.extractSettings(sprite);
+        const id = sprite.worldPropRecord?.id ?? this.selectedId;
 
-        this.world.colliders =
-            this.world.colliders.filter(c => c !== hit);
+        this.world.propManager.removePropVisual(sprite);
 
         this.startPlacement({
             type: "prop",
-            assetId: hit.id,
-            settings: this.extractSettings(hit.sprite)
+            assetId: id,
+            settings
         });
 
         if (this.ghost) {
-            this.ghost.position.set(hit.x, hit.y);
+            this.ghost.position.set(sx, sy);
         }
     }
 
@@ -474,9 +463,7 @@ export class WorldEditorController {
 
     placeMob(x, y) {
 
-        const mob = spawnMob(
-            this.app.renderer,
-            this.world.entityLayer,
+        const mob = this.world.worldObjects.spawnMob(
             x,
             y,
             "forest",
@@ -516,36 +503,30 @@ export class WorldEditorController {
 
     placeProp(x, y) {
 
-        const sprite = assetManager.createRenderable(
-            this.selectedId,
-            false
+        const w = this.world;
+        const cw = w.chunkSize * w.tileSize;
+        const chunkX = Math.floor(x / cw);
+        const chunkZ = Math.floor(y / cw);
+        const chunkKey = `${chunkX},${chunkZ}`;
+        const biome = w.getBiomeAtChunk(chunkX, chunkZ);
+
+        const spr = w.propManager.placeLoadedProp(
+            {
+                id: this.selectedId,
+                x,
+                y,
+                scale: this.selectedSettings.scale ?? 1,
+                rotation: this.selectedSettings.rotation ?? 0
+            },
+            chunkKey,
+            biome
         );
 
-        if (!sprite) return;
+        if (!spr) return;
 
-        this.applySettingsToSprite(
-            sprite,
-            this.selectedSettings
-        );
+        spr.editorData = { type: "prop" };
 
-        sprite.anchor?.set?.(0.5);
-
-        sprite.x = x;
-        sprite.y = y;
-
-        sprite.editorData = {
-            type: "prop"
-        };
-
-        this.world.entityLayer.addChild(sprite);
-
-        this.world.colliders.push({
-            type: "prop",
-            id: this.selectedId,
-            x,
-            y,
-            sprite
-        });
+        this.applySettingsToSprite(spr, this.selectedSettings);
 
         console.log("Placed prop:", this.selectedId);
     }
@@ -593,14 +574,14 @@ export class WorldEditorController {
 
         const pos = event.data.global;
 
-        const world = this.world.world.toLocal(
+        const local = this.world.world.toLocal(
             pos,
             this.app.stage
         );
 
         return {
-            x: this.snap(world.x),
-            y: this.snap(world.y)
+            x: local.x,
+            y: local.y
         };
     }
 
@@ -608,15 +589,10 @@ export class WorldEditorController {
     saveWorldAsJson() {
 
         const chunks = new Map();
+        const chunkWorld = this.world.chunkSize * this.world.tileSize;
 
-        // 1. SAVE PROPS
-        for (const c of this.world.colliders) {
-            if (c.type !== "prop") continue;
-
-            const chunkX = Math.floor(c.x / (this.world.chunkSize * this.world.tileSize));
-            const chunkZ = Math.floor(c.y / (this.world.chunkSize * this.world.tileSize));
+        const ensureChunk = (chunkX, chunkZ) => {
             const key = `${chunkX},${chunkZ}`;
-
             if (!chunks.has(key)) {
                 chunks.set(key, {
                     chunkX,
@@ -627,33 +603,24 @@ export class WorldEditorController {
                     interactables: []
                 });
             }
+            return chunks.get(key);
+        };
 
-            chunks.get(key).props.push({
-                id: c.id,
-                x: c.x,
-                y: c.y,
-                scale: c.sprite?.scale?.x || 1
-            });
+        // 1. PROPS — single source: PropManager (sprite x/y, scale, rotation; includes non-colliding trees)
+        const propExport = this.world.propManager.serializePropsForWorldJson(
+            this.world.chunkSize,
+            this.world.tileSize
+        );
+        for (const [, block] of propExport) {
+            const ch = ensureChunk(block.chunkX, block.chunkZ);
+            ch.props.push(...block.props);
         }
 
         // 2. SAVE MOBS
         for (const m of this.world.entitiesList.mobs) {
-            const chunkX = Math.floor(m.x / (this.world.chunkSize * this.world.tileSize));
-            const chunkZ = Math.floor(m.y / (this.world.chunkSize * this.world.tileSize));
-            const key = `${chunkX},${chunkZ}`;
-
-            if (!chunks.has(key)) {
-                chunks.set(key, {
-                    chunkX,
-                    chunkZ,
-                    biome: this.world.getBiomeAtChunk(chunkX, chunkZ),
-                    props: [],
-                    mobs: [],
-                    interactables: []
-                });
-            }
-
-            chunks.get(key).mobs.push({
+            const chunkX = Math.floor(m.x / chunkWorld);
+            const chunkZ = Math.floor(m.y / chunkWorld);
+            ensureChunk(chunkX, chunkZ).mobs.push({
                 archetype: m.archetype,
                 x: m.x,
                 y: m.y
@@ -662,22 +629,9 @@ export class WorldEditorController {
 
         // 3. SAVE INTERACTABLES
         for (const p of this.world.interactablePropManager.allProps) {
-            const chunkX = Math.floor(p.x / (this.world.chunkSize * this.world.tileSize));
-            const chunkZ = Math.floor(p.z / (this.world.chunkSize * this.world.tileSize));
-            const key = `${chunkX},${chunkZ}`;
-
-            if (!chunks.has(key)) {
-                chunks.set(key, {
-                    chunkX,
-                    chunkZ,
-                    biome: this.world.getBiomeAtChunk(chunkX, chunkZ),
-                    props: [],
-                    mobs: [],
-                    interactables: []
-                });
-            }
-
-            chunks.get(key).interactables.push({
+            const chunkX = Math.floor(p.x / chunkWorld);
+            const chunkZ = Math.floor(p.z / chunkWorld);
+            ensureChunk(chunkX, chunkZ).interactables.push({
                 id: p.def.id,
                 x: p.x,
                 y: p.z

@@ -59,13 +59,13 @@ const ACTIVE_DIST_SQ = ACTIVE_DIST * ACTIVE_DIST;
 
 // ─────────────────────────────────────────────────────────────────────────────
 export class InteractablePropManager {
-    constructor(openWorld, colliders, worldSeed = 1, onLoot = null) {
-        this.colliders = colliders;
+    constructor(worldObjects, worldSeed = 1, options = {}) {
+        this.worldObjects = worldObjects;
         this.worldSeed = worldSeed;
-        this.onLoot    = onLoot;   // hook so game can actually grant items\
-        this.openWorld = openWorld;
+        this.onLoot = options.onLoot ?? null;
+        this.persistedProps = options.persistedProps ?? new Set();
 
-        this.layer     = null;     // set via setLayer()
+        this.layer = null; // legacy; parenting goes through worldObjects
 
         // chunk key → { props: InteractableProp[] }
         this.activeChunks = new Map();
@@ -175,7 +175,7 @@ export class InteractablePropManager {
 
                 const id = `${key}_${typeId}_${x.toFixed(0)}_${z.toFixed(0)}`;
 
-                if (this.openWorld.persistedProps.has(id)) {
+                if (this.persistedProps.has(id)) {
                     continue;
                 }
 
@@ -204,12 +204,9 @@ export class InteractablePropManager {
         // Remove from allProps
         this.allProps = this.allProps.filter(p => p.chunkKey !== key);
 
-        // Remove colliders
-        for (let i = this.colliders.length - 1; i >= 0; i--) {
-            if (this.colliders[i].interactableChunkKey === key) {
-                this.colliders.splice(i, 1);
-            }
-        }
+        this.worldObjects.removeCollidersIf(
+            (c) => c.interactableChunkKey === key && c.type === 'interactable'
+        );
 
         this.activeChunks.delete(key);
     }
@@ -424,7 +421,7 @@ export class InteractablePropManager {
         barFill.visible = false;
         container.addChild(barFill);
 
-        if (this.layer) this.layer.addChild(container);
+        this.worldObjects.addToEntityLayer(container);
 
         const collider = {
             x: x,
@@ -436,7 +433,7 @@ export class InteractablePropManager {
             interactableChunkKey: chunkKey,
         };
 
-        this.colliders.push(collider);
+        this.worldObjects.addWorldCollider(collider);
 
         container.zIndex = z;
 
@@ -464,7 +461,7 @@ export class InteractablePropManager {
     }
 
     _isColliding(x, z, radius) {
-        for (const c of this.colliders) {
+        for (const c of this.worldObjects.colliders) {
             if (!c.collision) continue;
 
             const cx = c.x;
@@ -488,11 +485,7 @@ export class InteractablePropManager {
     }
 
     _destroyProp(prop) {
-        if (prop.container?.parent) {
-            prop.container.parent.removeChild(prop.container);
-        }
-        prop.container?.destroy({ children: true });
-        // Collider is removed by unloadChunkProps batch loop
+        this.worldObjects.removeAndDestroyDisplayObject(prop.container);
     }
 
     _killProp(prop) {
@@ -524,7 +517,7 @@ export class InteractablePropManager {
         prop.deadAt = Date.now();
         if (prop.collider) prop.collider.collision = false;
 
-        this.openWorld.persistedProps.add(prop.id);
+        this.persistedProps.add(prop.id);
 
         if (this.onLoot) this.onLoot(loot, prop.def, prop.x, prop.z);
 
@@ -668,7 +661,7 @@ export class InteractablePropManager {
         return stats;
     }
 
-    spawnManualProp(typeId, x, z, scale = 1) {
+    spawnManualProp(typeId, x, z, scale = 1, chunkKey = 'editor') {
 
         const def = INTERACTABLE_PROP_TYPES[typeId];
 
@@ -679,8 +672,15 @@ export class InteractablePropManager {
             x,
             z,
             scale,
-            "editor"
+            chunkKey
         );
+
+        let bucket = this.activeChunks.get(chunkKey);
+        if (!bucket) {
+            bucket = { props: [] };
+            this.activeChunks.set(chunkKey, bucket);
+        }
+        bucket.props.push(prop);
 
         this.allProps.push(prop);
 
@@ -694,12 +694,7 @@ export class InteractablePropManager {
         this.allProps =
             this.allProps.filter(p => p !== prop);
 
-        const index =
-            this.colliders.indexOf(prop.collider);
-
-        if (index !== -1) {
-            this.colliders.splice(index, 1);
-        }
+        this.worldObjects.removeCollider(prop.collider);
     }
 
     clear() {
@@ -708,14 +703,7 @@ export class InteractablePropManager {
             this._destroyProp(prop);
         }
 
-        // 2. Clear all colliders belonging to interactables
-        if (this.colliders) {
-            for (let i = this.colliders.length - 1; i >= 0; i--) {
-                if (this.colliders[i].type === 'interactable') {
-                    this.colliders.splice(i, 1);
-                }
-            }
-        }
+        this.worldObjects.removeCollidersIf((c) => c.type === 'interactable');
 
         // 3. Reset state
         this.allProps = [];
