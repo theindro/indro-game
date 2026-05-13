@@ -256,8 +256,11 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
 
     world.addChild(c);
 
-    // Add projectile glow effect
-    VFX.addGlow(0, 0, {color: colors.glow, scale: 0.5, alpha: 0.15}, c);
+    // glow automatically follows projectile
+    c.glow = VFX.addGlow(0, 0, {
+        color: colors.glow,
+        scale: 0.5
+    }, c);
 
     // Direction calculation
     const dx = px - ex;

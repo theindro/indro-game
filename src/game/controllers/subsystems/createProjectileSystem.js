@@ -95,22 +95,17 @@ export function createProjectileSystem(ctx) {
                 }
             }
 
-
             ep.life--;
 
             // Check life and world bounds
             if (ep.life <= 0 || !openWorld.isInsideWorld(ep.c.x, ep.c.y)) {
-                // Remove from its parent (entityLayer)
-                if (ep.c.parent) {
-                    ep.c.parent.removeChild(ep.c);
-                }
-                ep.c.destroy();
+
+                destroyProj(ep);
+
                 enemyProjs.splice(ei, 1);
+
                 continue;
             }
-
-
-
 
             // === NEW: Check collision with props ===
             let hitProp = false;
@@ -128,10 +123,7 @@ export function createProjectileSystem(ctx) {
                     if (hit) {
                         VFX.burst(ep.c.x, ep.c.y, 0xff6666, 6, 2);
 
-                        if (ep.c.parent) {
-                            ep.c.parent.removeChild(ep.c);
-                        }
-                        ep.c.destroy();
+                        destroyProj(ep);
 
                         enemyProjs.splice(ei, 1);
 
@@ -146,13 +138,23 @@ export function createProjectileSystem(ctx) {
             // Check collision with player
             if (Math.hypot(px - ep.c.x, py - ep.c.y) < 16) {
                 useGameStore.getState().damagePlayer(ep.dmg, 'enemy projectile');
-                // Remove from its parent
-                if (ep.c.parent) {
-                    ep.c.parent.removeChild(ep.c);
-                }
+
+                destroyProj(ep);
+
                 enemyProjs.splice(ei, 1);
             }
         }
+    }
+
+    function destroyProj(ep) {
+        // Remove attached glow immediately
+        if (ep.c.glow) {
+            VFX.removeAttached(ep.c.glow);
+        }
+        if (ep.c.parent) {
+            ep.c.parent.removeChild(ep.c);
+        }
+        ep.c.destroy({ children: true });
     }
 
 

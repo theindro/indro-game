@@ -22,6 +22,7 @@ export async function createGame() {
     // ==================== INITIALIZATION ====================
     const app = await initApp();
     const world = createWorldContainer(app);
+    const vfxLayer = new Container();
 
     // Global lighting just testing
     //const lighting = new createLightingController(app, app.screen.width, app.screen.height);
@@ -52,7 +53,7 @@ export async function createGame() {
     };
 
     // ==================== SYSTEMS ====================
-    const weatherSystem = initWeatherSystem(app);
+    const weatherSystem = initWeatherSystem(app, world);
 
     const input = createInputManager(app.canvas);
     const debug = createDebugColliderToggle(world, colliders, () => entities.mobs);
@@ -169,8 +170,10 @@ export async function createGame() {
         // VFX.floatText(`+${loot.map(d => d.amount + 'x ' + d.id).join(', ')}`, x, y);
     };
 
+    world.addChild(vfxLayer);
+
     // Initialize global VFX with our arrays
-    VFX.init(world, particles, openWorld.entityLayer);
+    VFX.init(world, particles, openWorld.entityLayer, vfxLayer);
 
     // Test light
     //lighting.addLight(400, 300, 400, 0.2, '#ffb700');
@@ -272,6 +275,9 @@ export async function createGame() {
         // Editor
         //openWorld.editor.update(dt);
 
+        VFX.updateAttachments();
+        VFX.updateGlow(deltaTime);
+
         // Death check
         checkDeath(playerState, gameState, killsRef);
     });
@@ -305,8 +311,8 @@ function createWorldContainer(app) {
     return world;
 }
 
-function initWeatherSystem(app) {
-    return new CreateWeatherController(app, app.stage);
+function initWeatherSystem(app, world) {
+    return new CreateWeatherController(app, world);
 }
 
 // Key listeners

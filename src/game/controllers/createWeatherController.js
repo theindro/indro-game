@@ -3,8 +3,9 @@ import { shadowManager } from "./createShadowController.js";
 import {WeatherDevTool} from "../world/weatherDevTool.js";
 
 export class CreateWeatherController {
-    constructor(app) {
+    constructor(app, world) {
         this.app = app;
+        this.world = world;
         this.container = new Container();
         this.container.zIndex = 999;
         this.app.stage.addChild(this.container);
@@ -32,7 +33,9 @@ export class CreateWeatherController {
 
         this.ambientOverlay = new Graphics();
         this.ambientOverlay.blendMode = 'multiply';
-        this.container.addChild(this.ambientOverlay);
+        this.ambientOverlay.zIndex = 1100; // above vfxLayer at 1200? set just below it
+        this.world.sortableChildren = true;
+        this.world.addChild(this.ambientOverlay);
         this.currentAmbient = { color: 'black', alpha: 0 };
         this.targetAmbient = { color: 'black', alpha: 0 };
     }
@@ -191,6 +194,8 @@ export class CreateWeatherController {
             // Normal update with full intensity
             this.currentEffect.update(dt, 1);
         }
+
+        this.updateAmbientOverlay(1);
     }
 
     interpolateShadow(from, to, progress) {
@@ -230,7 +235,16 @@ export class CreateWeatherController {
         this.ambientOverlay.clear();
 
         if (this.currentAmbient.alpha > 0) {
-            this.ambientOverlay.rect(0, 0, this.app.screen.width, this.app.screen.height).fill({ color: this.currentAmbient.color, alpha: this.currentAmbient.alpha * intensity });
+            // Offset by world position to keep it screen-filling
+            const x = -this.world.x / this.world.scale.x;
+            const y = -this.world.y / this.world.scale.y;
+            const w = this.app.screen.width / this.world.scale.x;
+            const h = this.app.screen.height / this.world.scale.y;
+
+            this.ambientOverlay
+                .rect(x, y, w, h)
+                .fill({ color: this.currentAmbient.color, alpha: this.currentAmbient.alpha * intensity });
+
         }
     }
 

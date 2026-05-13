@@ -673,9 +673,6 @@ export class OpenWorldManager {
     async loadChunk(chunkX, chunkZ, playerX, playerZ) {
         const key = `${chunkX},${chunkZ}`;
 
-        console.log("LOOKUP KEY:", key);
-        console.log("AVAILABLE KEYS:", [...this.worldData.chunks.keys()]);
-
         // 1. Editor / loaded world has priority
         if (this.worldMode === "loaded" && this.worldData.chunks.has(key)) {
             const data = this.worldData.chunks.get(key);
@@ -709,8 +706,6 @@ export class OpenWorldManager {
     async loadProceduralChunk(chunkX, chunkZ, playerX, playerZ) {
         const chunk = await this.generateChunk(chunkX, chunkZ);
         const chunkData = this.generateChunkData(chunkX, chunkZ);
-
-        console.log(chunkData);
 
         this.groundLayer.addChild(chunk);
 

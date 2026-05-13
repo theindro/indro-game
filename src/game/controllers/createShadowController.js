@@ -84,8 +84,8 @@ export class ShadowManager {
     registerShadow(shadow, propVisual, scale, heightFactor) {
 
         // One BlurFilter per shadow — cheaper than recreating each frame
-        const blurFilter = new BlurFilter({ strength: 1 });
-        shadow.filters = [blurFilter];
+        // const blurFilter = new BlurFilter({ strength: 1 });
+        // shadow.filters = [blurFilter];
 
         const shadowData = {
             shadow,

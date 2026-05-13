@@ -11,13 +11,17 @@ class VisualEffects {
         this.entityLayer = null;  // Need world reference for adding particles
         this.world = null;  // Need world reference for adding particles
         this.initialized = false;
+        this.vfxLayer = null;
+        this.attached = [];
     }
 
-    init(world, particlesArray, entityLayer) {
+    init(world, particlesArray, entityLayer, vfxLayer) {
         this.world = world;
         this.particles = particlesArray;
         this.initialized = true;
         this.entityLayer = entityLayer;
+        this.vfxLayer = vfxLayer;
+        this.vfxLayer.zIndex = 1200
         console.log('✅ VisualEffects initialized');
     }
 
@@ -97,6 +101,46 @@ class VisualEffects {
             maxLife,
             scale: size,
         });
+    }
+
+    removeAttached(sprite) {
+        const idx = this.attached.indexOf(sprite);
+        if (idx !== -1) this.attached.splice(idx, 1);
+        if (sprite.parent) sprite.parent.removeChild(sprite);
+        sprite.destroy();
+    }
+
+    attachVFX(target, sprite, offsetX = 0, offsetY = 0) {
+        if (!this.vfxLayer) return;
+
+        sprite.anchor.set(0.5);
+        sprite.blendMode = 'add';
+
+        sprite._target = target;
+        sprite._ox = offsetX;
+        sprite._oy = offsetY;
+
+        this.vfxLayer.addChild(sprite);
+
+        this.attached.push(sprite);
+
+        return sprite;
+    }
+
+    updateAttachments() {
+        for (let i = this.attached.length - 1; i >= 0; i--) {
+            const s = this.attached[i];
+
+            if (!s._target || s._target.destroyed) {
+                this.vfxLayer.removeChild(s);
+                s.destroy();
+                this.attached.splice(i, 1);
+                continue;
+            }
+
+            s.x = s._target.x + s._ox;
+            s.y = s._target.y + s._oy;
+        }
     }
 
     /**
@@ -245,8 +289,8 @@ class VisualEffects {
         this.shakeRef.value = 0;
     }
 
-    addGlow(x, y, options = {}, parent = null) {
-        if (!this.initialized || !this.entityLayer) return;
+    addGlow(x, y, options = {}, target = null) {
+        if (!this.initialized || !this.vfxLayer) return;
 
         const texture = assetManager.getTexture(options.texture || 'glow2');
         if (!texture) return;
@@ -254,11 +298,9 @@ class VisualEffects {
         const glow = new Sprite(texture);
 
         glow.anchor.set(0.5);
-
         glow.blendMode = 'add';
-
         glow.tint = options.color ?? 0xffffff;
-        glow.alpha = options.alpha ?? 0.35;
+        glow.alpha = options.alpha ?? 0.25;
 
         const scale = options.scale ?? 1.5;
         glow.scale.set(scale);
@@ -266,15 +308,22 @@ class VisualEffects {
         glow._baseScale = scale;
         glow._time = Math.random() * 10;
 
-        if (parent) {
-            glow.x = x;
-            glow.y = y;
-            parent.addChildAt(glow, 0);
-        } else {
-            glow.x = x;
-            glow.y = y;
-            this.entityLayer.addChild(glow);
+        // 🧠 NEW: if target exists → attach mode
+        if (target) {
+            glow._target = target;
+            glow._ox = x;
+            glow._oy = y;
+
+            this.vfxLayer.addChild(glow);
+            this.attached.push(glow);
+
+            return glow;
         }
+
+        // fallback static glow
+        glow.x = x;
+        glow.y = y;
+        this.vfxLayer.addChild(glow);
 
         return glow;
     }
