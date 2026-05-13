@@ -3,31 +3,7 @@
 // Manages interactable props (chests, ores, logs, herbs, barrels …)
 // that are procedurally placed into world chunks.
 //
-// Designed to sit alongside PropManager (decorative props) and plug into
-// OpenWorldManager the same way.
-//
-// Usage in OpenWorldManager:
-//
-//   import { InteractablePropManager } from './InteractablePropManager.js';
-//
-//   // In constructor:
-//   this.interactablePropManager = new InteractablePropManager(
-//       world, colliders, this.worldSeed
-//   );
-//   this.interactablePropManager.setLayer(this.entityLayer);
-//
-//   // In loadChunk():
-//   await this.interactablePropManager.generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize);
-//
-//   // In unloadChunk():
-//   this.interactablePropManager.unloadChunkProps(key);
-//
-//   // In update() / game loop (pass player world-space position):
-//   this.interactablePropManager.update(playerX, playerZ, dt);
-//
-//   // From your input handler, call when player presses E / interact key:
-//   const result = this.interactablePropManager.tryInteract(playerX, playerZ);
-//   if (result) console.log('Got loot:', result.loot);
+// Shadow, scale, and collider patterns mirror PropManager exactly.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Container, Sprite, Graphics, Texture, Text } from 'pixi.js';
@@ -37,7 +13,8 @@ import {
     LOOT_TABLES,
 } from './interactablePropConfig.js';
 import { assetManager } from '../utils/assetManager.js';
-import {OutlineFilter} from "pixi-filters";
+import { shadowManager } from '../controllers/createShadowController.js';
+import { OutlineFilter } from 'pixi-filters';
 
 const HOVER_FILTER = new OutlineFilter({
     thickness: 2,
@@ -47,31 +24,34 @@ const HOVER_FILTER = new OutlineFilter({
 });
 
 // ── Visual constants ─────────────────────────────────────────────────────────
-const GLOW_PULSE_SPEED   = 2.5;   // radians per second
+const GLOW_PULSE_SPEED   = 2.5;
 const GLOW_MIN_ALPHA     = 0;
 const GLOW_MAX_ALPHA     = 0;
 const INDICATOR_FONT     = { fontFamily: 'monospace', fontSize: 11, fill: 0xffffff, align: 'center' };
 const INTERACT_KEY_LABEL = '[E]';
 const HARVEST_BAR_W      = 48;
 const HARVEST_BAR_H      = 6;
-const ACTIVE_DIST = 500;
-const ACTIVE_DIST_SQ = ACTIVE_DIST * ACTIVE_DIST;
+const ACTIVE_DIST        = 500;
+const ACTIVE_DIST_SQ     = ACTIVE_DIST * ACTIVE_DIST;
 
 // ─────────────────────────────────────────────────────────────────────────────
 export class InteractablePropManager {
     constructor(worldObjects, worldSeed = 1, options = {}) {
-        this.worldObjects = worldObjects;
-        this.worldSeed = worldSeed;
-        this.onLoot = options.onLoot ?? null;
-        this.persistedProps = options.persistedProps ?? new Set();
+        this.worldObjects    = worldObjects;
+        this.worldSeed       = worldSeed;
+        this.onLoot          = options.onLoot ?? null;
+        this.persistedProps  = options.persistedProps ?? new Set();
 
-        this.layer = null; // legacy; parenting goes through worldObjects
+        this.layer = null;
 
         // chunk key → { props: InteractableProp[] }
         this.activeChunks = new Map();
 
         // All live interactable prop instances (across loaded chunks)
         this.allProps = [];
+
+        // shadow sprite → shadowManager numeric id  (mirrors PropManager.shadowRegistry)
+        this.shadowRegistry = new Map();
 
         // Currently highlighted prop (nearest in range)
         this._highlighted = null;
@@ -98,21 +78,13 @@ export class InteractablePropManager {
 
     // ── Chunk lifecycle ───────────────────────────────────────────────────────
 
-    /**
-     * Generate and place interactable props for a chunk.
-     * @param {number} chunkX
-     * @param {number} chunkZ
-     * @param {string} biome         - 'forest' | 'desert' | 'ice' | 'lava'
-     * @param {number} chunkSize     - tiles per chunk side
-     * @param {number} tileSize      - px per tile
-     */
     async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize) {
         const key = `${chunkX},${chunkZ}`;
         if (this.activeChunks.has(key)) return;
 
         const chunkSizeWorld = chunkSize * tileSize;
-        const startX = chunkX * chunkSizeWorld;
-        const startZ = chunkZ * chunkSizeWorld;
+        const startX  = chunkX * chunkSizeWorld;
+        const startZ  = chunkZ * chunkSizeWorld;
         const baseSeed = this.hash(chunkX, chunkZ);
 
         const biomeConfig = BIOME_INTERACTABLE_CONFIG[biome];
@@ -121,34 +93,29 @@ export class InteractablePropManager {
             return;
         }
 
-        const spawned = [];           // InteractableProp instances for this chunk
-        const placedPositions = [];   // { x, z, minDist } for overlap checks
-
-        let categoryIndex = 0;
+        const spawned         = [];
+        const placedPositions = [];
+        let   categoryIndex   = 0;
 
         for (const [category, categoryConfig] of Object.entries(biomeConfig)) {
             const catSeed = baseSeed + categoryIndex * 77777;
             categoryIndex++;
 
-            // ── Roll whether this category spawns at all this chunk ─────────
             const rollIntensity = this.seededRandom(catSeed);
             if (rollIntensity > categoryConfig.intensity) continue;
 
-            // ── Build weighted prop pool ────────────────────────────────────
             const pool = [];
             for (const entry of categoryConfig.props) {
                 for (let w = 0; w < entry.weight; w++) pool.push(entry.type);
             }
             if (pool.length === 0) continue;
 
-            const max = categoryConfig.maxPerChunk;
+            const max     = categoryConfig.maxPerChunk;
             const minDist = categoryConfig.minDistance || 100;
 
-            // Attempt to place up to maxPerChunk props
             let placed = 0;
             for (let attempt = 0; attempt < max * 8 && placed < max; attempt++) {
-                const aSeed = catSeed + attempt * 3331;
-
+                const aSeed  = catSeed + attempt * 3331;
                 const typeId = pool[Math.floor(this.seededRandom(aSeed) * pool.length)];
                 const propDef = INTERACTABLE_PROP_TYPES[typeId];
                 if (!propDef) continue;
@@ -156,7 +123,6 @@ export class InteractablePropManager {
                 const x = startX + this.seededRandom(aSeed + 11) * chunkSizeWorld;
                 const z = startZ + this.seededRandom(aSeed + 22) * chunkSizeWorld;
 
-                // Check distance from other interactables placed so far
                 let ok = true;
                 for (const p of placedPositions) {
                     if (Math.hypot(p.x - x, p.z - z) < Math.max(minDist, p.minDist)) {
@@ -166,18 +132,14 @@ export class InteractablePropManager {
                 }
                 if (!ok) continue;
 
-                // 2. avoid world colliders
                 const radius = propDef.radius || 20;
                 if (this._isColliding(x, z, radius)) continue;
 
-                const scaleR = propDef.scaleRange;
-                const scale  = scaleR.min + this.seededRandom(aSeed + 33) * (scaleR.max - scaleR.min);
+                const scaleR  = propDef.scaleRange;
+                const scale   = scaleR.min + this.seededRandom(aSeed + 33) * (scaleR.max - scaleR.min);
+                const id      = `${key}_${typeId}_${x.toFixed(0)}_${z.toFixed(0)}`;
 
-                const id = `${key}_${typeId}_${x.toFixed(0)}_${z.toFixed(0)}`;
-
-                if (this.persistedProps.has(id)) {
-                    continue;
-                }
+                if (this.persistedProps.has(id)) continue;
 
                 const prop = this._createProp(propDef, x, z, scale, key);
                 if (!prop) continue;
@@ -201,7 +163,6 @@ export class InteractablePropManager {
             this._destroyProp(prop);
         }
 
-        // Remove from allProps
         this.allProps = this.allProps.filter(p => p.chunkKey !== key);
 
         this.worldObjects.removeCollidersIf(
@@ -213,12 +174,6 @@ export class InteractablePropManager {
 
     // ── Frame update ──────────────────────────────────────────────────────────
 
-    /**
-     * Call every frame from OpenWorldManager.update().
-     * @param {number} playerX  - world space X
-     * @param {number} playerZ  - world space Z (Y on screen)
-     * @param {number} dt       - delta time seconds
-     */
     update(playerX, playerZ, dt) {
         this._elapsed += dt;
 
@@ -226,11 +181,8 @@ export class InteractablePropManager {
             const dx = prop.x - playerX;
             const dz = prop.z - playerZ;
 
-            if ((dx * dx + dz * dz) > ACTIVE_DIST_SQ) {
-                continue;
-            }
+            if ((dx * dx + dz * dz) > ACTIVE_DIST_SQ) continue;
 
-            // Handle respawn timer for dead props
             if (!prop.alive) {
                 if (prop.def.respawnTime && prop.deadAt !== null) {
                     if (Date.now() - prop.deadAt >= prop.def.respawnTime) {
@@ -240,19 +192,17 @@ export class InteractablePropManager {
                 continue;
             }
 
-            // Animate glow pulse
-            if (prop.glowSprite) {
+            // Glow pulse
+            if (prop.glowGraphic) {
                 const t = (Math.sin(this._elapsed * GLOW_PULSE_SPEED + prop._phase) + 1) * 0.5;
-                prop.glowSprite.alpha = GLOW_MIN_ALPHA + t * (GLOW_MAX_ALPHA - GLOW_MIN_ALPHA);
+                prop.glowGraphic.alpha = GLOW_MIN_ALPHA + t * (GLOW_MAX_ALPHA - GLOW_MIN_ALPHA);
             }
 
-            // Tick harvest if active (dt is already seconds)
             if (prop._harvesting) {
                 this._tickHarvest(prop, dt);
             }
         }
 
-        // Determine nearest in-range prop and update indicator
         const nearest = this._findNearest(playerX, playerZ);
 
         if (nearest !== this._highlighted) {
@@ -267,16 +217,6 @@ export class InteractablePropManager {
 
     // ── Interaction API ───────────────────────────────────────────────────────
 
-    /**
-     * Call when the player presses the interact key.
-     *
-     * Does its own proximity scan so it never depends on whether update()
-     * happened to run this exact frame first.
-     *
-     * Returns { prop, loot } for instant interactions (chests/containers).
-     * Returns { prop, loot: null, harvesting: true } when a harvest starts.
-     * Returns null when nothing is in range.
-     */
     tryInteract(playerX, playerZ) {
         const prop = this._findNearest(playerX, playerZ);
         if (!prop || !prop.alive) return null;
@@ -286,23 +226,17 @@ export class InteractablePropManager {
         }
 
         if (prop.def.harvestTime) {
-            console.log('[tryInteract] starting harvest, NOT opening');
             if (prop._harvesting) return null;
-            prop._harvesting = true;
+            prop._harvesting   = true;
             prop._harvestAccum = 0;
             this._showHarvestBar(prop);
             return { prop, loot: null, harvesting: true };
         }
 
-        console.log('[tryInteract] fallthrough to instant open - harvestTime was falsy');
         return this._openProp(prop);
     }
 
-    /**
-     * Call when the player RELEASES the interact key (cancels harvest).
-     */
     cancelInteract() {
-        // Cancel whichever prop is currently being harvested
         for (const prop of this.allProps) {
             if (prop._harvesting) {
                 prop._harvesting   = false;
@@ -312,18 +246,12 @@ export class InteractablePropManager {
         }
     }
 
-    /**
-     * Find the nearest alive prop within its interactRange of the player.
-     * This is O(n) over loaded props but n is tiny (a few dozen at most).
-     * @private
-     */
     _findNearest(playerX, playerZ) {
         let nearest     = null;
         let nearestDist = Infinity;
 
         for (const prop of this.allProps) {
             if (!prop.alive) continue;
-
             const dist = Math.hypot(prop.x - playerX, prop.z - playerZ);
             if (dist < prop.def.interactRange && dist < nearestDist) {
                 nearestDist = dist;
@@ -337,154 +265,176 @@ export class InteractablePropManager {
     // ── Internal prop lifecycle ───────────────────────────────────────────────
 
     _createProp(def, x, z, scale, chunkKey) {
-        const id = `${chunkKey}_${def.id}_${x.toFixed(0)}_${z.toFixed(0)}`;
+        const id        = `${chunkKey}_${def.id}_${x.toFixed(0)}_${z.toFixed(0)}`;
         const container = new Container();
         container.x = x;
         container.y = z;
-        container.zIndex = z;
         container.sortableChildren = false;
 
-        // ── Glow circle underneath ──
+        // ── Glow circle ──
         const glow = new Graphics();
         const glowR = (def.radius || 28) * 1.6 * scale;
         glow.circle(0, 0, glowR).fill({ color: def.glowColor ?? 0xffffff });
-        glow.alpha = GLOW_MIN_ALPHA;
+        glow.alpha    = GLOW_MIN_ALPHA;
         glow.blendMode = 'add';
         container.addChild(glow);
 
-        // Shadow
+        // ── Main visual ──
+        // targetSize drives both sprite scale AND shadow scale, same as PropManager
+        const targetSize = def.radius * 2;
 
-        const shadow = new Graphics();
-
-        shadow
-            .ellipse(0, 0, def.radius * 0.8, def.radius * 0.25)
-            .fill({
-                color: 0x000000,
-                alpha: 0.15
-            });
-
-        container.addChild(shadow);
-
-        const targetSize = def.radius * 2; // example: 30px ore
-
-        // ── Prop sprite / fallback ──
         let visual;
-        const texture = assetManager.getTexture(def.texture);
-        if (texture) {
+        let spriteScale = scale; // fallback for non-texture visuals
+        const texture   = assetManager.getTexture(def.texture);
+
+        if (texture && texture instanceof Texture) {
             visual = new Sprite(texture);
             visual.anchor.set(0.5, 1);
 
-            // Fit sprite into target size
-            const maxDim = Math.max(texture.width, texture.height);
-            const scale = targetSize / maxDim;
-
-            visual.scale.set(scale);
+            // Base scale fits the sprite to targetSize (def-driven sizing).
+            // Multiply by the caller-supplied `scale` so editor overrides work —
+            // same pattern as PropManager.placeLoadedProp which uses userScale directly.
+            const maxDim  = Math.max(texture.width, texture.height);
+            spriteScale   = (targetSize / maxDim) * scale;
+            visual.scale.set(spriteScale);
         } else {
-            visual = this._makeFallback(def, scale);
+            visual      = this._makeFallback(def, scale);
+            spriteScale = scale;
         }
 
         visual.eventMode = 'static';
-        visual.cursor = 'pointer';
-
-        visual.on('pointerover', () => {
-            visual.filters = [HOVER_FILTER];
-        });
-
-        visual.on('pointerout', () => {
-            visual.filters = null;
-        });
+        visual.cursor    = 'pointer';
+        visual.on('pointerover', () => { visual.filters = [HOVER_FILTER]; });
+        visual.on('pointerout',  () => { visual.filters = null; });
 
         container.addChild(visual);
 
-        // ── [E] indicator (hidden by default) ──
+        // ── Shadow ──
+        // shadowManager reads propVisual.x / propVisual.y as world-space coords.
+        // `visual` is a child of `container` so its .x/.y are local (0,0).
+        // Pass `container` instead — it sits directly on entityLayer at (x, z).
+        let shadowId = null;
+        if (visual instanceof Sprite) {
+            const heightFactor = Math.min(1.5, visual.height / 120);
+            const shadow       = new Sprite(texture);
+            shadow.anchor.set(0.5, 0.5);
+            shadow.tint     = 0x000000;
+            shadow.chunkKey = chunkKey;
+
+            shadowId = shadowManager.registerShadow(
+                shadow,
+                container,   // world-space reference — container.x === x, container.y === z
+                spriteScale,
+                heightFactor
+            );
+
+            this.worldObjects.addToEntityLayer(shadow);
+            this.shadowRegistry.set(visual, shadowId);
+
+            // Cross-reference for cleanup
+            visual._interactableShadow = shadow;
+            shadow._interactableVisual = visual;
+        }
+
+        // ── [E] indicator ──
         const indicator = new Text(INTERACT_KEY_LABEL + '\n' + def.label, {
             ...INDICATOR_FONT,
             fontSize: 10,
         });
         indicator.anchor.set(0.5, 1);
-        indicator.y = -(visual.height + 8);
+        indicator.y     = -(visual.height + 8);
         indicator.visible = false;
         container.addChild(indicator);
 
-        // ── Harvest progress bar (hidden by default) ──
+        // ── Harvest progress bar ──
         const barBg = new Graphics();
         barBg.rect(-HARVEST_BAR_W / 2, 0, HARVEST_BAR_W, HARVEST_BAR_H)
             .fill({ color: 0x222222 });
-        barBg.y = -(visual.height + 20);
+        barBg.y       = -(visual.height + 20);
         barBg.visible = false;
         container.addChild(barBg);
 
         const barFill = new Graphics();
         barFill.rect(-HARVEST_BAR_W / 2, 0, 0, HARVEST_BAR_H)
             .fill({ color: 0x44ee44 });
-        barFill.y = barBg.y;
+        barFill.y       = barBg.y;
         barFill.visible = false;
         container.addChild(barFill);
 
+        // ── zIndex — matches PropManager's y-based sorting ──
+        const heightFactor = visual instanceof Sprite ? Math.min(1.5, visual.height / 120) : 1;
+        container.zIndex   = z - (40 * heightFactor);
+
         this.worldObjects.addToEntityLayer(container);
 
+        // ── Collider — same field names as PropManager ──
+        const colW = Math.max(20, targetSize) * 0.85;
+        const colH = colW;
         const collider = {
-            x: x,
-            y: z - (targetSize / 2),
-            width: targetSize,
-            height: targetSize,
-            collision: false,
-            type: 'interactable',
+            x:                    x,
+            y:                    z - colH / 2,
+            width:                colW,
+            height:               colH,
+            collision:            false,   // interactables don't block movement
+            type:                 'interactable',
             interactableChunkKey: chunkKey,
+            visual:               container,
+            sprite:               container,
         };
-
         this.worldObjects.addWorldCollider(collider);
 
-        container.zIndex = z;
-
-        const prop = {
+        return {
             def,
+            id,
             x, z,
-            scale,
+            scale: spriteScale,
             chunkKey,
-            id: id,
-            alive: true,
+            alive:  true,
             deadAt: null,
             container,
-            glowSprite: glow,
+            glowGraphic: glow,
             visual,
             indicator,
             barBg,
             barFill,
             collider,
-            _phase: Math.random() * Math.PI * 2,    // random pulse phase
-            _harvesting: false,
+            shadowId,
+            _phase:        Math.random() * Math.PI * 2,
+            _harvesting:   false,
             _harvestAccum: 0,
         };
-
-        return prop;
     }
 
     _isColliding(x, z, radius) {
         for (const c of this.worldObjects.colliders) {
             if (!c.collision) continue;
-
-            const cx = c.x;
-            const cz = c.y;
-
-            const dx = cx - x;
-            const dz = cz - z;
-
-            const distX = Math.abs(dx);
-            const distZ = Math.abs(dz);
-
-            const halfW = c.width / 2;
-            const halfH = c.height / 2;
-
-            // simple AABB vs circle-ish check
-            if (distX < halfW + radius && distZ < halfH + radius) {
-                return true;
-            }
+            const distX = Math.abs(c.x - x);
+            const distZ = Math.abs(c.y - z);
+            if (distX < c.width / 2 + radius && distZ < c.height / 2 + radius) return true;
         }
         return false;
     }
 
+    /** Unregister shadow from shadowManager and remove its display object */
+    _unregisterShadow(prop) {
+        const shadow = prop.visual?._interactableShadow;
+        if (!shadow) return;
+
+        const sid = this.shadowRegistry.get(prop.visual);
+        if (sid != null) {
+            shadowManager.unregisterShadow(sid);
+            this.shadowRegistry.delete(prop.visual);
+        }
+
+        if (!shadow.destroyed) {
+            this.worldObjects.removeAndDestroyDisplayObject(shadow);
+        }
+
+        prop.visual._interactableShadow = null;
+    }
+
     _destroyProp(prop) {
+        this._unregisterShadow(prop);
         this.worldObjects.removeAndDestroyDisplayObject(prop.container);
     }
 
@@ -492,15 +442,21 @@ export class InteractablePropManager {
         prop.alive  = false;
         prop.deadAt = Date.now();
         if (prop.container) prop.container.visible = false;
-        // Mark collider inactive
-        if (prop.collider) prop.collider.collision = false;
+        if (prop.collider)  prop.collider.collision = false;
+
+        // Hide shadow while dead
+        const shadow = prop.visual?._interactableShadow;
+        if (shadow) shadow.visible = false;
     }
 
     _respawnProp(prop) {
         prop.alive  = true;
         prop.deadAt = null;
         if (prop.container) prop.container.visible = true;
-        if (prop.collider) prop.collider.collision = true;
+        if (prop.collider)  prop.collider.collision = true;
+
+        const shadow = prop.visual?._interactableShadow;
+        if (shadow) shadow.visible = true;
     }
 
     // ── Interaction logic ─────────────────────────────────────────────────────
@@ -508,14 +464,15 @@ export class InteractablePropManager {
     _openProp(prop) {
         const loot = this._rollLoot(prop.def.lootTable);
 
-        // Play anim FIRST while container is still visible, then kill
         this._playOpenAnim(prop);
 
-        // Mark dead immediately so it can't be interacted with again,
-        // but DON'T set container.visible = false here — the anim handles that
         prop.alive  = false;
         prop.deadAt = Date.now();
         if (prop.collider) prop.collider.collision = false;
+
+        // Hide shadow immediately on open
+        const shadow = prop.visual?._interactableShadow;
+        if (shadow) shadow.visible = false;
 
         this.persistedProps.add(prop.id);
 
@@ -529,7 +486,6 @@ export class InteractablePropManager {
 
         const pct = Math.min(1, prop._harvestAccum / prop.def.harvestTime);
 
-        // Update bar fill — min 2px so bar is visible at 0%
         if (prop.barFill) {
             prop.barFill.clear();
             prop.barFill
@@ -547,11 +503,6 @@ export class InteractablePropManager {
 
     // ── Loot rolling ─────────────────────────────────────────────────────────
 
-    /**
-     * Roll a loot table and return an array of { id, amount } drops.
-     * @param {string} tableId
-     * @returns {{ id: string, amount: number }[]}
-     */
     _rollLoot(tableId) {
         const table = LOOT_TABLES[tableId];
         if (!table) return [];
@@ -568,13 +519,8 @@ export class InteractablePropManager {
 
     // ── Visual helpers ────────────────────────────────────────────────────────
 
-    _showIndicator(prop) {
-        if (prop.indicator) prop.indicator.visible = true;
-    }
-
-    _hideIndicator(prop) {
-        if (prop.indicator) prop.indicator.visible = false;
-    }
+    _showIndicator(prop) { if (prop.indicator) prop.indicator.visible = true; }
+    _hideIndicator(prop) { if (prop.indicator) prop.indicator.visible = false; }
 
     _showHarvestBar(prop) {
         if (prop.barBg)   prop.barBg.visible   = true;
@@ -586,22 +532,17 @@ export class InteractablePropManager {
         if (prop.barFill) prop.barFill.visible  = false;
     }
 
-    /** Quick scale-pop + fade for opening animation.
-     *  Must be called BEFORE _killProp so container.visible is still true. */
     _playOpenAnim(prop) {
         if (!prop.container) return;
-
-        // Make sure it's visible for the animation duration
         prop.container.visible = true;
 
-        const DURATION = 0.3; // seconds
-        let startTime = null;
+        const DURATION = 0.3;
+        let startTime  = null;
 
         const tick = (timestamp) => {
-            // Guard: container may have been destroyed if chunk unloaded mid-anim
             if (!prop.container || prop.container.destroyed) return;
-
             if (startTime === null) startTime = timestamp;
+
             const elapsed = (timestamp - startTime) / 1000;
             const pct     = Math.min(1, elapsed / DURATION);
 
@@ -624,16 +565,13 @@ export class InteractablePropManager {
         const g     = new Graphics();
         const r     = (def.radius || 24) * scale;
         const color = def.fallbackColor ?? 0x888888;
-
         g.roundRect(-r, -r * 2, r * 2, r * 2, 6).fill({ color });
         g.circle(0, -r, r * 0.4).fill({ color: def.glowColor ?? 0xffffff });
-
         return g;
     }
 
     // ── Public query helpers ──────────────────────────────────────────────────
 
-    /** Returns the nearest alive interactable within `range` px, or null */
     getNearestProp(playerX, playerZ, range = 120) {
         let nearest     = null;
         let nearestDist = range;
@@ -641,39 +579,27 @@ export class InteractablePropManager {
         for (const prop of this.allProps) {
             if (!prop.alive) continue;
             const d = Math.hypot(prop.x - playerX, prop.z - playerZ);
-            if (d < nearestDist) {
-                nearestDist = d;
-                nearest     = prop;
-            }
+            if (d < nearestDist) { nearestDist = d; nearest = prop; }
         }
 
         return nearest;
     }
 
-    /** Returns counts of alive props by category across all loaded chunks */
     getStats() {
         const stats = {};
         for (const prop of this.allProps) {
             if (!prop.alive) continue;
-            const cat        = prop.def.category;
+            const cat    = prop.def.category;
             stats[cat] = (stats[cat] || 0) + 1;
         }
         return stats;
     }
 
     spawnManualProp(typeId, x, z, scale = 1, chunkKey = 'editor') {
-
         const def = INTERACTABLE_PROP_TYPES[typeId];
-
         if (!def) return null;
 
-        const prop = this._createProp(
-            def,
-            x,
-            z,
-            scale,
-            chunkKey
-        );
+        const prop = this._createProp(def, x, z, scale, chunkKey);
 
         let bucket = this.activeChunks.get(chunkKey);
         if (!bucket) {
@@ -681,34 +607,28 @@ export class InteractablePropManager {
             this.activeChunks.set(chunkKey, bucket);
         }
         bucket.props.push(prop);
-
         this.allProps.push(prop);
 
         return prop;
     }
 
     removeProp(prop) {
-
         this._destroyProp(prop);
-
-        this.allProps =
-            this.allProps.filter(p => p !== prop);
-
+        this.allProps = this.allProps.filter(p => p !== prop);
         this.worldObjects.removeCollider(prop.collider);
     }
 
     clear() {
-        // 1. Remove all interactable props
         for (const prop of this.allProps) {
             this._destroyProp(prop);
         }
 
         this.worldObjects.removeCollidersIf((c) => c.type === 'interactable');
 
-        // 3. Reset state
         this.allProps = [];
         this.activeChunks.clear();
+        this.shadowRegistry.clear();
         this._highlighted = null;
-        this._elapsed = 0;
+        this._elapsed     = 0;
     }
 }

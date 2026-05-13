@@ -110,7 +110,7 @@ export class ShadowManager {
         if (!shadow || shadow.destroyed) return;
         if (!propVisual || propVisual.destroyed) return;
 
-        shadow.x = propVisual.x + this.currentDirection.x * (1 + heightFactor);
+        shadow.x = propVisual.x + (this.currentDirection.x * scale) * (1 + heightFactor);
         shadow.y = propVisual.y + this.currentDirection.y;
         shadow.skew.x = this.currentDirection.skew - (heightFactor * 0.4);
         shadow.alpha = this.currentDirection.alpha;

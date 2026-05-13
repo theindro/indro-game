@@ -123,6 +123,12 @@ class AssetManager {
             { file: '/gameprops/tree1.png', id: 'tree1', type: 'tree', itemId: null },
             { file: '/gameprops/tree2.png', id: 'tree2', type: 'tree', itemId: null },
             { file: '/gameprops/tree3.png', id: 'tree3', type: 'tree', itemId: null },
+            // Interactables
+            { file: '/gameprops/interactable/iron-ore.png', id: 'ore_iron', type: 'ore_iron', itemId: null },
+            { file: '/gameprops/interactable/gold-ore.png', id: 'ore_gold', type: 'ore_gold', itemId: null },
+            { file: '/gameprops/interactable/crystal-ore.png', id: 'ore_crystal', type: 'ore_crystal', itemId: null },
+            { file: '/gameprops/interactable/lava-ore.png', id: 'ore_lava', type: 'ore_lava', itemId: null },
+            { file: '/gameprops/interactable/void-ore.png', id: 'ore_void', type: 'ore_void', itemId: null },
         ];
 
         const VFX = [

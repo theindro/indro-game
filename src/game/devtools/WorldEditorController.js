@@ -101,8 +101,6 @@ export class WorldEditorController {
 
         this.selectedType = null;
         this.selectedId = null;
-
-        //this.enabled = false;
     }
 
     // =========================================================
@@ -111,10 +109,10 @@ export class WorldEditorController {
 
     startPlacement(data) {
 
-        this.selectedType = data.type || "prop";
-        this.selectedId = data.assetId;
+        this.selectedType     = data.type || "prop";
+        this.selectedId       = data.assetId;
         this.selectedSettings = data.settings || {};
-        this.selectedExtra = data.extra || {};
+        this.selectedExtra    = data.extra || {};
 
         const preview = this.createPreview();
 
@@ -125,11 +123,8 @@ export class WorldEditorController {
 
         preview.alpha = 0.5;
 
-        // Match PropManager.placeLoadedProp: foot at cursor (ghost was center-anchored, props sat "above").
         if (preview.anchor?.set) {
-            if (this.selectedType === 'prop') {
-                preview.anchor.set(0.5, 1);
-            } else if (this.selectedType === 'interactable') {
+            if (this.selectedType === 'prop' || this.selectedType === 'interactable') {
                 preview.anchor.set(0.5, 1);
             } else {
                 preview.anchor.set(0.5);
@@ -170,20 +165,14 @@ export class WorldEditorController {
 
     createPropPreview() {
 
-        const sprite = assetManager.createRenderable(
-            this.selectedId,
-            false
-        );
+        const sprite = assetManager.createRenderable(this.selectedId, false);
 
         if (sprite instanceof AnimatedSprite) {
             sprite.play();
             sprite.animationSpeed *= 0.5;
         }
 
-        this.applySettingsToSprite(
-            sprite,
-            this.selectedSettings
-        );
+        this.applySettingsToSprite(sprite, this.selectedSettings);
 
         return sprite;
     }
@@ -191,7 +180,6 @@ export class WorldEditorController {
     createMobPreview() {
 
         const stats = ARCHETYPE_STATS[this.selectedId];
-
         if (!stats) return null;
 
         const {c} = createMobEntity(
@@ -203,50 +191,42 @@ export class WorldEditorController {
         );
 
         const fakeMob = {c};
-
-        applyArchetypeVisuals(
-            fakeMob,
-            this.selectedId,
-            "forest"
-        );
-
+        applyArchetypeVisuals(fakeMob, this.selectedId, "forest");
         c.alpha = 0.5;
 
         return c;
     }
 
+    /**
+     * Interactable preview uses the same sizing logic as InteractablePropManager._createProp:
+     *   spriteScale = (targetSize / maxDim) * userScale
+     * so the ghost matches what gets placed exactly.
+     */
     createInteractablePreview() {
 
         const def = INTERACTABLE_PROP_TYPES[this.selectedId];
-
         if (!def) return null;
+
+        // User scale from settings (restored when picking, defaults to 1 for new placements)
+        const userScale  = this.selectedSettings.scale ?? 1;
+        const targetSize = def.radius * 2;
 
         const texture = assetManager.getTexture(def.texture);
 
         let sprite;
 
         if (texture) {
-
             sprite = new Sprite(texture);
-
             sprite.anchor.set(0.5, 1);
 
-            const targetSize = def.radius * 2;
-
-            const maxDim = Math.max(
-                texture.width,
-                texture.height
-            );
-
-            const scale = targetSize / maxDim;
-
-            sprite.scale.set(scale);
-
+            const maxDim     = Math.max(texture.width, texture.height);
+            const finalScale = (targetSize / maxDim) * userScale;
+            sprite.scale.set(finalScale);
         } else {
-
+            // Fallback circle sized to def.radius * userScale
             sprite = new Graphics()
-                .circle(0, 0, def.radius)
-                .fill(def.fallbackColor || 0xffffff);
+                .circle(0, 0, def.radius * userScale)
+                .fill(def.fallbackColor ?? 0xffffff);
         }
 
         return sprite;
@@ -261,7 +241,6 @@ export class WorldEditorController {
         if (!this.enabled || !this.ghost) return;
 
         const pos = this.getWorldPos(e);
-
         this.ghost.position.set(pos.x, pos.y);
     }
 
@@ -269,8 +248,7 @@ export class WorldEditorController {
 
         if (!this.enabled) return;
 
-        const pos = this.getWorldPos(e);
-
+        const pos   = this.getWorldPos(e);
         const found = this.findObjectUnderCursor(pos);
 
         if (this.hovered && this.hovered !== found?.sprite) {
@@ -288,29 +266,18 @@ export class WorldEditorController {
 
         if (!this.enabled) return;
 
-        // RIGHT CLICK
         if (e.button === 2) {
-
             e.preventDefault?.();
-
             this.cancelPlacement();
-
             return;
         }
 
-        // LEFT CLICK
         if (e.button === 0) {
-
-            // Only allow picking when no active preview exists
             if (!this.ghost) {
-                if (this.tryPick(e)) {
-                    return;
-                }
+                if (this.tryPick(e)) return;
             }
 
-            // PLACE
             const pos = this.getWorldPos(e);
-
             this.placeObject(pos.x, pos.y);
         }
     }
@@ -322,24 +289,14 @@ export class WorldEditorController {
     tryPick(e) {
 
         const pos = this.getWorldPos(e);
-
         const hit = this.findObjectUnderCursor(pos);
 
         if (!hit) return false;
 
         switch (hit.type) {
-
-            case "mob":
-                this.pickMob(hit.ref);
-                return true;
-
-            case "interactable":
-                this.pickInteractable(hit.ref);
-                return true;
-
-            case "prop":
-                this.pickProp(hit.ref);
-                return true;
+            case "mob":         this.pickMob(hit.ref);         return true;
+            case "interactable": this.pickInteractable(hit.ref); return true;
+            case "prop":        this.pickProp(hit.ref);        return true;
         }
 
         return false;
@@ -349,48 +306,23 @@ export class WorldEditorController {
 
         // MOBS
         for (const mob of [...this.world.entitiesList.mobs].reverse()) {
-
-            const dist = Math.hypot(
-                mob.x - pos.x,
-                mob.y - pos.y
-            );
-
-            if (dist < 40) {
-
-                return {
-                    type: "mob",
-                    ref: mob,
-                    sprite: mob.c
-                };
+            if (Math.hypot(mob.x - pos.x, mob.y - pos.y) < 40) {
+                return { type: "mob", ref: mob, sprite: mob.c };
             }
         }
 
         // INTERACTABLES
         for (const prop of [...this.world.interactablePropManager.allProps].reverse()) {
-
-            const dist = Math.hypot(
-                prop.x - pos.x,
-                prop.z - pos.y
-            );
-
+            const dist = Math.hypot(prop.x - pos.x, prop.z - pos.y);
             if (dist < prop.def.radius + 10) {
-
-                return {
-                    type: "interactable",
-                    ref: prop,
-                    sprite: prop.visual
-                };
+                return { type: "interactable", ref: prop, sprite: prop.visual };
             }
         }
 
-        // Decorative props (same pipeline: procedural, JSON, editor — all in PropManager)
+        // DECORATIVE PROPS
         const propSprite = this.world.propManager.hitTestPropAt(pos.x, pos.y);
         if (propSprite) {
-            return {
-                type: "prop",
-                ref: propSprite,
-                sprite: propSprite
-            };
+            return { type: "prop", ref: propSprite, sprite: propSprite };
         }
 
         return null;
@@ -407,29 +339,49 @@ export class WorldEditorController {
         const mi = this.world.entitiesList.mobs.indexOf(mob);
         if (mi !== -1) this.world.entitiesList.mobs.splice(mi, 1);
 
-        this.startPlacement({
-            type: "mob",
-            assetId: mob.archetype
-        });
+        this.startPlacement({ type: "mob", assetId: mob.archetype });
     }
 
     pickInteractable(prop) {
 
+        // Extract the visual scale before removing — prop.scale is the spriteScale
+        // stored by _createProp (already includes the base targetSize/maxDim factor).
+        // We reverse it back to a pure userScale so the preview rebuilds at the right size.
+        const def        = prop.def;
+        const texture    = assetManager.getTexture(def.texture);
+        let   userScale  = 1;
+
+        if (texture) {
+            const targetSize = def.radius * 2;
+            const maxDim     = Math.max(texture.width, texture.height);
+            const baseScale  = targetSize / maxDim;
+            // prop.scale = baseScale * userScale  →  userScale = prop.scale / baseScale
+            userScale = baseScale > 0 ? prop.scale / baseScale : 1;
+        }
+
+        const sx = prop.x;
+        const sy = prop.z;
+
         this.world.interactablePropManager.removeProp(prop);
 
         this.startPlacement({
-            type: "interactable",
-            assetId: prop.def.id
+            type:     "interactable",
+            assetId:  def.id,
+            settings: { scale: userScale },
         });
+
+        // Position ghost at where the prop was
+        if (this.ghost) {
+            this.ghost.position.set(sx, sy);
+        }
     }
 
     pickProp(sprite) {
 
-        const sx = sprite.x;
-        const sy = sprite.y;
+        const sx       = sprite.x;
+        const sy       = sprite.y;
         const settings = {
             ...this.extractSettings(sprite),
-
             collidable: sprite.editorData?.collidable,
         };
 
@@ -437,11 +389,7 @@ export class WorldEditorController {
 
         this.world.propManager.removePropVisual(sprite);
 
-        this.startPlacement({
-            type: "prop",
-            assetId: id,
-            settings
-        });
+        this.startPlacement({ type: "prop", assetId: id, settings });
 
         if (this.ghost) {
             this.ghost.position.set(sx, sy);
@@ -455,54 +403,36 @@ export class WorldEditorController {
     placeObject(x, y) {
 
         switch (this.selectedType) {
-
-            case "mob":
-                return this.placeMob(x, y);
-
-            case "interactable":
-                return this.placeInteractable(x, y);
-
+            case "mob":         return this.placeMob(x, y);
+            case "interactable": return this.placeInteractable(x, y);
             case "prop":
-            default:
-                return this.placeProp(x, y);
+            default:            return this.placeProp(x, y);
         }
     }
 
     placeMob(x, y) {
 
-        const mob = this.world.worldObjects.spawnMob(
-            x,
-            y,
-            "forest",
-            this.selectedId,
-            1
-        );
-
-        mob.editorData = {
-            type: "mob"
-        };
-
+        const mob = this.world.worldObjects.spawnMob(x, y, "forest", this.selectedId, 1);
+        mob.editorData = { type: "mob" };
         this.world.entitiesList.mobs.push(mob);
-
         console.log("Placed mob:", mob);
     }
 
     placeInteractable(x, y) {
 
-        const prop =
-            this.world.interactablePropManager
-                .spawnManualProp(
-                    this.selectedId,
-                    x,
-                    y,
-                    1
-                );
+        // Pass userScale through — spawnManualProp forwards it to _createProp
+        // which applies: finalScale = (targetSize / maxDim) * userScale
+        const userScale = this.selectedSettings.scale ?? 1;
+
+        const prop = this.world.interactablePropManager.spawnManualProp(
+            this.selectedId,
+            x,
+            y,
+            userScale
+        );
 
         if (prop) {
-
-            prop.editorData = {
-                type: "interactable"
-            };
+            prop.editorData = { type: "interactable" };
         }
 
         console.log("Placed interactable:", prop);
@@ -510,23 +440,21 @@ export class WorldEditorController {
 
     placeProp(x, y) {
 
-        const w = this.world;
-        const cw = w.chunkSize * w.tileSize;
-        const chunkX = Math.floor(x / cw);
-        const chunkZ = Math.floor(y / cw);
+        const w        = this.world;
+        const cw       = w.chunkSize * w.tileSize;
+        const chunkX   = Math.floor(x / cw);
+        const chunkZ   = Math.floor(y / cw);
         const chunkKey = `${chunkX},${chunkZ}`;
-        const biome = w.getBiomeAtChunk(chunkX, chunkZ);
+        const biome    = w.getBiomeAtChunk(chunkX, chunkZ);
 
         const spr = w.propManager.placeLoadedProp(
             {
-                id: this.selectedId,
+                id:       this.selectedId,
                 x,
                 y,
-                scale: this.selectedSettings.scale ?? 1,
+                scale:    this.selectedSettings.scale ?? 1,
                 rotation: this.selectedSettings.rotation ?? 0,
-
                 collision: this.selectedSettings.collidable,
-                //shadow: this.selectedExtra.shadow
             },
             chunkKey,
             biome
@@ -535,7 +463,7 @@ export class WorldEditorController {
         if (!spr) return;
 
         spr.editorData = {
-            type: "prop",
+            type:      "prop",
             collidable: this.selectedSettings.collidable,
         };
 
@@ -552,30 +480,19 @@ export class WorldEditorController {
 
         if (!settings) return;
 
-        if (settings.scale !== undefined) {
-            sprite.scale.set(settings.scale);
-        }
-
-        if (settings.alpha !== undefined) {
-            sprite.alpha = settings.alpha;
-        }
-
-        if (settings.rotation !== undefined) {
-            sprite.rotation = settings.rotation;
-        }
-
-        if (settings.zIndex !== undefined) {
-            sprite.zIndex = settings.zIndex;
-        }
+        if (settings.scale    !== undefined) sprite.scale.set(settings.scale);
+        if (settings.alpha    !== undefined) sprite.alpha    = settings.alpha;
+        if (settings.rotation !== undefined) sprite.rotation = settings.rotation;
+        if (settings.zIndex   !== undefined) sprite.zIndex   = settings.zIndex;
     }
 
     extractSettings(sprite) {
 
         return {
-            scale: sprite.scale?.x,
-            alpha: sprite.alpha,
+            scale:    sprite.scale?.x,
+            alpha:    sprite.alpha,
             rotation: sprite.rotation,
-            zIndex: sprite.zIndex
+            zIndex:   sprite.zIndex,
         };
     }
 
@@ -585,23 +502,19 @@ export class WorldEditorController {
 
     getWorldPos(event) {
 
-        const pos = event.data.global;
+        const pos   = event.data.global;
+        const local = this.world.world.toLocal(pos, this.app.stage);
 
-        const local = this.world.world.toLocal(
-            pos,
-            this.app.stage
-        );
-
-        return {
-            x: local.x,
-            y: local.y
-        };
+        return { x: local.x, y: local.y };
     }
 
-    // Save world
+    // =========================================================
+    // SAVE / LOAD
+    // =========================================================
+
     saveWorldAsJson() {
 
-        const chunks = new Map();
+        const chunks     = new Map();
         const chunkWorld = this.world.chunkSize * this.world.tileSize;
 
         const ensureChunk = (chunkX, chunkZ) => {
@@ -610,68 +523,71 @@ export class WorldEditorController {
                 chunks.set(key, {
                     chunkX,
                     chunkZ,
-                    biome: this.world.getBiomeAtChunk(chunkX, chunkZ),
-                    props: [],
-                    mobs: [],
-                    interactables: []
+                    biome:        this.world.getBiomeAtChunk(chunkX, chunkZ),
+                    props:        [],
+                    mobs:         [],
+                    interactables: [],
                 });
             }
             return chunks.get(key);
         };
 
-        // 1. PROPS — single source: PropManager (sprite x/y, scale, rotation; includes non-colliding trees)
+        // 1. PROPS
         const propExport = this.world.propManager.serializePropsForWorldJson(
             this.world.chunkSize,
             this.world.tileSize
         );
         for (const [, block] of propExport) {
-            const ch = ensureChunk(block.chunkX, block.chunkZ);
-            ch.props.push(...block.props);
+            ensureChunk(block.chunkX, block.chunkZ).props.push(...block.props);
         }
 
-        // 2. SAVE MOBS
+        // 2. MOBS
         for (const m of this.world.entitiesList.mobs) {
             const chunkX = Math.floor(m.x / chunkWorld);
             const chunkZ = Math.floor(m.y / chunkWorld);
             ensureChunk(chunkX, chunkZ).mobs.push({
                 archetype: m.archetype,
                 x: m.x,
-                y: m.y
+                y: m.y,
             });
         }
 
-        // 3. SAVE INTERACTABLES
+        // 3. INTERACTABLES — save userScale so it round-trips correctly on load.
+        //    prop.scale is the final spriteScale (baseScale * userScale); reverse it back.
         for (const p of this.world.interactablePropManager.allProps) {
-            const chunkX = Math.floor(p.x / chunkWorld);
-            const chunkZ = Math.floor(p.z / chunkWorld);
+            const chunkX  = Math.floor(p.x / chunkWorld);
+            const chunkZ  = Math.floor(p.z / chunkWorld);
+            const texture = assetManager.getTexture(p.def.texture);
+            let   userScale = 1;
+
+            if (texture) {
+                const baseScale = (p.def.radius * 2) / Math.max(texture.width, texture.height);
+                userScale = baseScale > 0 ? p.scale / baseScale : 1;
+            }
+
             ensureChunk(chunkX, chunkZ).interactables.push({
-                id: p.def.id,
-                x: p.x,
-                y: p.z
+                id:    p.def.id,
+                x:     p.x,
+                y:     p.z,
+                scale: userScale,
             });
         }
 
-        // FINAL JSON
         const world = {
-            version: 1,
+            version:   1,
             chunkSize: this.world.chunkSize,
-            tileSize: this.world.tileSize,
-            chunks: Array.from(chunks.values())
+            tileSize:  this.world.tileSize,
+            chunks:    Array.from(chunks.values()),
         };
 
         console.log("WORLD SAVED", world);
 
-        const blob = new Blob([JSON.stringify(world, null, 2)], {
-            type: "application/json"
-        });
-
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
+        const blob = new Blob([JSON.stringify(world, null, 2)], { type: "application/json" });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href     = url;
         a.download = "world.json";
         a.click();
-
         URL.revokeObjectURL(url);
     }
 

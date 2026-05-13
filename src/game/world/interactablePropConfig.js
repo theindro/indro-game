@@ -114,7 +114,7 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'ore_iron',
         texture: 'ore_iron',
         fallbackColor: 0x8fa0b0,
-        scaleRange: { min: 0.5, max: 0.8 },
+        scaleRange: { min: 1, max: 2.5 },
         glowColor: 0xaabbcc,
         harvestTime: 2.0,          // seconds
         harvestYield: { min: 1, max: 3 },
@@ -130,7 +130,7 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'ore_gold',
         texture: 'ore_gold',
         fallbackColor: 0xe8c000,
-        scaleRange: { min: 0.5, max: 0.75 },
+        scaleRange: { min: 1, max: 1.75 },
         glowColor: 0xffdd33,
         harvestTime: 2.5,          // seconds
         harvestYield: { min: 1, max: 2 },
@@ -146,7 +146,7 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'ore_crystal',
         texture: 'ore_crystal',
         fallbackColor: 0x44eecc,
-        scaleRange: { min: 0.5, max: 0.8 },
+        scaleRange: { min: 1.5, max: 3 },
         glowColor: 0x66ffee,
         harvestTime: 3.0,          // seconds
         harvestYield: { min: 1, max: 2 },

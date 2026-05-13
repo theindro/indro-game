@@ -313,7 +313,6 @@ export class OpenWorldManager {
     }
 
     getBiomeAt(x, z) {
-        return 'ice';
 
         const scale = this.config.biomeScale;
         const seed = this.worldSeed;
@@ -709,13 +708,15 @@ export class OpenWorldManager {
 
     async loadProceduralChunk(chunkX, chunkZ, playerX, playerZ) {
         const chunk = await this.generateChunk(chunkX, chunkZ);
+        const chunkData = this.generateChunkData(chunkX, chunkZ);
+
+        console.log(chunkData);
 
         this.groundLayer.addChild(chunk);
 
-        await this.propManager.generateChunkProps(chunkX, chunkZ, 'ice', this.chunkSize, this.tileSize);
-        await this.interactablePropManager.generateChunkProps(chunkX, chunkZ, 'ice', this.chunkSize, this.tileSize);
+        await this.propManager.generateChunkProps(chunkX, chunkZ, chunkData.biome, this.chunkSize, this.tileSize);
 
-        const chunkData = this.generateChunkData(chunkX, chunkZ);
+        await this.interactablePropManager.generateChunkProps(chunkX, chunkZ, chunkData.biome, this.chunkSize, this.tileSize);
 
         await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData);
 
