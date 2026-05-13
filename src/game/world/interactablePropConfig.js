@@ -163,7 +163,7 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'ore_lava',
         texture: 'ore_lava',
         fallbackColor: 0xff4400,
-        scaleRange: { min: 0.55, max: 0.8 },
+        scaleRange: { min: 1, max: 2.8 },
         glowColor: 0xff6600,
         harvestTime: 2.2,          // seconds
         harvestYield: { min: 1, max: 3 },

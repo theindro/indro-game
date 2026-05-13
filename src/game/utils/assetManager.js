@@ -56,10 +56,10 @@ class AssetManager {
 
         // ============= BOWS (86-89) =============
         const bowFiles = [
-            { file: '86.png', id: 'bow_86', type: 'bow', itemId: 'short_bow' },
+            { file: '/gameprops/items/woodbow.png', id: 'short_bow', type: 'bow', itemId: 'short_bow' },
             { file: '87.png', id: 'bow_87', type: 'bow', itemId: 'long_bow' },
-            { file: '88.png', id: 'bow_88', type: 'bow', itemId: 'crossbow' },
-            { file: '89.png', id: 'bow_89', type: 'bow', itemId: 'windbow' },
+            { file: '/gameprops/items/crystalbow.png', id: 'crossbow', type: 'bow', itemId: 'crossbow' },
+            { file: '/gameprops/items/voidbow.png', id: 'windbow', type: 'bow', itemId: 'windbow' },
         ];
 
         // ============= RINGS (90-100) =============

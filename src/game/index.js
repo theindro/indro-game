@@ -61,7 +61,7 @@ export async function createGame() {
     createDevTool(useGameStore);
 
     // ==================== PLAYER ====================
-    const {pCont, pGlow, pBody, hpBar, tickAnimations} = createPlayerEntity(world);
+    const {pCont, pGlow, pBody, hpBar, tickAnimations, playWeaponShoot} = createPlayerEntity(world);
     let px = 0, py = 0;
 
     const playerController = createPlayerController({
@@ -102,7 +102,7 @@ export async function createGame() {
     const combat = createCombatController({
         world, entities,
         killsRef, bossActiveRef,
-        openWorld, colliders
+        openWorld, colliders, playWeaponShoot
     });
 
     // ==================== ABILITIES ====================

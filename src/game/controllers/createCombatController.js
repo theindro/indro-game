@@ -9,7 +9,7 @@ import { useRapidFire } from "../abilities/RapidFire.js";
 import { useFrostArrow } from "../abilities/FrostArrow.js";
 
 export function createCombatController(ctx) {
-    const { world, entities, openWorld, colliders } = ctx;
+    const { world, entities, openWorld, colliders, playWeaponShoot } = ctx;
     const { arrows, drops, enemyProjs } = entities;
     const { x, y } = useGameStore.getState().player;
     const entityLayer = openWorld.entityLayer;
@@ -52,6 +52,8 @@ export function createCombatController(ctx) {
                 chainRange: stats.chainRange,
                 chainDamageMultiplier: stats.chainDamage
             };
+
+            playWeaponShoot();
 
             arrows.push(createArrow(entityLayer, px, py, tx, ty, spread, chainData));
         }

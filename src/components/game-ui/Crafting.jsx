@@ -11,62 +11,8 @@ const { Text } = Typography;
 // result: itemId to produce
 export const CraftingRecipes = [
     {
-        id: 'craft_iron_boots',
-        result: 'iron_boots',
-        goldCost: 80,
-        ingredients: [
-            { id: 'iron_ingot', quantity: 4 },
-            { id: 'wood_plank', quantity: 2 },
-        ],
-    },
-    {
-        id: 'craft_steel_boots',
-        result: 'steel_boots',
-        goldCost: 150,
-        ingredients: [
-            { id: 'iron_ingot', quantity: 6 },
-            { id: 'crystal_shard', quantity: 1 },
-        ],
-    },
-    {
-        id: 'craft_iron_armor',
-        result: 'iron_armor',
-        goldCost: 120,
-        ingredients: [
-            { id: 'iron_ingot', quantity: 6 },
-            { id: 'wood_plank', quantity: 3 },
-        ],
-    },
-    {
-        id: 'craft_steel_armor',
-        result: 'steel_armor',
-        goldCost: 250,
-        ingredients: [
-            { id: 'iron_ingot', quantity: 8 },
-            { id: 'crystal_shard', quantity: 2 },
-        ],
-    },
-    {
-        id: 'craft_iron_helmet',
-        result: 'iron_helmet',
-        goldCost: 90,
-        ingredients: [
-            { id: 'iron_ingot', quantity: 4 },
-            { id: 'wood_plank', quantity: 2 },
-        ],
-    },
-    {
-        id: 'craft_steel_helmet',
-        result: 'steel_helmet',
-        goldCost: 180,
-        ingredients: [
-            { id: 'iron_ingot', quantity: 6 },
-            { id: 'crystal_shard', quantity: 2 },
-        ],
-    },
-    {
         id: 'craft_long_bow',
-        result: 'long_bow',
+        result: 'short_bow',
         goldCost: 140,
         ingredients: [
             { id: 'wood_plank', quantity: 6 },
@@ -82,45 +28,6 @@ export const CraftingRecipes = [
             { id: 'wood_plank', quantity: 8 },
             { id: 'iron_ingot', quantity: 6 },
             { id: 'crystal_shard', quantity: 2 },
-        ],
-    },
-    {
-        id: 'craft_ring_of_strength',
-        result: 'ring_of_strength',
-        goldCost: 100,
-        ingredients: [
-            { id: 'gold_ingot', quantity: 3 },
-            { id: 'iron_ingot', quantity: 2 },
-        ],
-    },
-    {
-        id: 'craft_ring_of_crit',
-        result: 'ring_of_crit',
-        goldCost: 220,
-        ingredients: [
-            { id: 'gold_ingot', quantity: 4 },
-            { id: 'crystal_shard', quantity: 3 },
-            { id: 'lava_stone', quantity: 1 },
-        ],
-    },
-    {
-        id: 'craft_amulet_of_health',
-        result: 'amulet_of_health',
-        goldCost: 110,
-        ingredients: [
-            { id: 'gold_ingot', quantity: 2 },
-            { id: 'herb', quantity: 5 },
-            { id: 'frostbloom', quantity: 3 },
-        ],
-    },
-    {
-        id: 'craft_shadow_armor',
-        result: 'shadow_armor',
-        goldCost: 500,
-        ingredients: [
-            { id: 'iron_ingot', quantity: 8 },
-            { id: 'crystal_shard', quantity: 4 },
-            { id: 'lava_stone', quantity: 2 },
         ],
     },
 ];

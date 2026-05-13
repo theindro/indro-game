@@ -67,12 +67,26 @@ export function createPlayerEntity(world) {
 
         if (!weapon) return;
 
-        const texture = assetManager.getTexture(weapon.textureId);
+        console.log(weapon);
+
+        const texture = assetManager.getTexture(weapon.id);
         if (!texture) return;
 
         weaponSprite = new Sprite(texture);
-        weaponSprite.anchor.set(0.1, 0.5); // pivot near handle
+        weaponSprite.anchor.set(0.5, 0.5);
         weaponSprite.scale.set(0.08);
+
+        // weapon glow
+        // TODO: glow is based on enchantment
+        // weaponSprite.filters = [
+        //    new GlowFilter({
+        //        distance: 8,
+        //        outerStrength: 1.5,
+        //        innerStrength: 0.3,
+        //        color: 0x66ffcc,
+        //        quality: 0.3,
+        //    })
+        //];
 
         weaponContainer.addChild(weaponSprite);
     }
@@ -88,6 +102,7 @@ export function createPlayerEntity(world) {
 
     let blinkTimer = 0;
     let blinkInterval = 1000 + Math.random() * 120;
+    let shootAnim = 0;
     const BLINK_DUR = 40;
 
     function drawEyesOpen(mx, my) {
@@ -133,26 +148,46 @@ export function createPlayerEntity(world) {
         }
 
         // ── Update weapon each tick ──────────────────────
-        //updateWeaponSprite();
+        updateWeaponSprite();
 
         if (weaponSprite) {
             const angle = Math.atan2(my, mx);
+
             const radius = 16;
-            weaponContainer.x = Math.cos(angle) * radius;
-            weaponContainer.y = Math.sin(angle) * radius - 2;
 
-            const flipped = false;
+            // recoil animation
+            if (shootAnim > 0) {
+                shootAnim -= 0.10;
 
-            weaponSprite.scale.y = flipped ? -0.14 : 0.1;
-            weaponSprite.rotation = flipped
-                ? -(angle + Math.PI * 0.75)  // negate the whole thing when flipped
-                : angle + Math.PI * 0.75;
+                const recoil = shootAnim * 6;
+
+                weaponContainer.x = Math.cos(angle) * (radius - recoil);
+                weaponContainer.y = Math.sin(angle) * (radius - recoil) - 2;
+
+                weaponSprite.rotation = angle + Math.PI - shootAnim * 0.25;
+            } else {
+                weaponContainer.x = Math.cos(angle) * radius;
+                weaponContainer.y = Math.sin(angle) * radius - 2;
+
+                weaponSprite.rotation = angle + Math.PI;
+            }
+
+            const facingLeft = mx < 0;
+
+            weaponSprite.scale.set(
+                0.1,
+                facingLeft ? -0.1 : 0.1
+            );
         }
+    }
+
+    function playWeaponShoot() {
+        shootAnim = 1.5;
     }
 
     return {
         pCont, pGlow, pBody, pShadow, hpBar,
         leftEye, rightEye,
-        tickAnimations,
+        tickAnimations, playWeaponShoot
     };
 }
