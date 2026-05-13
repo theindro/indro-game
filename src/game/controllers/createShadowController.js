@@ -1,5 +1,5 @@
 // utils/ShadowManager.js
-import { Container } from 'pixi.js';
+import {BlurFilter, Container} from 'pixi.js';
 
 export class ShadowManager {
     constructor() {
@@ -82,6 +82,11 @@ export class ShadowManager {
 
     // Register a shadow for dynamic updates
     registerShadow(shadow, propVisual, scale, heightFactor) {
+
+        // One BlurFilter per shadow — cheaper than recreating each frame
+        const blurFilter = new BlurFilter({ strength: 1 });
+        shadow.filters = [blurFilter];
+
         const shadowData = {
             shadow,
             propVisual,
@@ -92,6 +97,7 @@ export class ShadowManager {
 
         const id = this.nextId++; // ✅ FIX: Use numeric ID instead of Symbol
         this.activeShadows.set(id, shadowData);
+
 
         // Apply current direction immediately
         this.updateShadowPosition(shadowData);

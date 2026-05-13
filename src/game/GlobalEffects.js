@@ -1,5 +1,5 @@
 // core/GlobalEffects.js
-import {AnimatedSprite, Graphics} from 'pixi.js';
+import {AnimatedSprite, Graphics, Sprite} from 'pixi.js';
 import { showFloat } from './utils/floatText.js';
 import { assetManager } from './utils/assetManager.js';
 
@@ -243,6 +243,55 @@ class VisualEffects {
         }
 
         this.shakeRef.value = 0;
+    }
+
+    addGlow(x, y, options = {}, parent = null) {
+        if (!this.initialized || !this.entityLayer) return;
+
+        const texture = assetManager.getTexture(options.texture || 'glow2');
+        if (!texture) return;
+
+        const glow = new Sprite(texture);
+
+        glow.anchor.set(0.5);
+
+        glow.blendMode = 'add';
+
+        glow.tint = options.color ?? 0xffffff;
+        glow.alpha = options.alpha ?? 0.35;
+
+        const scale = options.scale ?? 1.5;
+        glow.scale.set(scale);
+
+        glow._baseScale = scale;
+        glow._time = Math.random() * 10;
+
+        if (parent) {
+            glow.x = x;
+            glow.y = y;
+            parent.addChildAt(glow, 0);
+        } else {
+            glow.x = x;
+            glow.y = y;
+            this.entityLayer.addChild(glow);
+        }
+
+        return glow;
+    }
+
+    updateGlow(delta) {
+        if (!this.entityLayer) return;
+
+        for (const child of this.entityLayer.children) {
+            if (child._baseScale) {
+                child._time += delta * 0.01;
+
+                const pulse = 1 + Math.sin(child._time) * 0.08;
+
+                child.scale.set(child._baseScale * pulse);
+                child.alpha = 0.3 + Math.sin(child._time) * 0.05;
+            }
+        }
     }
 }
 

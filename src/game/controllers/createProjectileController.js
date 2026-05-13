@@ -1,6 +1,7 @@
 // createProjectileController.js - Updated with elemental arrow types
-import { Container, Graphics } from 'pixi.js';
-import { ARROW_SPEED, GS } from '../constants.js';
+import {Container, Graphics} from 'pixi.js';
+import {ARROW_SPEED, GS} from '../constants.js';
+import {VFX} from "../GlobalEffects.js";
 
 /* ── player arrow ── */
 
@@ -72,15 +73,15 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
 
     if (arrowType.name !== 'normal') {
 
-    const glow = new Graphics();
-    glow.circle(0, 0, 12).fill({ color: arrowType.glowColor, alpha: 0.1 });
-    c.addChild(glow);
+        const glow = new Graphics();
+        glow.circle(0, 0, 12).fill({color: arrowType.glowColor, alpha: 0.1});
+        c.addChild(glow);
     }
 
 
     // Arrow trail (elemental color)
     const trail = new Graphics();
-    trail.rect(-14, -1.5, 14, 3).fill({ color: arrowType.trailColor, alpha: arrowType.trailAlpha });
+    trail.rect(-14, -1.5, 14, 3).fill({color: arrowType.trailColor, alpha: arrowType.trailAlpha});
     c.addChild(trail);
 
     // Arrow shaft
@@ -105,22 +106,27 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
         const particle = new Graphics();
         const size = 4 + Math.random() * 3;
 
-        switch(arrowType.name) {
+        switch (arrowType.name) {
             case 'burn':
-                particle.circle(0, 0, size).fill({ color: 0xff6600, alpha: 0.7 });
+                particle.circle(0, 0, size).fill({color: 0xff6600, alpha: 0.7});
                 break;
             case 'poison':
-                particle.circle(0, 0, size).fill({ color: 0x44ff44, alpha: 0.6 });
+                particle.circle(0, 0, size).fill({color: 0x44ff44, alpha: 0.6});
                 break;
             case 'lightning':
-                particle.circle(0, 0, size).fill({ color: 0x88ccff, alpha: 0.7 });
+                particle.circle(0, 0, size).fill({color: 0x88ccff, alpha: 0.7});
                 break;
         }
 
         particle.x = (Math.random() - 0.5) * 20;
         particle.y = (Math.random() - 0.5) * 10 - 5;
         particleContainer.addChild(particle);
-        particles.push({ graphics: particle, offsetX: particle.x, offsetY: particle.y, phase: Math.random() * Math.PI * 2 });
+        particles.push({
+            graphics: particle,
+            offsetX: particle.x,
+            offsetY: particle.y,
+            phase: Math.random() * Math.PI * 2
+        });
     }
 
     c.rotation = angle;
@@ -182,10 +188,10 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
     c.sortableChildren = true;
 
     const elementColors = {
-        burn:     { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 },
-        poison:   { glow: 0x44ff44, orb: 0x66ff66, core: 0xaaffaa },
-        lightning:{ glow: 0x44aaff, orb: 0x66ccff, core: 0xaaddff },
-        normal:   { glow: 0xff4400, orb: 0xff6600, core: 0xffaa44 }
+        burn: {glow: 0xff4400, orb: 0xff6600, core: 0xffaa44},
+        poison: {glow: 0x44ff44, orb: 0x66ff66, core: 0xaaffaa},
+        lightning: {glow: 0x44aaff, orb: 0x66ccff, core: 0xaaddff},
+        normal: {glow: 0xff4400, orb: 0xff6600, core: 0xffaa44}
     };
 
     const colors = elementColors[elementalType] || elementColors.normal;
@@ -228,11 +234,11 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
 
     // Main orb
     const orb = new Graphics();
-    orb.circle(0, 0, size).fill({ color: colors.orb, alpha: 0.9 });
+    orb.circle(0, 0, size).fill({color: colors.orb, alpha: 0.9});
 
     // Core
     const core = new Graphics();
-    core.circle(-3, -3, size * 0.4).fill({ color: colors.core, alpha: 0.5 });
+    core.circle(-3, -3, size * 0.4).fill({color: colors.core, alpha: 0.5});
     orb.addChild(core);
     c.addChild(orb);
 
@@ -240,15 +246,18 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
     const particles = new Container();
     c.addChild(particles);
 
-        for (let i = 0; i < 4; i++) {
-            const p = new Graphics();
-            p.circle(0, 0, 2).fill({ color: colors.glow, alpha: 0.6 });
-            p.x = Math.cos(i * Math.PI * 2 / 4) * (size * 0.9);
-            p.y = Math.sin(i * Math.PI * 2 / 4) * (size * 0.9);
-            particles.addChild(p);
-        }
+    for (let i = 0; i < 4; i++) {
+        const p = new Graphics();
+        p.circle(0, 0, 2).fill({color: colors.glow, alpha: 0.6});
+        p.x = Math.cos(i * Math.PI * 2 / 4) * (size * 0.9);
+        p.y = Math.sin(i * Math.PI * 2 / 4) * (size * 0.9);
+        particles.addChild(p);
+    }
 
     world.addChild(c);
+
+    // Add projectile glow effect
+    VFX.addGlow(0, 0, {color: colors.glow, scale: 0.5, alpha: 0.15}, c);
 
     // Direction calculation
     const dx = px - ex;

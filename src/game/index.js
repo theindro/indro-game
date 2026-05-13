@@ -118,6 +118,7 @@ export async function createGame() {
     // Initial player position
     pCont.x = px;
     pCont.y = py;
+
     openWorld.entityLayer.addChild(pCont);
 
     window.addEventListener('keydown', (e) => {

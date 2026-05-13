@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
+    "@pixi/filter-drop-shadow": "^5.2.0",
     "antd": "^6.3.6",
     "pixi-filters": "^6.1.5",
     "pixi.js": "^8.18.1",

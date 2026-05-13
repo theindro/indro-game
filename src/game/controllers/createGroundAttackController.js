@@ -1,4 +1,5 @@
 import {Container, Graphics} from 'pixi.js';
+import {VFX} from "../GlobalEffects.js";
 
 // In GroundAttack.js - Updated GroundAttackManager
 export class GroundAttackController {
@@ -110,6 +111,8 @@ export class GroundAttack {
         this.hasStoppedTracking = false;
         this.currentAngle = this.config.angle;
 
+        this.impactGlowAdded = false;
+
         // phases
         this.phase = 'warning';
         this.impactTimer = 0;
@@ -182,6 +185,15 @@ export class GroundAttack {
 
             this.phase = 'impact';
 
+            if (!this.impactGlowAdded) {
+                this.impactGlowAdded = true;
+
+                VFX.addGlow(0, 0, {
+                    color: this.config.color,
+                    scale: 1.25,
+                }, this.container);
+            }
+
             // damage happens EXACTLY here
             if (!this.hasHit) {
 
@@ -248,7 +260,7 @@ export class GroundAttack {
                 });
 
 
-           this.g.blendMode = 'add';
+           //this.g.blendMode = 'add';
 
             return;
         }
