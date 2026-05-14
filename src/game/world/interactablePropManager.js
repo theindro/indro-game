@@ -15,6 +15,7 @@ import {
 import { assetManager } from '../utils/assetManager.js';
 import { shadowManager } from '../controllers/createShadowController.js';
 import { VFX } from '../GlobalEffects.js';
+import { useGameStore } from '../../stores/gameStore.js';
 import { OutlineFilter } from 'pixi-filters';
 
 const HOVER_FILTER = new OutlineFilter({
@@ -25,7 +26,7 @@ const HOVER_FILTER = new OutlineFilter({
 });
 
 // ── Visual constants ─────────────────────────────────────────────────────────
-const GLOW_PULSE_SPEED   = 2.5;
+const GLOW_PULSE_SPEED   = 25;
 const GLOW_MIN_ALPHA     = 0;
 const GLOW_MAX_ALPHA     = 0;
 const INDICATOR_FONT     = { fontFamily: 'monospace', fontSize: 11, fill: 0xffffff, align: 'center' };
@@ -41,7 +42,6 @@ export class InteractablePropManager {
         this.worldObjects    = worldObjects;
         this.worldSeed       = worldSeed;
         this.onLoot          = options.onLoot ?? null;
-        this.persistedProps  = options.persistedProps ?? new Set();
 
         this.layer = null;
 
@@ -109,6 +109,8 @@ export class InteractablePropManager {
         const placedPositions = [];
         let   categoryIndex   = 0;
 
+        const openedSet = new Set(useGameStore.getState().openedInteractableIds);
+
         for (const [category, categoryConfig] of Object.entries(biomeConfig)) {
             const catSeed = baseSeed + categoryIndex * 77777;
             categoryIndex++;
@@ -151,7 +153,7 @@ export class InteractablePropManager {
                 const scale   = scaleR.min + this.seededRandom(aSeed + 33) * (scaleR.max - scaleR.min);
                 const id      = `${key}_${typeId}_${x.toFixed(0)}_${z.toFixed(0)}`;
 
-                if (this.persistedProps.has(id)) continue;
+                if (openedSet.has(id)) continue;
 
                 const prop = this._createProp(propDef, x, z, scale, key);
                 if (!prop) continue;
@@ -519,7 +521,7 @@ export class InteractablePropManager {
         if (shadow) shadow.visible = false;
         if (prop.vfxGlowSprite) prop.vfxGlowSprite.visible = false;
 
-        this.persistedProps.add(prop.id);
+        useGameStore.getState().addOpenedInteractableId(prop.id);
 
         if (this.onLoot) this.onLoot(loot, prop.def, prop.x, prop.z);
 
@@ -649,6 +651,9 @@ export class InteractablePropManager {
     spawnManualProp(typeId, x, z, scale = 1, chunkKey = 'editor') {
         const def = INTERACTABLE_PROP_TYPES[typeId];
         if (!def) return null;
+
+        const id = `${chunkKey}_${typeId}_${x.toFixed(0)}_${z.toFixed(0)}`;
+        if (useGameStore.getState().openedInteractableIds.includes(id)) return null;
 
         const prop = this._createProp(def, x, z, scale, chunkKey);
 

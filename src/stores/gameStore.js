@@ -93,6 +93,11 @@ function createGameStoreSlice(set, get) {
         /** Deterministic procedural world; same seed ⇒ same biome/chunk/prop/mob layout. */
         worldSeed: generateWorldSeed(),
 
+        /**
+         * Interactable props already looted (`chunkKey_typeId_x_z`). Persisted so refresh cannot re-loot.
+         */
+        openedInteractableIds: [],
+
         // ===== GAME STATE =====
         gameState: {
             paused: false,
@@ -572,6 +577,15 @@ function createGameStoreSlice(set, get) {
                 gameState: {...state.gameState, paused: false},
             })),
 
+        /** Persist opened chest / harvestable id (stable string from InteractablePropManager). */
+        addOpenedInteractableId: (id) => {
+            if (!id || typeof id !== 'string') return;
+            set((state) => {
+                if (state.openedInteractableIds.includes(id)) return state;
+                return {openedInteractableIds: [...state.openedInteractableIds, id]};
+            });
+        },
+
         openShop: () => set((state) => ({shop: {...state.shop, isOpen: true}})),
         closeShop: () => set((state) => ({shop: {...state.shop, isOpen: false}})),
 
@@ -633,6 +647,7 @@ function getDefaultProgressPayload() {
         },
         abilities: cloneDefaultAbilities(),
         worldSeed: generateWorldSeed(),
+        openedInteractableIds: [],
         boss: {
             instance: null,
             hp: 500,
@@ -682,6 +697,9 @@ function mergePersistedState(persisted, current) {
             }
             return current.worldSeed;
         })(),
+        openedInteractableIds: Array.isArray(p.openedInteractableIds)
+            ? p.openedInteractableIds.filter((x) => typeof x === 'string')
+            : current.openedInteractableIds,
         audio: {...current.audio, ...(p.audio || {})},
         gameState: {
             ...current.gameState,
@@ -719,6 +737,7 @@ export const useGameStore = create(
             abilities: state.abilities,
             kills: state.kills,
             worldSeed: state.worldSeed,
+            openedInteractableIds: state.openedInteractableIds,
             audio: state.audio,
             currentRoomIndex: state.gameState.currentRoomIndex,
         }),

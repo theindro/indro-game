@@ -74,7 +74,6 @@ export class OpenWorldManager {
         this.chunkUpdateInterval = 100; // Only update chunks every 100ms
         this.processingChunks = false;
         this.pendingChunks = new Set();
-        this.persistedProps = new Set();
         this.persistedMobs = new Set();
         this.onChunkChangeCallback = null; // ADD THIS LINE
 
@@ -119,8 +118,7 @@ export class OpenWorldManager {
 
         this.interactablePropManager = new InteractablePropManager(
             this.worldObjects,
-            this.worldSeed,
-            {persistedProps: this.persistedProps}
+            this.worldSeed
         );
 
         this.chunkTypes = {
