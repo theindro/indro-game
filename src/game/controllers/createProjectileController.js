@@ -2,6 +2,7 @@
 import {Container, Graphics} from 'pixi.js';
 import {ARROW_SPEED, DEFAULT_ATTACK_RANGE} from '../constants.js';
 import {VFX} from "../GlobalEffects.js";
+import {GlowFilter} from "pixi-filters";
 
 /* ── player arrow ── */
 
@@ -131,6 +132,18 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
             phase: Math.random() * Math.PI * 2
         });
     }
+
+    // weapon glow
+    c.filters = [
+        new GlowFilter({
+            distance: 12,
+            outerStrength: 1.5,
+            innerStrength: 2,
+            color: 'white',
+            quality: 1,
+        })
+    ];
+
 
     c.rotation = angle;
     world.addChild(c);

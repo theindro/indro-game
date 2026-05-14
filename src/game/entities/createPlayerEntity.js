@@ -1,7 +1,8 @@
-import { Container, Graphics, Sprite } from "pixi.js";
-import { GlowFilter } from "pixi-filters";
-import { assetManager } from "../utils/assetManager.js";
-import { useGameStore } from "../../stores/gameStore.js";
+import {Container, Graphics, Sprite} from "pixi.js";
+import {GlowFilter} from "pixi-filters";
+import {assetManager} from "../utils/assetManager.js";
+import {useGameStore} from "../../stores/gameStore.js";
+import {VFX} from "../GlobalEffects.js";
 
 export function createPlayerEntity(world) {
     const pCont = new Container();
@@ -10,7 +11,7 @@ export function createPlayerEntity(world) {
 
     // Shadow
     const pShadow = new Graphics();
-    pShadow.ellipse(0, 18, 12, 4).fill({ color: 0x000000, alpha: 0.1 });
+    pShadow.ellipse(0, 18, 12, 4).fill({color: 0x000000, alpha: 0.1});
     pCont.addChild(pShadow);
 
     const glowFilter = new GlowFilter({
@@ -77,23 +78,22 @@ export function createPlayerEntity(world) {
         weaponSprite.scale.set(0.08);
 
         // weapon glow
-        // TODO: glow is based on enchantment
-        // weaponSprite.filters = [
-        //    new GlowFilter({
-        //        distance: 8,
-        //        outerStrength: 1.5,
-        //        innerStrength: 0.3,
-        //        color: 0x66ffcc,
-        //        quality: 0.3,
-        //    })
-        //];
+        weaponSprite.filters = [
+            new GlowFilter({
+                distance: 12,
+                outerStrength: 1.5,
+                innerStrength: 2,
+                color: 'white',
+                quality: 1,
+            })
+        ];
 
         weaponContainer.addChild(weaponSprite);
     }
 
     // HP Bar
     const hpBg = new Graphics();
-    hpBg.rect(-20, -32, 40, 6).fill({ color: 0x000000, alpha: 0.8 });
+    hpBg.rect(-20, -32, 40, 6).fill({color: 0x000000, alpha: 0.8});
     pCont.addChild(hpBg);
 
     const hpBar = new Graphics();
