@@ -18,6 +18,7 @@ import {MinimapManager} from "./world/MinimapManager.js";
 import {VFX} from './GlobalEffects.js';
 import {ChunkMonitor} from "./world/ChunkMonitor.js";
 import {createLightingController} from "./controllers/createLightingController.js";
+import {audioManager} from "./utils/audioManager.js";
 
 /** Same closing speed as legacy `current += (target-current)*alpha` once per 60fps tick, for arbitrary `dt`. */
 function smoothTowardAlpha(alphaPer60FpsFrame, dt) {
@@ -175,6 +176,8 @@ export async function createGame() {
 
         for (const drop of loot) {
             console.log(drop);
+
+            audioManager.playSFX('/sounds/popsound.wav', 0.15);
 
             useGameStore.getState().addItem(drop.id, drop.amount);
             console.log(`  +${drop.amount}x ${drop.id}`);

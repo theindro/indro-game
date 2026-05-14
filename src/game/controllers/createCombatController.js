@@ -8,6 +8,7 @@ import { createProjectileSystem } from "./subsystems/createProjectileSystem.js";
 import { useArrowBarrage } from "../abilities/ArrowBarrage.js";
 import { useRapidFire } from "../abilities/RapidFire.js";
 import { useFrostArrow } from "../abilities/FrostArrow.js";
+import {audioManager} from "../utils/audioManager.js";
 
 export function createCombatController(ctx) {
     const { world, entities, openWorld, colliders, playWeaponShoot } = ctx;
@@ -53,6 +54,8 @@ export function createCombatController(ctx) {
                 chainRange: stats.chainRange,
                 chainDamageMultiplier: stats.chainDamage
             };
+
+            audioManager.playSFX('/sounds/arrowshoot.mp3', 0.85);
 
             playWeaponShoot();
 
