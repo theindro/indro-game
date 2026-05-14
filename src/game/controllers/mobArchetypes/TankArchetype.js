@@ -1,5 +1,6 @@
 import {useGameStore} from "../../../stores/gameStore.js";
 import {GroundAttackController} from '../createGroundAttackController.js'; // Adjust path as needed
+import {GROUND_WARN_NORMAL} from '../../constants.js';
 
 export class TankArchetype {
     constructor(mob, entityLayer) {
@@ -58,7 +59,7 @@ export class TankArchetype {
             warningColor: '#ff5454',
             innerColor: 'rgba(0,187,255,0.5)',
             radius: this.slamRadius,
-            warningDuration: 200, // frames (~0.5 seconds at 60fps)
+            warningDuration: GROUND_WARN_NORMAL,
             damage: 25,
             onHit: (hitX, hitY) => {
                 console.log('slam hit palyer');

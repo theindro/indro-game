@@ -1,5 +1,6 @@
 // controllers/createCombatController.js
-import { createArrow } from './createProjectileController.js';
+import { createArrow, ARROW_TYPES } from './createProjectileController.js';
+import { DEFAULT_ATTACK_RANGE } from '../constants.js';
 import { useGameStore } from "../../stores/gameStore.js";
 import { createDropSystem } from "./subsystems/createDropSystem.js";
 import { createArrowSystem } from "./subsystems/createArrowSystem.js";
@@ -55,7 +56,11 @@ export function createCombatController(ctx) {
 
             playWeaponShoot();
 
-            arrows.push(createArrow(entityLayer, px, py, tx, ty, spread, chainData));
+            const tr = {
+                maxRange: stats.attackRange ?? DEFAULT_ATTACK_RANGE,
+                speedScale: stats.projectileSpeed ?? 1,
+            };
+            arrows.push(createArrow(entityLayer, px, py, tx, ty, spread, chainData, ARROW_TYPES.NORMAL, tr));
         }
     }
 

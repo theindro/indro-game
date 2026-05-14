@@ -5,6 +5,7 @@ import {ItemDatabase, DropTables, getDropTableForMob} from '../../items.js';
 import {assetManager} from '../../utils/assetManager.js';
 import {VFX} from "../../GlobalEffects.js";
 import {audioManager} from "../../utils/audioManager.js";
+import {frameScale} from "../../constants.js";
 
 export function createDropSystem(ctx) {
     const {world, entityLayer, drops} = ctx;
@@ -127,12 +128,13 @@ export function createDropSystem(ctx) {
         let bob = Math.random() * Math.PI * 2;
         let floatOffset = 0;
 
-        const update = () => {
+        const update = (dt = 1 / 60) => {
+            const fs = frameScale(dt);
             // Apply gravity and friction
-            vx *= 0.95;
-            vy *= 0.95;
-            container.x += vx;
-            container.y += vy;
+            vx *= Math.pow(0.95, fs);
+            vy *= Math.pow(0.95, fs);
+            container.x += vx * fs;
+            container.y += vy * fs;
 
             // Bobbing animation
             //bob += 0.08;
@@ -141,6 +143,7 @@ export function createDropSystem(ctx) {
 
             // Rotation for items
             if (drop.type === 'item') {
+                floatOffset += 0.05 * fs;
                 container.rotation = Math.sin(floatOffset) * 0.1;
             }
         };
@@ -205,8 +208,11 @@ export function createDropSystem(ctx) {
     // ─────────────────────────────
     // Update All Drops (Magnetism + Collection)
     // ─────────────────────────────
-    function updateDrops(px, py) {
+    function updateDrops(px, py, dt = 1 / 60) {
         if (!drops) return;
+
+        const fs = frameScale(dt);
+        const magnetPull = 1 - Math.pow(0.93, fs);
 
         // Batch accumulators
         let goldBatch = 0;
@@ -235,11 +241,11 @@ export function createDropSystem(ctx) {
                 continue;
             }
 
-            if (d.update) d.update();
+            if (d.update) d.update(dt);
 
             if (dist < 120) {
-                d.container.x += dx * 0.07;
-                d.container.y += dy * 0.07;
+                d.container.x += dx * magnetPull;
+                d.container.y += dy * magnetPull;
             }
 
             if (dist < 22) {

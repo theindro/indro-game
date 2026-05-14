@@ -81,7 +81,9 @@ const Character = ({isOpen, setIsOpen}) => {
                             <Space direction="vertical" size={12} style={{ width: '100%' }}>
                                 <Row justify="space-between"><Text type="secondary">Damage</Text><Text strong>{playerStats.damage}</Text></Row>
                                 <Row justify="space-between"><Text type="secondary">Health</Text><Text strong>{playerMaxHp}</Text></Row>
-                                <Row justify="space-between"><Text type="secondary">Atk Speed</Text><Text strong>{playerStats.attackSpeed?.toFixed(2)}</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Attack CD (s)</Text><Text strong>{playerStats.attackCooldown?.toFixed(2)}</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Attack range (px)</Text><Text strong>{Math.round(playerStats.attackRange ?? 0)}</Text></Row>
+                                <Row justify="space-between"><Text type="secondary">Projectile speed</Text><Text strong>{playerStats.projectileSpeed?.toFixed(2)}</Text></Row>
                                 <Row justify="space-between"><Text type="secondary">Move Speed</Text><Text strong>{playerStats.moveSpeed}</Text></Row>
                                 <Row justify="space-between"><Text type="secondary">Crit Chance</Text><Text strong>{playerStats.critChance}%</Text></Row>
                                 <Row justify="space-between"><Text type="secondary">Crit Damage</Text><Text strong>{playerStats.critDamage}%</Text></Row>
@@ -103,7 +105,6 @@ const Character = ({isOpen, setIsOpen}) => {
                                     <Row key={ri} justify="center" gutter={[12, 12]}>
                                         {row.map((slotKey, ci) => {
                                             let dbItem = equipment[slotKey];
-                                            console.log(dbItem);
                                             return (
                                                 <Col key={ci}>
                                                     {slotKey ? (

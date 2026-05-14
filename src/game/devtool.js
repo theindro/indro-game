@@ -53,7 +53,9 @@ export function createDevTool(gameStore) {
                 <strong>STATS</strong><br>
                 Damage: <input type="number" id="dev-damage" value="${stats.damage}" step="5" style="width:80px;"><br>
                 Projectiles: <input type="number" id="dev-projectiles" value="${stats.projectiles}" min="1" step="1" style="width:80px;"><br>
-                Attack Speed: <input type="number" id="dev-attackSpeed" value="${stats.attackSpeed}" step="10" style="width:80px;"><br>
+                Attack CD (s): <input type="number" id="dev-attackCooldown" value="${stats.attackCooldown}" step="0.05" min="0.1" style="width:80px;"><br>
+                Attack range (px): <input type="number" id="dev-attackRange" value="${stats.attackRange}" step="20" style="width:80px;"><br>
+                Projectile speed: <input type="number" id="dev-projectileSpeed" value="${stats.projectileSpeed}" step="0.05" min="0.15" style="width:80px;"><br>
                 Move Speed: <input type="number" id="dev-moveSpeed" value="${stats.moveSpeed}" step="0.1" style="width:80px;"><br>
             </div>
             
@@ -162,14 +164,40 @@ export function createDevTool(gameStore) {
             };
         }
 
-        const attackSpeedInput = document.getElementById('dev-attackSpeed');
-        if (attackSpeedInput) {
-            attackSpeedInput.onchange = (e) => {
+        const attackCooldownInput = document.getElementById('dev-attackCooldown');
+        if (attackCooldownInput) {
+            attackCooldownInput.onchange = (e) => {
                 const state = gameStore.getState();
                 gameStore.setState({
                     player: {
                         ...state.player,
-                        stats: { ...state.player.stats, attackSpeed: parseInt(e.target.value) }
+                        stats: { ...state.player.stats, attackCooldown: parseFloat(e.target.value) }
+                    }
+                });
+            };
+        }
+
+        const attackRangeInput = document.getElementById('dev-attackRange');
+        if (attackRangeInput) {
+            attackRangeInput.onchange = (e) => {
+                const state = gameStore.getState();
+                gameStore.setState({
+                    player: {
+                        ...state.player,
+                        stats: { ...state.player.stats, attackRange: parseInt(e.target.value, 10) }
+                    }
+                });
+            };
+        }
+
+        const projectileSpeedInput = document.getElementById('dev-projectileSpeed');
+        if (projectileSpeedInput) {
+            projectileSpeedInput.onchange = (e) => {
+                const state = gameStore.getState();
+                gameStore.setState({
+                    player: {
+                        ...state.player,
+                        stats: { ...state.player.stats, projectileSpeed: parseFloat(e.target.value) }
                     }
                 });
             };

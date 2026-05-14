@@ -26,7 +26,7 @@ export const archetypeMap = {
 export const ARCHETYPE_STATS = {
     [ARCHETYPES.RUSHER]: {
         hpMultiplier: 0.7,
-        speedMultiplier: 0.5,
+        speedMultiplier: 0.58,
         damage: 3,
         size: 11,
         exp: 30,
@@ -34,7 +34,7 @@ export const ARCHETYPE_STATS = {
     },
     [ARCHETYPES.TANK]: {
         hpMultiplier: 2.5,
-        speedMultiplier: 0.4,
+        speedMultiplier: 0.48,
         damage: 2,
         size: 40,
         exp: 30,
@@ -42,7 +42,7 @@ export const ARCHETYPE_STATS = {
     },
     [ARCHETYPES.RANGED]: {
         hpMultiplier: 0.9,
-        speedMultiplier: 0.4,
+        speedMultiplier: 0.52,
         damage: 5,
         size: 16,
         exp: 30,
@@ -50,7 +50,7 @@ export const ARCHETYPE_STATS = {
     },
     [ARCHETYPES.EXPLODER]: {
         hpMultiplier: 0.6,
-        speedMultiplier: 0.5,
+        speedMultiplier: 0.56,
         damage: 20,  // Explosion damage
         size: 13,
         exp: 30,

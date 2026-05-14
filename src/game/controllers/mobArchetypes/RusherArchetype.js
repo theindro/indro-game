@@ -2,7 +2,7 @@ export class RusherArchetype {
     constructor(mob, ctx) {
         this.mob = mob;
         this.dashCooldown = 2;
-        this.dashSpeed = 5.5;
+        this.dashSpeed = 6.25;
         this.dashDuration = 0.2;
         this.dashing = false;
         this.dashTimer = 0;
@@ -28,15 +28,15 @@ export class RusherArchetype {
             // Dashing
             moveX = this.dashDirX * this.dashSpeed;
             moveY = this.dashDirY * this.dashSpeed;
-            this.dashTimer--;
+            this.dashTimer -= dt;
 
             if (this.dashTimer <= 0) {
                 this.dashing = false;
-                this.dashCooldown = 300; // 1.5 seconds at 60fps
+                this.dashCooldown = 5; // seconds (was 300 ticks at 60fps)
             }
         } else {
             // Normal chase (faster than normal mobs)
-            if (this.dashCooldown > 0) this.dashCooldown--;
+            if (this.dashCooldown > 0) this.dashCooldown -= dt;
 
             if (distToPlayer > 10) {
                 moveX = (px - m.x) / distToPlayer;

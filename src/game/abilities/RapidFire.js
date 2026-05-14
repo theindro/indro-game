@@ -1,5 +1,6 @@
 import {useGameStore} from "../../stores/gameStore.js";
 import {ARROW_TYPES, createArrow} from "../controllers/createProjectileController.js";
+import {DEFAULT_ATTACK_RANGE} from "../constants.js";
 import {VFX} from "../GlobalEffects.js";
 import {STATUS_COLORS_RGBA} from "../statusEffects.js";
 
@@ -24,7 +25,7 @@ export function useRapidFire(ctx, targetX, targetY) {
     // Calculate arrow parameters
     const arrowCount = ability.arrowCount + Math.floor(ability.level / 2);
     const damageMult = ability.damageMultiplier + (ability.level * 0.05);
-    const fireDelaySec = (ability.fireDelay ?? 3) / 60;
+    const fireDelaySec = ability.fireDelay ?? 0.1;
 
     // Visual effect - muzzle flash at player position
     VFX.burst(px, py, STATUS_COLORS_RGBA.poison);
@@ -54,11 +55,6 @@ export function useRapidFire(ctx, targetX, targetY) {
         const randomOffset = (Math.random() - 0.5) * spread;
         const angle = angleToTarget + randomOffset;
 
-        // Slightly faster than baseline arrows (still scaled by dt in updateArrows)
-        const speed = 5;
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-
         const chainData = {
             chainRemaining: 0,
             chainHitMobs: new Set(),
@@ -69,11 +65,15 @@ export function useRapidFire(ctx, targetX, targetY) {
         // Calculate start position (slightly in front of player)
         const startX = px + Math.cos(angleToTarget) * 20 + (Math.random() - 0.5) * 15;
         const startY = py + Math.sin(angleToTarget) * 20 + (Math.random() - 0.5) * 15;
+        const aimX = startX + Math.cos(angle) * 120;
+        const aimY = startY + Math.sin(angle) * 120;
 
-        const arrow = createArrow(openWorld.entityLayer, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.POISON);
-        arrow.vx = vx;
-        arrow.vy = vy;
-        arrow.life = 100;
+        const trajectory = {
+            maxRange: stats.attackRange ?? DEFAULT_ATTACK_RANGE,
+            speedScale: (stats.projectileSpeed ?? 1) * 0.98,
+        };
+
+        const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, ARROW_TYPES.POISON, trajectory);
 
         arrow.vfxGlow = VFX.addGlow(0, 0, skillGlowOpts, arrow.c);
 

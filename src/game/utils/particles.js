@@ -1,13 +1,14 @@
 // utils/particles.js
 import { VFX } from '../GlobalEffects.js';
+import { frameScale } from '../constants.js';
 
 /**
- * Tick all particles — call once per frame.
- * Uses global VFX.particles array
+ * Tick all particles — call once per frame with dt in seconds.
  */
-export function tickParticles() {
+export function tickParticles(dtSec = 1 / 60) {
     const particles = VFX.particles;
     const world = VFX.world;
+    const fs = frameScale(dtSec);
 
     if (!world) return;
 
@@ -19,11 +20,11 @@ export function tickParticles() {
             continue;
         }
 
-        p.g.x += p.vx;
-        p.g.y += p.vy;
-        p.vx *= 0.9;
-        p.vy *= 0.92;
-        p.life--;
+        p.g.x += p.vx * fs;
+        p.g.y += p.vy * fs;
+        p.vx *= Math.pow(0.9, fs);
+        p.vy *= Math.pow(0.92, fs);
+        p.life -= fs;
         p.g.alpha = p.life / p.maxLife;
 
         // Handle scaling particles

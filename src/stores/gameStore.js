@@ -40,7 +40,9 @@ export const useGameStore = create((set, get) => ({
         maxHp: 100,
         location: { x: 0, y: 0 },
         stats: {
-            attackSpeed: 0.6,
+            attackCooldown: 0.6,
+            attackRange: 520,
+            projectileSpeed: 1,
             damage: 5,
             projectiles: 1,
             moveSpeed: 100,
@@ -121,7 +123,7 @@ export const useGameStore = create((set, get) => ({
             name: 'Arrow Barrage',
             icon: '/icons/ability1.png',
             cooldownEnd: 0,
-            maxCooldown: 5000,
+            maxCooldown: 5,
             level: 1,
             description: 'Shoots 10 arrows in cone front of player',
             arrowCount: 10,
@@ -132,18 +134,18 @@ export const useGameStore = create((set, get) => ({
             name: 'Rapid Fire',
             icon: '/icons/ability2.png',
             cooldownEnd: 0,
-            maxCooldown: 2000,
+            maxCooldown: 2,
             level: 1,
             description: 'Rapidly fires 10 arrows at the nearest enemy',
             arrowCount: 6,
             damageMultiplier: 0.6,
-            fireDelay: 6,
+            fireDelay: 0.1,
         },
         ability3: {
             name: 'Empower',
             icon: '/icons/ability3.png',
             cooldownEnd: 0,
-            maxCooldown: 10000,
+            maxCooldown: 10,
             level: 1,
             description: 'Temporarily increase damage and defense'
         },
@@ -151,7 +153,7 @@ export const useGameStore = create((set, get) => ({
             name: 'Frost Arrow',
             icon: '/icons/ability4.png',
             cooldownEnd: 0,
-            maxCooldown: 10000,
+            maxCooldown: 10,
             level: 1,
             description: 'Launches a massive frost arrow that explodes and freezes enemies',
             damageMultiplier: 2.5,
@@ -203,7 +205,7 @@ export const useGameStore = create((set, get) => ({
         const state = get();
         const now = performance.now();
         if (now < state.basicAttack.cooldownEnd) return false;
-        const cooldownMs = state.player.stats.attackSpeed * 1000;
+        const cooldownMs = state.player.stats.attackCooldown * 1000;
         set({ basicAttack: { cooldownEnd: now + cooldownMs } });
         return true;
     },
@@ -212,7 +214,7 @@ export const useGameStore = create((set, get) => ({
         const state = get();
         const now = performance.now();
         if (now < state.dash.cooldownEnd) return false;
-        const cooldownMs = (state.player.stats.dashCooldown / 60) * 1000;
+        const cooldownMs = state.player.stats.dashCooldown * 1000;
         set({ dash: { cooldownEnd: now + cooldownMs } });
         return true;
     },
@@ -225,7 +227,7 @@ export const useGameStore = create((set, get) => ({
         set(state => ({
             abilities: {
                 ...state.abilities,
-                [abilityKey]: { ...ability, cooldownEnd: currentTime + ability.maxCooldown }
+                [abilityKey]: { ...ability, cooldownEnd: currentTime + ability.maxCooldown * 1000 }
             }
         }));
         return true;
@@ -322,6 +324,7 @@ export const useGameStore = create((set, get) => ({
         let bonus = {
             damage: 0, attackSpeed: 0, critChance: 0, critDamage: 0,
             moveSpeed: 0, armor: 0, health: 0, projectiles: 0, dodge: 0, chainCount: 0,
+            attackRange: 0, projectileSpeed: 0,
         };
 
         Object.values(state.inventory.equipment).forEach(equippedSlot => {
@@ -350,7 +353,9 @@ export const useGameStore = create((set, get) => ({
                 hp: Math.min(state.player.hp, newMaxHp),
                 stats: {
                     damage: base.damage + bonus.damage,
-                    attackSpeed: base.attackSpeed * (1 - (bonus.attackSpeed / 100)),
+                    attackCooldown: Math.max(0.12, base.attackCooldown * (1 - (bonus.attackSpeed / 100))),
+                    attackRange: base.attackRange + bonus.attackRange,
+                    projectileSpeed: Math.max(0.15, base.projectileSpeed * (1 + (bonus.projectileSpeed / 100))),
                     moveSpeed: base.moveSpeed + (bonus.moveSpeed * 100),
                     critChance: base.critChance + bonus.critChance,
                     critDamage: base.critDamage + bonus.critDamage,
@@ -525,7 +530,9 @@ function getScaledStats(level) {
     return {
         damage: 5 + (level - 1) * 2,
         maxHp: 100 + (level - 1) * 15,
-        attackSpeed: 0.6 + (level - 1) * 0.01,
+        attackCooldown: 0.6 + (level - 1) * 0.01,
+        attackRange: 520 + (level - 1) * 4,
+        projectileSpeed: 1,
         moveSpeed: 100,
         critChance: 5,
         critDamage: 100,

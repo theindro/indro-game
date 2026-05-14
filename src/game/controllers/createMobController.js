@@ -1,4 +1,4 @@
-import {DIFFICULTY, GS, MOB_HP, MOB_RADIUS} from "../constants.js";
+import {DIFFICULTY, frameScale, GS, MOB_BASE_SPEED_SCALE, MOB_HP, MOB_RADIUS} from "../constants.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
 import {resolveVsColliders} from "../world/collision.js";
@@ -55,7 +55,7 @@ export function createMobController(mob, entityLayer) {
             if (archetypeBehavior?.groundAttacks) {
                 archetypeBehavior.groundAttacks.update(ctx.px, ctx.py, (damage) => {
                     useGameStore.getState().damagePlayer(damage, 'tank slam');
-                });
+                }, dt);
             }
 
             if (distToPlayer > 1500) return;
@@ -121,9 +121,10 @@ export function createMobController(mob, entityLayer) {
             if (moveX !== 0 || moveY !== 0) {
                 const slow = m.statusSlow || 0;
                 const speedMult = 1 - slow;
+                const fs = frameScale(dt);
 
-                let newX = m.x + moveX * speedMult;
-                let newY = m.y + moveY * speedMult;
+                let newX = m.x + moveX * speedMult * fs;
+                let newY = m.y + moveY * speedMult * fs;
 
                 // World bounds
                 if (openWorld) {
@@ -208,7 +209,7 @@ export function spawnMob(renderer,world, x, y, biome = 'forest', archetype = nul
 
     // Base stats
     const baseHp = MOB_HP * stats.hpMultiplier * difficulty;
-    const baseSpeed = 0.78 * stats.speedMultiplier * (1 + Math.min(difficulty * 0.05, 0.5));
+    const baseSpeed = MOB_BASE_SPEED_SCALE * stats.speedMultiplier * (1 + Math.min(difficulty * 0.05, 0.5));
     const baseAtkSpeed = DIFFICULTY.attackCooldown * (1 + difficulty * 0.1);
     const damageScale = 1 + Math.log2(difficulty + 1) * 0.35;
 

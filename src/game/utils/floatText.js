@@ -1,4 +1,5 @@
 import {VFX} from '../GlobalEffects.js';
+import {frameScale} from '../constants.js';
 
 /**
  * @typedef FloatText
@@ -35,8 +36,8 @@ export function showFloat(wx, wy, msg, color = '#ff6b8a') {
     VFX.floats.push({
         el: d,
         wx, wy,
-        vy: -0.3,
-        life: 100  // Changed to frames (60 = 1 sec at 60fps)
+        vy: -0.9,
+        life: 60  // "frame units" at 60fps (~1.67s), drained with frameScale(dt)
     });
 }
 
@@ -46,8 +47,10 @@ export function showFloat(wx, wy, msg, color = '#ff6b8a') {
  * @param {number} camY
  * @param {number} screenW  - app.screen.width
  * @param {number} screenH  - app.screen.height
+ * @param {number} dtSec  capped tick time in seconds (same as main loop dt)
  */
-export function tickFloats(camX, camY, screenW, screenH) {
+export function tickFloats(camX, camY, screenW, screenH, dtSec = 1 / 60) {
+    const fs = frameScale(dtSec);
     // Use VFX.floats directly - no parameter needed!
     for (let i = VFX.floats.length - 1; i >= 0; i--) {
         const f = VFX.floats[i];
@@ -58,8 +61,8 @@ export function tickFloats(camX, camY, screenW, screenH) {
             continue;
         }
 
-        f.wy += f.vy;
-        f.life--;
+        f.wy += f.vy * fs;
+        f.life -= fs;
         f.el.style.opacity = f.life / 44;
         f.el.style.left = ((f.wx - camX) + screenW / 2) + 'px';
         f.el.style.top = ((f.wy - camY) + screenH / 2) + 'px';

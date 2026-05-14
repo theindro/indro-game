@@ -3,7 +3,12 @@ import {
     BOSS_HP,
     BOSS_SPEED,
     BOSS_SHOOT_INTERVAL,
-    BOSS_RADIUS, BIOME_COLORS
+    BOSS_RADIUS,
+    BIOME_COLORS,
+    frameScale,
+    GROUND_WARN_FAST,
+    GROUND_WARN_NORMAL,
+    GROUND_WARN_SLOW,
 } from '../constants.js';
 import { createEnemyProj } from './createProjectileController.js';
 import { resolveVsColliders } from '../world/collision.js';
@@ -52,21 +57,23 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         groundAttacks, // Store reference
 
 
-        update({ px, py, colliders, openWorld, enemyProjs, playerState, deltaTime = 1 }) {
+        update({ px, py, colliders, openWorld, enemyProjs, playerState, dt }) {
             if (this.dead) return;
+
+            const fs = frameScale(dt);
 
             // Use the boss's Y position as zIndex for proper depth sorting
             this.c.zIndex = this.y;  // ← THIS IS THE FIX
             this.zIndex = this.y;
 
             // Every tick update status effect on boss
-            updateStatusEffects(this, deltaTime, performance.now(), (damage, type) => {
+            updateStatusEffects(this, dt, performance.now(), (damage, type) => {
                 // Optional callback for damage ticks
             });
 
             // Store delta time for animations
-            this.lastDeltaTime = deltaTime;
-            this.animationTime += deltaTime * 0.05;
+            this.lastDeltaTime = dt;
+            this.animationTime += dt * 3; // matched old ~0.05 per 60fps frame
 
             // Store player position for targeting
             this.lastPlayerX = px;
@@ -74,7 +81,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
 
             // Update boss animations from entity
             if (this.c.updateAnimations) {
-                this.c.updateAnimations(deltaTime);
+                this.c.updateAnimations(fs);
             }
 
             // Store original Y for bobbing if not set
@@ -83,7 +90,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             }
 
             // Wobble
-            this.wobble += 0.04;
+            this.wobble += 0.04 * fs;
             this.c.scale.set(scale + Math.sin(this.wobble) * 0.03);
 
             // Movement towards player
@@ -91,8 +98,8 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             const dist = Math.hypot(dx, dy);
             let nx = this.x, ny = this.y;
             if (dist > 0.01) {
-                nx += (dx / dist) * this.speed;
-                ny += (dy / dist) * this.speed;
+                nx += (dx / dist) * this.speed * fs;
+                ny += (dy / dist) * this.speed * fs;
             }
             const clamped  = openWorld.clampToWorld(nx, ny, this.radius);
             const resolved = resolveVsColliders(clamped.x, clamped.y, this.radius, colliders);
@@ -103,8 +110,8 @@ export function spawnBoss(world, type, x, y, scale = 1) {
 
             const enraged = this.hp < this.maxHp * 0.4;
 
-            // Projectile shoot (existing)
-            this.shootTimer++;
+            // Projectile shoot (existing); intervals are in "60fps frames"
+            this.shootTimer += fs;
             const shootInterval = enraged ? this.shootInterval * 0.6 : this.shootInterval;
             if (this.shootTimer >= shootInterval) {
                 this.shootTimer = 0;
@@ -118,7 +125,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
 
             // NEW: GROUND ATTACK - Simple circle explosion at player's position
             let groundCircleInterval = 1000;
-            this.groundAttackCircleTimer++;
+            this.groundAttackCircleTimer += fs;
 
             if (this.groundAttackCircleTimer >= groundCircleInterval) {
                 this.groundAttackCircleTimer = 0;
@@ -127,7 +134,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                     this.groundAttacks.addAttack(px, py, {
                         shape: 'circle',
                         radius: 200,
-                        warningDuration: enraged ? 200 : 350,
+                        warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_NORMAL,
                         damage: 20,
                         color: glowCol
                         // No anchor - stays at position where player was
@@ -136,7 +143,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                 }, 500)
             }
 
-            this.groundAttackTimer++;
+            this.groundAttackTimer += fs;
             let groundInterval = this.groundAttackInterval;
 
             if (this.groundAttackTimer >= groundInterval) {
@@ -198,7 +205,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                             radius: 700,
                             angle: angle,
                             arcAngle: Math.PI / 2,
-                            warningDuration: enraged ? 200 : 350,
+                            warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_SLOW,
                             damage: 50,
                             color: glowCol,
                             anchor: false,
@@ -213,7 +220,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                 if (playerState) {
                     useGameStore.getState().damagePlayer(damage, 'boss ground attack');
                 }
-            });
+            }, dt);
 
             updateBossBar(this);
         },

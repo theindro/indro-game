@@ -1,5 +1,6 @@
 import {Container, Graphics} from 'pixi.js';
 import {VFX} from "../GlobalEffects.js";
+import {frameScale, GROUND_IMPACT_TICKS, GROUND_WARN_NORMAL} from "../constants.js";
 
 // In GroundAttack.js - Updated GroundAttackManager
 export class GroundAttackController {
@@ -22,7 +23,7 @@ export class GroundAttackController {
         return attack;
     }
 
-    update(playerX, playerY, onDamage) {
+    update(playerX, playerY, onDamage, dt = 1 / 60) {
         // Don't update if manager is inactive OR owner is dead
         if (!this.active || (this.owner && this.owner.dead)) {
             return;
@@ -38,7 +39,7 @@ export class GroundAttackController {
                 continue;
             }
 
-            attack.update(playerX, playerY, onDamage);
+            attack.update(playerX, playerY, onDamage, dt);
 
             if (attack.complete) {
                 attack.destroy();
@@ -98,7 +99,7 @@ export class GroundAttack {
             angle: config.angle ?? 0,
             arcAngle: config.arcAngle ?? Math.PI / 2,
             trackPlayer: config.trackPlayer ?? false,
-            warningDuration: config.warningDuration ?? 60,
+            warningDuration: config.warningDuration ?? GROUND_WARN_NORMAL,
             damage: config.damage ?? 25,
             onHit: config.onHit ?? null,
             onComplete: config.onComplete ?? null,
@@ -116,11 +117,13 @@ export class GroundAttack {
         // phases
         this.phase = 'warning';
         this.impactTimer = 0;
-        this.impactDuration = config.impactDuration ?? 100;
+        this.impactDuration = config.impactDuration ?? GROUND_IMPACT_TICKS;
     }
 
-    update(playerX, playerY, onDamageCallback) {
+    update(playerX, playerY, onDamageCallback, dt = 1 / 60) {
         if (this.complete) return;
+
+        const fs = frameScale(dt);
 
         // Update position if anchored to a moving object
         if (this.anchor && !this.anchor.dead) {
@@ -150,7 +153,7 @@ export class GroundAttack {
         this.container.zIndex = this.y
 
         if (this.phase === 'warning') {
-            this.timer++;
+            this.timer += fs;
         }
 
         this.g.clear();
@@ -213,7 +216,7 @@ export class GroundAttack {
         }
 
         if (this.phase === 'impact') {
-            this.impactTimer++;
+            this.impactTimer += fs;
             if (this.impactTimer >= this.impactDuration) {
                 this.complete = true;
             }

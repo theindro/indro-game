@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import {useGameStore} from '../../../stores/gameStore.js';
 import {GroundAttackController} from '../createGroundAttackController.js';
 import {VFX} from '../../GlobalEffects.js';
+import {GROUND_WARN_FAST} from '../../constants.js';
 
 export class ExploderArchetype {
     constructor(mob, entityLayer) {
@@ -55,7 +56,7 @@ export class ExploderArchetype {
 
             // Update ground attack warning (visual indicator)
             if (this.groundAttacks) {
-                this.groundAttacks.update(px, py, null); // Update without damage callback
+                this.groundAttacks.update(px, py, null, dt); // Update without damage callback
             }
 
             // Explode when timer ends
@@ -91,7 +92,7 @@ export class ExploderArchetype {
             warningColor: 0xff0000,
             innerColor: 0xff8844,
             radius: this.explosionRadius,
-            warningDuration: 30, // 0.5 seconds at 60fps
+            warningDuration: GROUND_WARN_FAST,
             damage: 0, // No damage from warning, actual damage happens in doExplosion
             trackPlayer: false,
             onHit: null,

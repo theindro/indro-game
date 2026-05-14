@@ -23,15 +23,15 @@ export class RangedArchetype {
             // Flee from player
             const dirX = (m.x - px) / distToPlayer;
             const dirY = (m.y - py) / distToPlayer;
-            moveX = dirX * m.speed * 1.2 * dt;
-            moveY = dirY * m.speed * 1.2 * dt;
+            moveX = dirX * m.speed * 1.2;
+            moveY = dirY * m.speed * 1.2;
         }
         else if (distToPlayer > this.shootRange) {
             // Move closer if too far
             const dirX = (px - m.x) / distToPlayer;
             const dirY = (py - m.y) / distToPlayer;
-            moveX = dirX * m.speed * 0.8 * dt;
-            moveY = dirY * m.speed * 0.8 * dt;
+            moveX = dirX * m.speed * 0.8;
+            moveY = dirY * m.speed * 0.8;
         }
 
         // === Shooting Logic (using attackSpeed) ===

@@ -30,7 +30,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
 
     //VFX.burst(px, py, 0x88ccff, 15, 3);
 
-    const speedPxPerSec = (ability.projectileSpeed ?? 8) * 60;
+    const speedPxPerSec = (ability.projectileSpeed ?? 11) * 60;
     const vx = Math.cos(angle) * speedPxPerSec;
     const vy = Math.sin(angle) * speedPxPerSec;
 

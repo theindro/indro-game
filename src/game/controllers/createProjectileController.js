@@ -1,6 +1,6 @@
 // createProjectileController.js - Updated with elemental arrow types
 import {Container, Graphics} from 'pixi.js';
-import {ARROW_SPEED, GS} from '../constants.js';
+import {ARROW_SPEED, DEFAULT_ATTACK_RANGE} from '../constants.js';
 import {VFX} from "../GlobalEffects.js";
 
 /* ── player arrow ── */
@@ -55,9 +55,11 @@ export const ARROW_TYPES = {
 };
 
 /**
- * Creates a player arrow with elemental effects
+ * @param {object} [trajectory]
+ * @param {number} [trajectory.maxRange] Max travel distance from spawn (px), from player stats / gear.
+ * @param {number} [trajectory.speedScale] Multiplier on {@link ARROW_SPEED} only (does not change max range).
  */
-export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = null, arrowType = ARROW_TYPES.NORMAL) {
+export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = null, arrowType = ARROW_TYPES.NORMAL, trajectory = {}) {
     const c = new Container();
     c.x = px;
     c.y = py;
@@ -65,9 +67,10 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
 
     const dx = tx - px;
     const dy = ty - py;
-    const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    const spd = ARROW_SPEED;
+    const speedScale = trajectory.speedScale ?? 1;
+    const spd = ARROW_SPEED * speedScale;
     const angle = Math.atan2(dy, dx) + angleOffset;
+    const maxRange = trajectory.maxRange ?? DEFAULT_ATTACK_RANGE;
 
     // Elemental glow effect
 
@@ -144,7 +147,10 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
         c,
         vx: Math.cos(angle) * spd,
         vy: Math.sin(angle) * spd,
-        life: 140,
+        spawnX: px,
+        spawnY: py,
+        maxRange,
+        life: 6000,
         chainRemaining: chainData?.chainRemaining ?? 0,
         chainHitMobs: chainData?.chainHitMobs ?? new Set(),
         damage: chainData?.damage ?? 0,

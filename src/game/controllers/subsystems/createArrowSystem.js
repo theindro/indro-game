@@ -1,9 +1,9 @@
 // controllers/subsystems/createArrowSystem.js
 import {Graphics} from "pixi.js";
 import {useGameStore} from "../../../stores/gameStore.js";
-import {createArrow, updateArrowParticleAnimation} from "../createProjectileController.js";
+import {createArrow, updateArrowParticleAnimation, ARROW_TYPES} from "../createProjectileController.js";
 import {audioManager} from "../../utils/audioManager.js";
-import {BIOME_COLORS, BOSS_RADIUS, ARROW_CONFIG} from "../../constants.js";
+import {BIOME_COLORS, BOSS_RADIUS, ARROW_CONFIG, DEFAULT_ATTACK_RANGE} from "../../constants.js";
 import {
     applyStatusEffect,
     createBurnEffect,
@@ -244,6 +244,11 @@ export function createArrowSystem(ctx) {
                 chainRange: arrow.chainRange || stats.chainRange,
                 chainDamageMultiplier: stats.chainDamage,
                 isChainArrow: true
+            },
+            arrow.arrowType ?? ARROW_TYPES.NORMAL,
+            {
+                maxRange: stats.attackRange ?? DEFAULT_ATTACK_RANGE,
+                speedScale: stats.projectileSpeed ?? 1,
             }
         );
 
@@ -283,6 +288,22 @@ export function createArrowSystem(ctx) {
             arrow.c.y += arrow.vy * frameScale;
 
             arrow.c.zIndex = arrow.c.y;
+
+            const maxR = arrow.maxRange ?? DEFAULT_ATTACK_RANGE;
+            const sdx = arrow.c.x - arrow.spawnX;
+            const sdy = arrow.c.y - arrow.spawnY;
+            if (sdx * sdx + sdy * sdy >= maxR * maxR) {
+                if (arrow.vfxGlow) {
+                    VFX.removeAttached(arrow.vfxGlow);
+                    arrow.vfxGlow = null;
+                }
+                if (arrow.c.parent) {
+                    arrow.c.parent.removeChild(arrow.c);
+                    arrow.c.destroy();
+                }
+                arrows.splice(ai, 1);
+                continue;
+            }
 
             arrow.life -= frameScale;
 

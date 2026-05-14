@@ -5,7 +5,7 @@ import {tickFloats} from './utils/floatText.js';
 import {createInputManager} from './controllers/createInputController.js';
 import {createDebugColliderToggle, resolveVsColliders} from './world/collision.js';
 import {createCombatController} from './controllers/createCombatController.js';
-import {GS, PLAYER_SPEED, PLAYER_RADIUS, CAM_SMOOTH} from './constants.js';
+import {GS, PLAYER_SPEED, PLAYER_RADIUS, CAM_SMOOTH, frameScale} from './constants.js';
 import {createDashAbility} from './abilities/Dash.js';
 import {createPlayerController} from "./controllers/createPlayerController.js";
 import {useGameStore} from '../stores/gameStore.js';
@@ -17,6 +17,12 @@ import {MinimapManager} from "./world/MinimapManager.js";
 import {VFX} from './GlobalEffects.js';
 import {ChunkMonitor} from "./world/ChunkMonitor.js";
 import {createLightingController} from "./controllers/createLightingController.js";
+
+/** Same closing speed as legacy `current += (target-current)*alpha` once per 60fps tick, for arbitrary `dt`. */
+function smoothTowardAlpha(alphaPer60FpsFrame, dt) {
+    const retain = 1 - alphaPer60FpsFrame;
+    return 1 - Math.pow(retain, frameScale(dt));
+}
 
 export async function createGame() {
     // ==================== INITIALIZATION ====================
@@ -182,15 +188,15 @@ export async function createGame() {
     app.ticker.add((ticker) => {
         const store = useGameStore.getState();
         const {gameState, player: playerState} = store;
-        const deltaTime = ticker.deltaTime;
         const dt = Math.min(ticker.deltaMS / 1000, 0.05); // cap at 50ms
+        const fs = frameScale(dt);
 
-        currentZoom += (targetZoom - currentZoom) * 0.12;
+        currentZoom += (targetZoom - currentZoom) * smoothTowardAlpha(0.12, dt);
         world.scale.set(currentZoom);
 
         // Particles & floats
-        tickParticles();  // Modify tickParticles to use VFX.particles
-        tickFloats(camX, camY, app.screen.width, app.screen.height);
+        tickParticles(dt);
+        tickFloats(camX, camY, app.screen.width, app.screen.height, dt);
 
         // Weather
         updateWeather(weatherSystem, dt, camX, camY, openWorld);
@@ -254,7 +260,7 @@ export async function createGame() {
         combat.updateDrops(px, py, dt);
 
         // Camera
-        const camera = updateCamera(camX, camY, px, py, world, app, openWorld);
+        const camera = updateCamera(camX, camY, px, py, world, app, openWorld, dt);
         camX = camera.x;
         camY = camera.y;
         world.x = camera.worldX;
@@ -276,7 +282,7 @@ export async function createGame() {
         //openWorld.editor.update(dt);
 
         VFX.updateAttachments();
-        VFX.updateGlow(deltaTime);
+        VFX.updateGlow(fs);
 
         // Death check
         checkDeath(playerState, gameState, killsRef);
@@ -402,7 +408,7 @@ function handleShooting(input, combat, px, py, world, shootCooldown, stats) {
         const tx = (input.mouseX - world.x) / scale;
         const ty = (input.mouseY - world.y) / scale;
         combat.tryShoot(px, py, tx, ty);
-        return stats.attackSpeed;
+        return stats.attackCooldown;
     }
     return shootCooldown;
 }
@@ -459,9 +465,10 @@ function updateBosses(bosses, px, py, colliders, openWorld, enemyProjs, playerSt
     }
 }
 
-function updateCamera(camX, camY, px, py, world, app, openWorld) { // Remove shakeRef parameter
-    let newCamX = camX + (px - camX) * CAM_SMOOTH;
-    let newCamY = camY + (py - camY) * CAM_SMOOTH;
+function updateCamera(camX, camY, px, py, world, app, openWorld, dt) { // Remove shakeRef parameter
+    const camBlend = smoothTowardAlpha(CAM_SMOOTH, dt);
+    let newCamX = camX + (px - camX) * camBlend;
+    let newCamY = camY + (py - camY) * camBlend;
 
     const scale = world.scale.x;
     const bounds = openWorld.getCurrentBounds();
@@ -477,7 +484,8 @@ function updateCamera(camX, camY, px, py, world, app, openWorld) { // Remove sha
     const shakeAmt = VFX.shakeRef.value;
     const sx = shakeAmt ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
     const sy = shakeAmt ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
-    VFX.shakeRef.value *= 0.82;
+    const shakeDecay = Math.pow(0.82, frameScale(dt));
+    VFX.shakeRef.value *= shakeDecay;
     if (VFX.shakeRef.value < 0.08) VFX.shakeRef.value = 0;
 
     return {

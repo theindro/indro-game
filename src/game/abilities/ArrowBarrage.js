@@ -1,7 +1,7 @@
 // abilities/ArrowBarrage.js
 import { createArrow, ARROW_TYPES } from '../controllers/createProjectileController.js';
+import { DEFAULT_ATTACK_RANGE } from '../constants.js';
 import {useGameStore} from "../../stores/gameStore.js";
-import {VFX} from "../GlobalEffects.js";
 
 export function useArrowBarrage(ctx, targetX, targetY) {
     const { arrows, openWorld } = ctx;
@@ -28,9 +28,6 @@ export function useArrowBarrage(ctx, targetX, targetY) {
         const spreadOffset = (i - (arrowCount - 1) / 2) * spread;
         const randomOffset = (Math.random() - 0.5) * 0.1;
         const angle = angleToTarget + spreadOffset + randomOffset;
-        const speed = 6;
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
 
         const chainData = {
             chainRemaining: 0,
@@ -41,11 +38,15 @@ export function useArrowBarrage(ctx, targetX, targetY) {
 
         const startX = px + (Math.random() - 0.5) * 20;
         const startY = py + (Math.random() - 0.5) * 20;
+        const aimX = startX + Math.cos(angle) * 120;
+        const aimY = startY + Math.sin(angle) * 120;
 
-        const arrow = createArrow(openWorld.entityLayer, startX, startY, startX + vx * 10, startY + vy * 10, 0, chainData, ARROW_TYPES.NORMAL);
-        arrow.vx = vx;
-        arrow.vy = vy;
-        arrow.life = 120;
+        const trajectory = {
+            maxRange: stats.attackRange ?? DEFAULT_ATTACK_RANGE,
+            speedScale: (stats.projectileSpeed ?? 1) * 1.05,
+        };
+
+        const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, ARROW_TYPES.NORMAL, trajectory);
 
         arrows.push(arrow);
     }

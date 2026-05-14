@@ -685,7 +685,7 @@ export const ItemDatabase = {
         stats: {
             damage: 15,
             attackSpeed: 10,
-            range: 50,
+            attackRange: 50,
         }
     },
     'crossbow': {
@@ -702,7 +702,8 @@ export const ItemDatabase = {
         stats: {
             damage: 40,
             attackSpeed: 5,
-            range: 80,
+            attackRange: 80,
+            projectileSpeed: 8,
             strength: 10,
             critDamage: 20,
         }
@@ -721,7 +722,7 @@ export const ItemDatabase = {
         stats: {
             damage: 35,
             attackSpeed: 20,
-            range: 90,
+            attackRange: 90,
             dexterity: 20,
             critChance: 12,
             chainCount: 2

@@ -79,7 +79,7 @@ const AbilitySlot = React.memo(function AbilitySlot({
             </div>
             <Space style={{fontSize: 12, color: "#888"}}>
                 <Tag>Lv {ability.level}</Tag>
-                <Tag>CD {(ability.maxCooldown / 1000).toFixed(1)}s</Tag>
+                <Tag>CD {Number(ability.maxCooldown ?? 0).toFixed(1)}s</Tag>
                 {ability.damageMultiplier && (
                     <Tag>Dmg {playerDmg * ability.damageMultiplier}</Tag>
                 )}
@@ -153,7 +153,7 @@ export default function AbilityBar() {
     const playerMaxHp = useGameStore((s) => s.player.maxHp);
     const playerStats = useGameStore((s) => s.player.stats);
 
-    const attackSpeed = useGameStore(s => s.player.stats.attackSpeed);
+    const attackCooldown = useGameStore((s) => s.player.stats.attackCooldown);
     const dashCooldown = useGameStore(s => s.player.stats.dashCooldown);
 
     const abilities = useGameStore((s) => s.abilities);
@@ -166,8 +166,6 @@ export default function AbilityBar() {
     );
 
     if (!abilities?.ability1) return null;
-
-    console.log('rerendering ability bar');
 
     return (
         <div style={styles.root}>
@@ -256,7 +254,7 @@ export default function AbilityBar() {
                                 name: "Basic Attack",
                                 icon: "/icons/attack.png",
                                 cooldownEnd: basicAttack?.cooldownEnd ?? 0,
-                                maxCooldown: (attackSpeed) * 1000,
+                                maxCooldown: attackCooldown,
                                 description: "Standard attack",
                                 level: 1,
                             }}

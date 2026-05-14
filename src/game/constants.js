@@ -1,3 +1,8 @@
+/** Legacy tuning in "per 1/60s step" units: multiply velocities by this each tick (dt = seconds). */
+export function frameScale(dtSec) {
+    return dtSec * 60;
+}
+
 // ── Player
 export const PLAYER_SPEED = 3;
 export const PLAYER_RADIUS = 16;
@@ -6,16 +11,31 @@ export const GS = 0.65; // global speed scalar
 // ── Mobs
 export const MOB_RADIUS = 13;
 export const MOB_HP = 60;
+/** Walk speed scale before archetype `speedMultiplier`; world speed ≈ `MOB_BASE_SPEED_SCALE × speedMult × 60` px/s (chase vectors are unit length). */
+export const MOB_BASE_SPEED_SCALE = 2.45;
 
 // ── Boss
 export const BOSS_RADIUS = 36;
 export const BOSS_HP = 2500;
-export const BOSS_SPEED = 0.48;
+/** Same displacement convention as mobs (`× frameScale(dt)`); ≈ `BOSS_SPEED × 60` px/s toward player. */
+export const BOSS_SPEED = 1.12;
 export const BOSS_SHOOT_INTERVAL = 250;
 
 // ── Projectiles
-/** Player arrow velocity scale; world update uses `vx * dt * 60` → effective px/s ≈ ARROW_SPEED * 60 */
-export const ARROW_SPEED = 3;
+/** Player arrow base speed scale; effective px/s ≈ `ARROW_SPEED × stats.projectileSpeed × 60` (travel ends at `stats.attackRange`). */
+export const ARROW_SPEED = 16.2;
+/** Default max travel distance (px) from spawn when stats omit `attackRange`. */
+export const DEFAULT_ATTACK_RANGE = 520;
+
+/**
+ * Ground attack timers are stored as “60fps frame units” (duration in seconds = value / 60).
+ * Used for telegraph + impact polish so high refresh rates stay time-correct.
+ */
+export const GROUND_WARN_INSTANT = 4;
+export const GROUND_WARN_FAST = 28;
+export const GROUND_WARN_NORMAL = 38;
+export const GROUND_WARN_SLOW = 48;
+export const GROUND_IMPACT_TICKS = 22;
 /** Passed to createEnemyProj as `spd`; velocity px/s = spd * 60 (same convention as boss orbs). */
 export const ENEMY_RANGED_ORB_SPEED_SCALE = 4.2;
 export const ICE_MOB_SHOOT_INTERVAL_BASE = 140;
