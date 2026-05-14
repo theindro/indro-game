@@ -42,14 +42,14 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         shootTimer: 0,
         shootInterval: BOSS_SHOOT_INTERVAL,
         waveTimer: 0,
-        waveInterval: 1000,
+        waveInterval: 100,
         waves: [],
         laserTimer: 0,
-        laserInterval: 800,
+        laserInterval: 180,
         lasers: [],
         groundAttackTimer: 0,     // Timer for ground attacks
         groundAttackCircleTimer: 0,     // Timer for ground attacks
-        groundAttackInterval: 2000, // How often to do ground attack (3 seconds at 60fps)
+        groundAttackInterval: 360, // How often to do ground attack (3 seconds at 60fps)
         wobble: 0,
         dead: false,
         lastPlayerX: x,

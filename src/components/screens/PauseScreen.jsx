@@ -84,7 +84,7 @@ export default function PauseScreen() {
                             onClick={handleRestart}
 
                         >
-                            Restart game
+                            Reset game
                         </Button>
 
                         <Button

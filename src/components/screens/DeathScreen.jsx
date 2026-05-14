@@ -18,6 +18,7 @@ export default function DeathScreen() {
     const isDead = useGameStore(state => state.gameState.dead);
     const inventory = useGameStore(state => state.inventory);
     const kills = useGameStore(state => state.kills);
+    const restartGame = useGameStore(state => state.restartGame);
 
     // Track playtime (optional)
     const [playTime, setPlayTime] = useState(0);
@@ -29,7 +30,7 @@ export default function DeathScreen() {
     if (!isDead) return;
 
     const handleQuit = () => {
-        window.location.href = '/';
+        restartGame();
     };
 
     const formatTime = (seconds) => {

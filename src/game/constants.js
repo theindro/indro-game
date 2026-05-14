@@ -19,7 +19,7 @@ export const BOSS_RADIUS = 36;
 export const BOSS_HP = 2500;
 /** Same displacement convention as mobs (`× frameScale(dt)`); ≈ `BOSS_SPEED × 60` px/s toward player. */
 export const BOSS_SPEED = 1.12;
-export const BOSS_SHOOT_INTERVAL = 250;
+export const BOSS_SHOOT_INTERVAL = 60;
 
 // ── Projectiles
 /** Player arrow base speed scale; effective px/s ≈ `ARROW_SPEED × stats.projectileSpeed × 60` (travel ends at `stats.attackRange`). */
