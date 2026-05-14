@@ -2,6 +2,15 @@ import { Graphics, Container } from 'pixi.js';
 import { shadowManager } from "./createShadowController.js";
 import {WeatherDevTool} from "../world/weatherDevTool.js";
 
+/** Ambient overlay must use numeric RGB so `interpolateAmbient` and Pixi `fill` stay valid. */
+function normalizeAmbientColor(color) {
+    if (typeof color === 'number' && Number.isFinite(color)) {
+        return color >>> 0;
+    }
+    if (color === 'black') return 0x000000;
+    return 0x000000;
+}
+
 export class CreateWeatherController {
     constructor(app, world) {
         this.app = app;
@@ -36,28 +45,27 @@ export class CreateWeatherController {
         this.ambientOverlay.zIndex = 1100; // above vfxLayer at 1200? set just below it
         this.world.sortableChildren = true;
         this.world.addChild(this.ambientOverlay);
-        this.currentAmbient = { color: 'black', alpha: 0 };
-        this.targetAmbient = { color: 'black', alpha: 0 };
+        this.currentAmbient = { color: 0x000000, alpha: 0 };
+        this.targetAmbient = { color: 0x000000, alpha: 0 };
     }
 
     getAmbientForWeather(weatherType, intensity) {
         const ambients = {
-            rain: { color: 'black', alpha: 0.5 * intensity },
+            rain: { color: 0x000000, alpha: 0.5 * intensity },
             snow: { color: 0x1a2a4a, alpha: 0.55 * intensity },
             embers: { color: 0x262626, alpha: 0.5 * intensity },
             sandstorm: { color: 0x461f06, alpha: 0.5 * intensity },
             fog: { color: 0x88aaff, alpha: 0.5 * intensity },
-            default: { color: 'black', alpha: 0.4 * intensity },
+            default: { color: 0x000000, alpha: 0.4 * intensity },
         };
-        return ambients[weatherType] || ambients.default;
+        const raw = ambients[weatherType] || ambients.default;
+        return {
+            color: normalizeAmbientColor(raw.color),
+            alpha: raw.alpha,
+        };
     }
 
     setWeather(type, intensity = 1, speed = 1, transitionTime = 2.0) {
-        // ✅ FIX: Compare with targetWeatherType when transitioning
-        console.log(`🌤️ Changing weather from ${this.currentWeatherType} to ${type}`);
-
-        //audioManager.play('/sounds/bg-music.mp3')
-
         this.targetAmbient = this.getAmbientForWeather(type, intensity);
 
         // Start transition
@@ -82,17 +90,21 @@ export class CreateWeatherController {
 
         // If no current effect, just set it immediately
         if (!this.currentEffect) {
-            console.log('No current effect, setting new effect directly');
             this.currentEffect = this.targetEffect;
             this.currentWeatherType = this.targetWeatherType;
             this.currentShadowConfig = { ...this.targetShadowConfig };
             this.isTransitioning = false;
             this.targetEffect = null;
-            this.transitionProgress = 1; // ADD THIS LINE
-            this.transitionTimer = 0; // ADD THIS LINE
-            this.updateAmbientOverlay(1);  // ✅ ADD THIS - update ambient immediately
+            this.transitionProgress = 1;
+            this.transitionTimer = 0;
+            // Snap ambient to active weather so overlay shows on first world load (same frame as setWeather).
+            this.currentAmbient = {
+                color: this.targetAmbient.color,
+                alpha: this.targetAmbient.alpha,
+            };
             shadowManager.setDirection(this.targetShadowConfig);
-            return; // ADD THIS - don't continue
+            this.updateAmbientOverlay(1);
+            return;
         }
     }
 
@@ -142,16 +154,17 @@ export class CreateWeatherController {
         // Apply final shadow config
         shadowManager.setDirection(this.targetShadowConfig);
         this.currentShadowConfig = { ...this.targetShadowConfig };
+
+        this.currentAmbient = {
+            color: normalizeAmbientColor(this.targetAmbient.color),
+            alpha: this.targetAmbient.alpha,
+        };
+        this.updateAmbientOverlay(1);
     }
 
     update(deltaTime) {
         // Clamp deltaTime
         const dt = Math.min(deltaTime, 0.033); // Cap at 33ms for smooth transitions
-
-        // ADD THIS DEBUG LOG
-        if (this.isTransitioning && Math.random() < 0.01) {
-            console.log('Transition progress:', this.transitionProgress);
-        }
 
         if (this.isTransitioning) {
             // Update transition timer
@@ -209,8 +222,8 @@ export class CreateWeatherController {
 
     interpolateAmbient(from, to, progress) {
         // Interpolate RGB components separately for smooth color blending
-        const fromColor = from.color;
-        const toColor = to.color;
+        const fromColor = normalizeAmbientColor(from.color);
+        const toColor = normalizeAmbientColor(to.color);
 
         const fromR = (fromColor >> 16) & 0xff;
         const fromG = (fromColor >> 8) & 0xff;
@@ -241,9 +254,11 @@ export class CreateWeatherController {
             const w = this.app.screen.width / this.world.scale.x;
             const h = this.app.screen.height / this.world.scale.y;
 
+            const fillColor = normalizeAmbientColor(this.currentAmbient.color);
+
             this.ambientOverlay
                 .rect(x, y, w, h)
-                .fill({ color: this.currentAmbient.color, alpha: this.currentAmbient.alpha * intensity });
+                .fill({ color: fillColor, alpha: this.currentAmbient.alpha * intensity });
 
         }
     }
