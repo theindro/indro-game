@@ -46,8 +46,8 @@ export const useGameStore = create((set, get) => ({
             moveSpeed: 100,
             dashSpeed: 100,
             dashRange: 320,
-            dashDuration: 60,
-            dashCooldown: 120,
+            dashDuration: 0.2,
+            dashCooldown: 2,
             chainEnabled: true,
             chainCount: 0,
             chainRange: 350,
@@ -387,19 +387,17 @@ export const useGameStore = create((set, get) => ({
     // ===== EQUIP =====
     // equipment now stores a slot-wrapper: { id, quantity, enchantLevel? }
     // so enchantLevel survives equip/unequip cycles.
-    equipItem: (slotItem) => {
+    equipItem: (slotItem, inventoryIndex) => {
         const state = get();
-        if (!slotItem) return;
+        if (!slotItem?.id) return;
 
         const dbItem = ItemDatabase[slotItem.id];
         if (!dbItem?.equipSlot) return;
 
         const slotKey = dbItem.equipSlot;
         const newEquipment = { ...state.inventory.equipment };
-        const oldSlot = newEquipment[slotKey]; // previously equipped slot-wrapper (or null)
+        const oldSlot = newEquipment[slotKey];
 
-
-        // Store the full slot-wrapper (preserves enchantLevel)
         newEquipment[slotKey] = {
             id: slotItem.id,
             quantity: 1,
@@ -408,13 +406,28 @@ export const useGameStore = create((set, get) => ({
 
         const newSlots = [...state.inventory.slots];
 
-        // Remove newly-equipped item from inventory
-        const inventoryIndex = newSlots.findIndex(s => s && s.id === slotItem.id);
-        if (inventoryIndex !== -1) newSlots[inventoryIndex] = null;
+        let removed = false;
+        if (typeof inventoryIndex === 'number' && inventoryIndex >= 0) {
+            const cell = newSlots[inventoryIndex];
+            if (cell && cell.id === slotItem.id) {
+                newSlots[inventoryIndex] = null;
+                removed = true;
+            }
+        }
+        if (!removed) {
+            const idx = newSlots.findIndex(
+                (s) =>
+                    s &&
+                    s.id === slotItem.id &&
+                    (s.enchantLevel ?? 0) === (slotItem.enchantLevel ?? 0)
+            );
+            if (idx !== -1) {
+                newSlots[idx] = null;
+            }
+        }
 
-        // Put old equipped item back into inventory (preserving its enchantLevel)
         if (oldSlot) {
-            const emptySlot = newSlots.findIndex(s => s === null);
+            const emptySlot = newSlots.findIndex((s) => s === null);
             if (emptySlot !== -1) {
                 newSlots[emptySlot] = {
                     id: oldSlot.id,

@@ -10,26 +10,19 @@ export function createDashAbility({ input, world }) {
     let lastDirX = 0;
     let lastDirY = -1;
 
-    // ghost trail
     const ghosts = [];
 
     function tryDash() {
         const store = useGameStore.getState();
         const { stats } = store.player;
 
-        // Guard against rapid keydown firing before update() ticks
         if (dashCooldown > 0 || dashTime > 0) return null;
 
-        // Uses zustand cooldown system
         const success = store.useDash();
-
-        // Still on cooldown
         if (!success) return null;
 
-        // Set immediately so re-entrant calls are blocked
-        dashCooldown = stats.dashCooldown;
-        dashTime = stats.dashDuration;
-
+        dashCooldown = stats.dashCooldown;   // now treated as seconds
+        dashTime = stats.dashDuration;        // now treated as seconds
 
         let dx = 0, dy = 0;
         if (input.isDown('w')) dy -= 1;
@@ -56,30 +49,21 @@ export function createDashAbility({ input, world }) {
         if (!playerSprite) return;
 
         const ghost = new Sprite(playerSprite.texture);
-
         ghost.anchor.set(0.5);
         ghost.x = px;
         ghost.y = py;
-
         ghost.alpha = 0.4;
-
-        // stretch effect (motion feel)
         ghost.scale.set(
             playerSprite.scale.x * 1.15,
             playerSprite.scale.y * 0.85
         );
-
         ghost.tint = 0x66ccff;
-
         world.addChild(ghost);
         ghosts.push(ghost);
     }
 
-    function update(stats, dt) {
-        // track movement direction
-        let dx = 0;
-        let dy = 0;
-
+    function update(stats, dt) {  // dt in seconds
+        let dx = 0, dy = 0;
         if (input.isDown('w')) dy -= 1;
         if (input.isDown('s')) dy += 1;
         if (input.isDown('a')) dx -= 1;
@@ -91,28 +75,25 @@ export function createDashAbility({ input, world }) {
             lastDirY = dy / dist;
         }
 
-        if (dashCooldown > 0) dashCooldown--;
+        if (dashCooldown > 0) dashCooldown -= dt;  // ← real time
 
-        // 🔴 DASH ACTIVE
         if (dashTime > 0) {
-            dashTime--;
+            dashTime -= dt;  // ← real time
 
-            // 🔴 compute speed FROM RANGE
+            // speed = total distance / total duration (per second)
             const speed = stats.dashRange / stats.dashDuration;
 
             return {
                 active: true,
-                vx: dashDirX * speed,
-                vy: dashDirY * speed
+                vx: dashDirX * speed * dt,  // ← scale by dt
+                vy: dashDirY * speed * dt
             };
         }
 
-        // 🔴 fade ghosts
+        // fade ghosts
         for (let i = ghosts.length - 1; i >= 0; i--) {
             const g = ghosts[i];
-
-            g.alpha *= 0.92;
-
+            g.alpha -= (1 - 0.92) * dt * 60; // ← framerate-independent fade
             if (g.alpha < 0.05) {
                 world.removeChild(g);
                 ghosts.splice(i, 1);

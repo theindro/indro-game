@@ -306,6 +306,7 @@ class VisualEffects {
         glow.scale.set(scale);
 
         glow._baseScale = scale;
+        glow._baseAlpha = options.alpha ?? 0.25;
         glow._time = Math.random() * 10;
 
         // 🧠 NEW: if target exists → attach mode
@@ -329,16 +330,22 @@ class VisualEffects {
     }
 
     updateGlow(delta) {
-        if (!this.entityLayer) return;
+        const pulseChild = (child) => {
+            if (!child?._baseScale) return;
+            child._time = (child._time ?? 0) + delta * 0.01;
+            const pulse = 1 + Math.sin(child._time) * 0.08;
+            child.scale.set(child._baseScale * pulse);
+            child.alpha = Math.min(1, (child._baseAlpha ?? 0.3) + Math.sin(child._time) * 0.05);
+        };
 
-        for (const child of this.entityLayer.children) {
-            if (child._baseScale) {
-                child._time += delta * 0.01;
-
-                const pulse = 1 + Math.sin(child._time) * 0.08;
-
-                child.scale.set(child._baseScale * pulse);
-                child.alpha = 0.3 + Math.sin(child._time) * 0.05;
+        if (this.entityLayer) {
+            for (const child of this.entityLayer.children) {
+                pulseChild(child);
+            }
+        }
+        if (this.vfxLayer) {
+            for (const child of this.vfxLayer.children) {
+                pulseChild(child);
             }
         }
     }

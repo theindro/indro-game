@@ -78,25 +78,27 @@ export default function Inventory({isOpen, setIsOpen}) {
         if (isOpen) audioManager.playSFX('/sounds/open-close.mp3', 0.15);
     }, [isOpen]);
 
-    const handleEquip = (i) => {
-        if (!i) return;
+    const handleEquip = (slotWrapper, slotIndex) => {
+        if (!slotWrapper?.id) return;
 
-        if (i.equipSlot) {
-            equipItem(i);
-            messageApi.success(`Equipped ${i.name}`, 1.5);
+        const dbItem = ItemDatabase[slotWrapper.id];
+
+        if (dbItem?.equipSlot) {
+            equipItem(slotWrapper, slotIndex);
+            messageApi.success(`Equipped ${dbItem.name}`, 1.5);
         } else {
-            messageApi.warning(`${i.name} cannot be equipped`, 1.5);
+            messageApi.warning(`${dbItem?.name ?? 'Item'} cannot be equipped`, 1.5);
         }
     };
 
     const slots = inventory?.slots || [];
 
-    const handleAction = useCallback((actionKey, item) => {
-        if (actionKey === 'equip')  equipItem(item);
-        if (actionKey === 'sell')   sellItem(slots.findIndex(s => s?.id === item.id));
-        if (actionKey === 'drop')   removeItem(slots.findIndex(s => s?.id === item.id));
-        if (actionKey === 'craft')  console.log('craft', item); // hook up later
-    }, [equipItem, sellItem, removeItem, slots]);
+    const handleAction = useCallback((actionKey, slotPayload, slotIndex) => {
+        if (actionKey === 'equip') equipItem(slotPayload, slotIndex);
+        if (actionKey === 'sell') sellItem(slotIndex);
+        if (actionKey === 'drop') removeItem(slotIndex);
+        if (actionKey === 'craft') console.log('craft', slotPayload);
+    }, [equipItem, sellItem, removeItem]);
 
     console.log('rerendering inventory');
 
@@ -167,7 +169,18 @@ export default function Inventory({isOpen, setIsOpen}) {
                                         const dbItem = ItemDatabase[item?.id];
 
                                         return (
-                                            <ItemCard item={dbItem} quantity={item?.quantity} enchantLevel={item?.enchantLevel} onClick={handleEquip}   onAction={handleAction}/>
+                                            <ItemCard
+                                                key={i}
+                                                slot={item}
+                                                inventorySlotIndex={i}
+                                                quantity={item?.quantity}
+                                                enchantLevel={item?.enchantLevel}
+                                                item={dbItem}
+                                                onClick={handleEquip}
+                                                onAction={(actionKey, slotPayload) =>
+                                                    handleAction(actionKey, slotPayload, i)
+                                                }
+                                            />
                                         )
                                     })}
                                 </div>

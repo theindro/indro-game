@@ -12,6 +12,7 @@ import {
 } from 'antd';
 import { useGameStore } from '../../stores/gameStore.js';
 import { audioManager } from "../../game/utils/audioManager.js";
+import { ItemDatabase } from "../../game/items.js";
 import ItemCard from "../Items/ItemCard.jsx";
 
 const { Text } = Typography;
@@ -42,7 +43,8 @@ const Character = ({isOpen, setIsOpen}) => {
         if (!item) return;
 
         if (unequipItem(slotKey)) {
-            messageApi.info(`Unequipped ${item.name}`, 1.5);
+            const name = ItemDatabase[item?.id]?.name ?? 'item';
+            messageApi.info(`Unequipped ${name}`, 1.5);
         } else {
             messageApi.warning('Inventory is full', 1.5);
         }

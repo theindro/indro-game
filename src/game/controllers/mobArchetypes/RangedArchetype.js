@@ -1,5 +1,6 @@
 import { createEnemyProj } from "../createProjectileController.js";
 import { audioManager } from "../../utils/audioManager.js";
+import { ENEMY_RANGED_ORB_SPEED_SCALE } from "../../constants.js";
 
 export class RangedArchetype {
     constructor(mob, ctx) {
@@ -22,15 +23,15 @@ export class RangedArchetype {
             // Flee from player
             const dirX = (m.x - px) / distToPlayer;
             const dirY = (m.y - py) / distToPlayer;
-            moveX = dirX * m.speed * 1.2;
-            moveY = dirY * m.speed * 1.2;
+            moveX = dirX * m.speed * 1.2 * dt;
+            moveY = dirY * m.speed * 1.2 * dt;
         }
         else if (distToPlayer > this.shootRange) {
             // Move closer if too far
             const dirX = (px - m.x) / distToPlayer;
             const dirY = (py - m.y) / distToPlayer;
-            moveX = dirX * m.speed * 0.8;
-            moveY = dirY * m.speed * 0.8;
+            moveX = dirX * m.speed * 0.8 * dt;
+            moveY = dirY * m.speed * 0.8 * dt;
         }
 
         // === Shooting Logic (using attackSpeed) ===
@@ -85,17 +86,18 @@ export class RangedArchetype {
                 elementalType = 'normal';
         }
 
+        // `spd` is createEnemyProj velocity scale (px/s = spd * 60), not mob attackSpeed (attacks/sec).
         const proj = createEnemyProj(
             openWorld.entityLayer,
             m.x,
             m.y,
             px,
             py,
-            'enemy_orb', // projectile type
-            m.damage,           // damage
-            m.attackSpeed,         // speed
-            8,           // size
-            0,           // angle offset
+            'enemy_orb',
+            m.damage,
+            ENEMY_RANGED_ORB_SPEED_SCALE,
+            8,
+            0,
             elementalType
         );
 

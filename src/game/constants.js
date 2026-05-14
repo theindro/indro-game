@@ -14,7 +14,10 @@ export const BOSS_SPEED = 0.48;
 export const BOSS_SHOOT_INTERVAL = 250;
 
 // ── Projectiles
+/** Player arrow velocity scale; world update uses `vx * dt * 60` → effective px/s ≈ ARROW_SPEED * 60 */
 export const ARROW_SPEED = 3;
+/** Passed to createEnemyProj as `spd`; velocity px/s = spd * 60 (same convention as boss orbs). */
+export const ENEMY_RANGED_ORB_SPEED_SCALE = 4.2;
 export const ICE_MOB_SHOOT_INTERVAL_BASE = 140;
 
 // ── XP

@@ -183,7 +183,7 @@ export async function createGame() {
         const store = useGameStore.getState();
         const {gameState, player: playerState} = store;
         const deltaTime = ticker.deltaTime;
-        const dt = deltaTime / 60; // 1 = 60fps baseline
+        const dt = Math.min(ticker.deltaMS / 1000, 0.05); // cap at 50ms
 
         currentZoom += (targetZoom - currentZoom) * 0.12;
         world.scale.set(currentZoom);
@@ -411,7 +411,7 @@ function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders, 
     let nx = px, ny = py;
     let moving = false;
 
-    const dashState = dash.update(stats);
+    const dashState = dash.update(stats, dt);
 
     if (dashState.active) {
         nx += dashState.vx;

@@ -271,24 +271,26 @@ export function createArrowSystem(ctx) {
     /**
      * Updates and processes all active arrows
      */
-    function updateArrows(px, py) {
+    function updateArrows(px, py, dt = 1 / 60) {
         const stats = useGameStore.getState().player.stats;
         const store = useGameStore.getState();
+        const frameScale = dt * 60;
 
         for (let ai = arrows.length - 1; ai >= 0; ai--) {
             const arrow = arrows[ai];
 
-            // Update position
-            arrow.c.x += arrow.vx;
-            arrow.c.y += arrow.vy;
+            arrow.c.x += arrow.vx * frameScale;
+            arrow.c.y += arrow.vy * frameScale;
 
-            // Update arrow zindex
             arrow.c.zIndex = arrow.c.y;
 
-            arrow.life--;
+            arrow.life -= frameScale;
 
-            // Check lifetime and bounds
             if (arrow.life <= 0 || !openWorld.isInsideWorld(arrow.c.x, arrow.c.y)) {
+                if (arrow.vfxGlow) {
+                    VFX.removeAttached(arrow.vfxGlow);
+                    arrow.vfxGlow = null;
+                }
                 if (arrow.c.parent) {
                     arrow.c.parent.removeChild(arrow.c);
                     arrow.c.destroy();
@@ -297,11 +299,15 @@ export function createArrowSystem(ctx) {
                 continue;
             }
 
-            updateArrowParticleAnimation(arrow, 1);
+            updateArrowParticleAnimation(arrow, dt);
 
             // Check collision with props
             if (checkCollisionWithProps(arrow.c.x, arrow.c.y)) {
                 VFX.burst(arrow.c.x, arrow.c.y, 'white');
+                if (arrow.vfxGlow) {
+                    VFX.removeAttached(arrow.vfxGlow);
+                    arrow.vfxGlow = null;
+                }
                 if (arrow.c.parent) {
                     arrow.c.parent.removeChild(arrow.c);
                     arrow.c.destroy();
@@ -354,7 +360,10 @@ export function createArrowSystem(ctx) {
                     trySpawnChainArrow(mob, arrow, finalDamage, stats);
                 }
 
-                // Cleanup current arrow
+                if (arrow.vfxGlow) {
+                    VFX.removeAttached(arrow.vfxGlow);
+                    arrow.vfxGlow = null;
+                }
                 if (arrow.c.parent) {
                     arrow.c.parent.removeChild(arrow.c);
                     arrow.c.destroy();
@@ -386,7 +395,10 @@ export function createArrowSystem(ctx) {
                 // Apply hit effects
                 applyHitEffects(boss.x, boss.y, finalDamage, isCrit, true, arrow.elementalEffect);
 
-                // Cleanup arrow
+                if (arrow.vfxGlow) {
+                    VFX.removeAttached(arrow.vfxGlow);
+                    arrow.vfxGlow = null;
+                }
                 if (arrow.c.parent) {
                     arrow.c.parent.removeChild(arrow.c);
                     arrow.c.destroy();

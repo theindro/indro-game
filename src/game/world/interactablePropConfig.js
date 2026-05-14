@@ -5,6 +5,13 @@
 // appears relative to the others.  weight controls within-category frequency.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Optional per-type VFX (see InteractablePropManager._createProp):
+//   vfxGlow          — false to disable additive glow sprite (default: on)
+//   vfxGlowScale     — number, default from radius
+//   vfxGlowAlpha     — 0–1
+//   vfxGlowTexture   — asset id, default 'glow2'
+// glowColor is reused as the glow tint.
+
 /** Canonical prop type definitions */
 export const INTERACTABLE_PROP_TYPES = {
 

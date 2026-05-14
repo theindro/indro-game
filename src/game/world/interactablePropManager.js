@@ -14,6 +14,7 @@ import {
 } from './interactablePropConfig.js';
 import { assetManager } from '../utils/assetManager.js';
 import { shadowManager } from '../controllers/createShadowController.js';
+import { VFX } from '../GlobalEffects.js';
 import { OutlineFilter } from 'pixi-filters';
 
 const HOVER_FILTER = new OutlineFilter({
@@ -367,7 +368,7 @@ export class InteractablePropManager {
 
         this.worldObjects.addToEntityLayer(container);
 
-        // ── Collider — same field names as PropManager ──
+        // ── Collider — same AABB semantics as PropManager (arrows + mob resolveVsColliders) ──
         const colW = Math.max(20, targetSize) * 0.85;
         const colH = colW;
         const collider = {
@@ -375,13 +376,32 @@ export class InteractablePropManager {
             y:                    z - colH / 2,
             width:                colW,
             height:               colH,
-            collision:            false,   // interactables don't block movement
+            collision:            true,
             type:                 'interactable',
             interactableChunkKey: chunkKey,
             visual:               container,
             sprite:               container,
         };
         this.worldObjects.addWorldCollider(collider);
+
+        // Optional additive sprite glow (texture `glow2`); set def.vfxGlow === false to skip
+        let vfxGlowSprite = null;
+        if (def.vfxGlow !== false) {
+            const gh = visual instanceof Sprite ? visual.height : targetSize;
+            const oy = -Math.max(24, gh * 0.45);
+            const gScale = 0.75 + (def.radius || 28) / 80;
+            vfxGlowSprite = VFX.addGlow(
+                0,
+                oy,
+                {
+                    color: def.glowColor ?? 0xffffff,
+                    alpha: def.vfxGlowAlpha ?? 0.15,
+                    scale: def.vfxGlowScale ?? 0.45,
+                    texture: def.vfxGlowTexture ?? 'glow2',
+                },
+                container
+            );
+        }
 
         return {
             def,
@@ -399,6 +419,7 @@ export class InteractablePropManager {
             barFill,
             collider,
             shadowId,
+            vfxGlowSprite,
             _phase:        Math.random() * Math.PI * 2,
             _harvesting:   false,
             _harvestAccum: 0,
@@ -433,8 +454,19 @@ export class InteractablePropManager {
         prop.visual._interactableShadow = null;
     }
 
+    _disposeVfxGlow(prop) {
+        if (!prop?.vfxGlowSprite) return;
+        VFX.removeAttached(prop.vfxGlowSprite);
+        prop.vfxGlowSprite = null;
+    }
+
     _destroyProp(prop) {
         this._unregisterShadow(prop);
+        this._disposeVfxGlow(prop);
+        if (prop.collider) {
+            this.worldObjects.removeCollider(prop.collider);
+            prop.collider = null;
+        }
         this.worldObjects.removeAndDestroyDisplayObject(prop.container);
     }
 
@@ -444,9 +476,9 @@ export class InteractablePropManager {
         if (prop.container) prop.container.visible = false;
         if (prop.collider)  prop.collider.collision = false;
 
-        // Hide shadow while dead
         const shadow = prop.visual?._interactableShadow;
         if (shadow) shadow.visible = false;
+        if (prop.vfxGlowSprite) prop.vfxGlowSprite.visible = false;
     }
 
     _respawnProp(prop) {
@@ -457,6 +489,7 @@ export class InteractablePropManager {
 
         const shadow = prop.visual?._interactableShadow;
         if (shadow) shadow.visible = true;
+        if (prop.vfxGlowSprite) prop.vfxGlowSprite.visible = true;
     }
 
     // ── Interaction logic ─────────────────────────────────────────────────────
@@ -473,6 +506,7 @@ export class InteractablePropManager {
         // Hide shadow immediately on open
         const shadow = prop.visual?._interactableShadow;
         if (shadow) shadow.visible = false;
+        if (prop.vfxGlowSprite) prop.vfxGlowSprite.visible = false;
 
         this.persistedProps.add(prop.id);
 
@@ -615,7 +649,6 @@ export class InteractablePropManager {
     removeProp(prop) {
         this._destroyProp(prop);
         this.allProps = this.allProps.filter(p => p !== prop);
-        this.worldObjects.removeCollider(prop.collider);
     }
 
     clear() {

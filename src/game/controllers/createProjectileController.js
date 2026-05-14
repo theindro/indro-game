@@ -154,11 +154,12 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
 }
 
 // Update projectile animation in your createCombatController.js
-export function updateArrowParticleAnimation(arrow, deltaTime) {
+export function updateArrowParticleAnimation(arrow, dtSec = 1 / 60) {
     if (!arrow.c.userData?.particles) return;
 
     const data = arrow.c.userData;
-    data.time += deltaTime * 0.1;
+    // ~same visual rate as old frame-based `deltaTime * 0.1` at 60fps when dtSec ≈ 1/60
+    data.time += dtSec * 6;
 
     for (let i = 0; i < data.particles.length; i++) {
         const p = data.particles[i];
@@ -266,7 +267,8 @@ export function createEnemyProj(world, ex, ey, px, py, type, dmg, spd = 1, size 
     const dx = px - ex;
     const dy = py - ey;
     const angle = Math.atan2(dy, dx) + angleOffset;
-    const speed = spd;
+    // `spd` = dimensionless scale (typ. 2.5–5); world velocity px/s = spd * 60 (matches dt integration in createProjectileSystem).
+    const speed = Math.max(0.5, spd) * 60;
 
     c.userData = {
         elementalType,

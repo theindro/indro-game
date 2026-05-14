@@ -30,9 +30,9 @@ export function useFrostArrow(ctx, targetX, targetY) {
 
     //VFX.burst(px, py, 0x88ccff, 15, 3);
 
-    const speed = ability.projectileSpeed;
-    const vx = Math.cos(angle) * speed;
-    const vy = Math.sin(angle) * speed;
+    const speedPxPerSec = (ability.projectileSpeed ?? 8) * 60;
+    const vx = Math.cos(angle) * speedPxPerSec;
+    const vy = Math.sin(angle) * speedPxPerSec;
 
     // Create frost arrow graphics
     const arrowContainer = new Container();
@@ -42,6 +42,13 @@ export function useFrostArrow(ctx, targetX, targetY) {
     const glow = new Graphics();
     glow.circle(0, 0, 20).fill({color: 0x88ccff, alpha: 0.4});
     arrowContainer.addChild(glow);
+
+    const frostSkillGlow = VFX.addGlow(0, 0, {
+        color: 0xaaddff,
+        alpha: 0.38,
+        scale: 1.15,
+        texture: 'glow2',
+    }, arrowContainer);
 
     const shaft = new Graphics();
     shaft.rect(-4, -3, 24, 6).fill({color: 0xaaddff});
@@ -71,26 +78,73 @@ export function useFrostArrow(ctx, targetX, targetY) {
     arrowContainer.rotation = angle;
     openWorld.entityLayer.addChild(arrowContainer);
 
-    let arrowLife = 100;
-    let arrowX = px, arrowY = py;
+    let arrowLifeSec = 100 / 60;
+    let arrowX = px;
+    let arrowY = py;
     let explosionDone = false;
+    let lastTick = performance.now();
 
-    function cleanupExplosion(elements) {
-        for (const element of elements) {
-            if (element && !element.destroyed) {
-                openWorld.entityLayer.removeChild(element);
-                element.destroy();
+    function animateFrostArrow(now) {
+        if (explosionDone) return;
+
+        const dt = Math.min((now - lastTick) / 1000, 0.05);
+        lastTick = now;
+
+        arrowX += vx * dt;
+        arrowY += vy * dt;
+        arrowContainer.x = arrowX;
+        arrowContainer.y = arrowY;
+
+        for (const snow of snowParticles) {
+            if (snow.destroyed) continue;
+            snow.x += (Math.random() - 0.5) * 1.5 * 60 * dt;
+            snow.y += Math.random() * 60 * dt;
+            snow.alpha -= 1.2 * dt;
+        }
+
+        arrowLifeSec -= dt;
+
+        for (const mob of mobs) {
+            if (mob.hp <= 0) continue;
+            if (Math.hypot(arrowX - mob.x, arrowY - mob.y) < 30) {
+                explodeFrostArrow(arrowX, arrowY);
+                return;
             }
         }
+
+        for (const boss of bosses) {
+            if (boss.dead) continue;
+            if (Math.hypot(arrowX - boss.x, arrowY - boss.y) < 50) {
+                explodeFrostArrow(arrowX, arrowY);
+                return;
+            }
+        }
+
+        if (arrowLifeSec <= 0 || !openWorld.isInsideWorld(arrowX, arrowY)) {
+            explodeFrostArrow(arrowX, arrowY);
+            return;
+        }
+
+        requestAnimationFrame(animateFrostArrow);
+    }
+
+    requestAnimationFrame(animateFrostArrow);
+
+    function disposeFrostArrowVisual() {
+        if (frostSkillGlow) {
+            VFX.removeAttached(frostSkillGlow);
+        }
+        if (arrowContainer.parent) {
+            openWorld.entityLayer.removeChild(arrowContainer);
+        }
+        arrowContainer.destroy({ children: true });
     }
 
     function explodeFrostArrow(x, y) {
         if (explosionDone) return;
         explosionDone = true;
 
-        // Remove arrow
-        openWorld.entityLayer.removeChild(arrowContainer);
-        arrowContainer.destroy();
+        disposeFrostArrowVisual();
 
         // Create explosion ring
         const explosionRing = new Graphics();
@@ -100,12 +154,15 @@ export function useFrostArrow(ctx, targetX, targetY) {
         openWorld.entityLayer.addChild(explosionRing);
 
         let scale = 1;
+        let ringLast = performance.now();
 
-        function animateExplosion() {
+        function animateExplosion(now) {
             if (explosionRing.destroyed) return;
-            scale += 0.15;
+            const dt = Math.min((now - ringLast) / 1000, 0.05);
+            ringLast = now;
+            scale += 9 * dt;
             explosionRing.scale.set(scale);
-            explosionRing.alpha -= 0.05;
+            explosionRing.alpha -= 3 * dt;
             if (explosionRing.alpha <= 0) {
                 openWorld.entityLayer.removeChild(explosionRing);
                 explosionRing.destroy();
@@ -197,10 +254,13 @@ export function useFrostArrow(ctx, targetX, targetY) {
 
         // Fade out ground effect
         let fadeAlpha = 1;
+        let frostLast = performance.now();
 
-        function fadeFrostGround() {
+        function fadeFrostGround(now) {
             if (frostGround.destroyed) return;
-            fadeAlpha -= 0.05;
+            const dt = Math.min((now - frostLast) / 1000, 0.05);
+            frostLast = now;
+            fadeAlpha -= 3 * dt;
             frostGround.alpha = fadeAlpha;
             if (fadeAlpha <= 0) {
                 openWorld.entityLayer.removeChild(frostGround);
@@ -210,50 +270,8 @@ export function useFrostArrow(ctx, targetX, targetY) {
             }
         }
 
-        setTimeout(() => fadeFrostGround(), 100);
+        requestAnimationFrame(fadeFrostGround);
     }
 
-    function animateFrostArrow() {
-        if (explosionDone) return;
-
-        arrowX += vx;
-        arrowY += vy;
-        arrowContainer.x = arrowX;
-        arrowContainer.y = arrowY;
-
-        for (const snow of snowParticles) {
-            if (snow.destroyed) continue;
-            snow.x += (Math.random() - 0.5) * 1.5;
-            snow.y += Math.random() * 1;
-            snow.alpha -= 0.02;
-        }
-
-        arrowLife--;
-
-        for (const mob of mobs) {
-            if (mob.hp <= 0) continue;
-            if (Math.hypot(arrowX - mob.x, arrowY - mob.y) < 30) {
-                explodeFrostArrow(arrowX, arrowY);
-                return;
-            }
-        }
-
-        for (const boss of bosses) {
-            if (boss.dead) continue;
-            if (Math.hypot(arrowX - boss.x, arrowY - boss.y) < 50) {
-                explodeFrostArrow(arrowX, arrowY);
-                return;
-            }
-        }
-
-        if (arrowLife <= 0 || !openWorld.isInsideWorld(arrowX, arrowY)) {
-            explodeFrostArrow(arrowX, arrowY);
-            return;
-        }
-
-        requestAnimationFrame(animateFrostArrow);
-    }
-
-    animateFrostArrow();
     return true;
 }

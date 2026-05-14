@@ -119,7 +119,7 @@ function ContextMenu({ item, enchantLevel, onAction, onClose }) {
                     style={{ ...ACTION_STYLE, color: a.danger ? '#e06b6b' : 'rgba(255,255,255,0.8)' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    onClick={() => { onAction(a.key, item); onClose(); }}
+                    onClick={() => { onAction(a.key); onClose(); }}
                 >
                     <span>{a.icon}</span>
                     <span>{a.label}</span>
@@ -137,7 +137,16 @@ function ContextMenu({ item, enchantLevel, onAction, onClose }) {
 // For backward compat, if only `item` is passed the enchantLevel falls back to 0.
 // Callers can also pass enchantLevel explicitly as a prop.
 
-const ItemCard = ({ onClick, onAction, item: itemProp, slot, quantity: quantityProp, showName, enchantLevel: enchantLevelProp }) => {
+const ItemCard = ({
+    onClick,
+    onAction,
+    item: itemProp,
+    slot,
+    quantity: quantityProp,
+    showName,
+    enchantLevel: enchantLevelProp,
+    inventorySlotIndex,
+}) => {
     const canvasRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -146,6 +155,13 @@ const ItemCard = ({ onClick, onAction, item: itemProp, slot, quantity: quantityP
     const dbItem = resolvedSlot ? ItemDatabase[resolvedSlot.id] : itemProp;
     const enchantLevel = enchantLevelProp ?? resolvedSlot?.enchantLevel ?? itemProp?.enchantLevel ?? 0;
     const quantity = quantityProp ?? resolvedSlot?.quantity ?? 1;
+
+    /** Stable payload for equip/sell (always includes enchantLevel when known). */
+    const slotPayload = resolvedSlot ?? {
+        id: dbItem.id,
+        quantity: quantityProp ?? 1,
+        enchantLevel: enchantLevelProp ?? 0,
+    };
 
     const isLegendary = dbItem?.rarity?.name === "Legendary";
 
@@ -159,8 +175,8 @@ const ItemCard = ({ onClick, onAction, item: itemProp, slot, quantity: quantityP
         setMenuOpen(true);
     };
 
-    const handleAction = (actionKey, item) => {
-        if (onAction) onAction(actionKey, item);
+    const handleAction = (actionKey) => {
+        if (onAction) onAction(actionKey, slotPayload);
     };
 
     if (!dbItem) return null;
@@ -242,7 +258,7 @@ const ItemCard = ({ onClick, onAction, item: itemProp, slot, quantity: quantityP
                 }
             >
                 <div
-                    onClick={() => onClick && onClick(resolvedSlot ?? dbItem)}
+                    onClick={() => onClick && onClick(slotPayload, inventorySlotIndex)}
                     onContextMenu={handleContextMenu}
                     className={"item-card " + (rarityClass[dbItem.rarity?.name] ?? '')}
                     style={{ position: 'relative' }}

@@ -269,7 +269,7 @@ export default function AbilityBar() {
                                 name: "Dash",
                                 icon: "/icons/dash.png",
                                 cooldownEnd: dash?.cooldownEnd ?? 0,
-                                maxCooldown: (dashCooldown / 60) * 1000,
+                                maxCooldown: dashCooldown,
                                 description: "Quick dash",
                                 level: 1,
                             }}
