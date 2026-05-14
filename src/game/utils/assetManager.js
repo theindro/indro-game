@@ -115,6 +115,7 @@ class AssetManager {
             { file: '/gameprops/snow-stone-3.png', id: 'snowstone3', type: 'snow_stone', itemId: null },
             { file: '/gameprops/snow-stone-4.png', id: 'snowstone4', type: 'snow_stone', itemId: null },
             { file: '/gameprops/snow-stone-5.png', id: 'snowstone5', type: 'snow_stone', itemId: null },
+            { file: '/gameprops/snow-stone-7.png', id: 'snowstone7', type: 'snow_stone', itemId: null },
             // Bushes
             { file: '/gameprops/bush-1.png', id: 'bush1', type: 'bush', itemId: null },
             { file: '/gameprops/bush-2.png', id: 'bush2', type: 'bush', itemId: null },
@@ -131,6 +132,9 @@ class AssetManager {
             { file: '/gameprops/interactable/void-ore.png', id: 'ore_void', type: 'ore_void', itemId: null },
 
             { file: '/gameprops/interactable/herb_green.png', id: 'herb_green', type: 'herb_green', itemId: null },
+            { file: '/gameprops/interactable/frostbloom.png', id: 'herb_ice', type: 'herb_ice', itemId: null },
+            { file: '/gameprops/interactable/wood.png', id: 'log_pile', type: 'log_pile', itemId: null },
+            { file: '/gameprops/interactable/deadtree.png', id: 'dead_tree', type: 'dead_tree', itemId: null },
 
             { file: '/vfx/glow.png', id: 'glow', type: 'glow', itemId: null },
             { file: '/vfx/glow2.png', id: 'glow2', type: 'glow2', itemId: null },

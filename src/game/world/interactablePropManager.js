@@ -326,17 +326,21 @@ export class InteractablePropManager {
 
         container.addChild(visual);
 
+        const heightFactor = visual instanceof Sprite ? Math.min(1.5, visual.height / 120) : 1;
+        container.zIndex = z - (40 * heightFactor);
+
         // ── Shadow ──
         // shadowManager reads propVisual.x / propVisual.y as world-space coords.
         // `visual` is a child of `container` so its .x/.y are local (0,0).
         // Pass `container` instead — it sits directly on entityLayer at (x, z).
+        // zIndex must sit below the prop container (same pattern as PropManager).
         let shadowId = null;
         if (visual instanceof Sprite) {
-            const heightFactor = Math.min(1.5, visual.height / 120);
-            const shadow       = new Sprite(texture);
+            const shadow = new Sprite(texture);
             shadow.anchor.set(0.5, 0.5);
-            shadow.tint     = 0x000000;
+            shadow.tint = 0x000000;
             shadow.chunkKey = chunkKey;
+            shadow.zIndex = container.zIndex - 10;
 
             shadowId = shadowManager.registerShadow(
                 shadow,
@@ -377,10 +381,6 @@ export class InteractablePropManager {
         barFill.y       = barBg.y;
         barFill.visible = false;
         container.addChild(barFill);
-
-        // ── zIndex — matches PropManager's y-based sorting ──
-        const heightFactor = visual instanceof Sprite ? Math.min(1.5, visual.height / 120) : 1;
-        container.zIndex   = z - (40 * heightFactor);
 
         this.worldObjects.addToEntityLayer(container);
 

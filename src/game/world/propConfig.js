@@ -31,6 +31,16 @@ export const PROP_TYPES = {
         damageOnTouch: 0,
         scaleRange: { min: 0.9, max: 1.0 }
     },
+    SNOW_TREE: {
+        name: 'tree',
+        variants: ['log_pile', 'dead_tree'],
+        collision: false,
+        collisionType: 'rect',
+        minDistance: 80,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.15, max: 0.25 }
+    },
     BUSH: {
         name: 'bush',
         variants: ['bush1', 'bush2', 'bush3'],
@@ -91,7 +101,7 @@ export const BIOME_PROP_CONFIG = {
         ]
     },
     ice: {
-        density: 0.6,  // Root level
+        density: 0.5,  // Root level
         props: [
             { type: 'SNOW_STONE', weight: 35 },
         ]

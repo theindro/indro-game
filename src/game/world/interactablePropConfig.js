@@ -88,8 +88,8 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'wood',
         texture: 'log_pile',
         fallbackColor: 0x6b3a2a,
-        scaleRange: { min: 0.7, max: 1.0 },
-        glowColor: 0xcc8833,
+        scaleRange: { min: 0.7, max: 2.0 },
+        //glowColor: 0xcc8833,
         harvestTime: 1.5,          // seconds
         harvestYield: { min: 2, max: 6 },
     },
@@ -104,8 +104,8 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'wood_branch',
         texture: 'dead_tree',
         fallbackColor: 0x5c4033,
-        scaleRange: { min: 0.9, max: 1.4 },
-        glowColor: 0xbb7722,
+        scaleRange: { min: 0.4, max: 1.4 },
+        //glowColor: 0xbb7722,
         harvestTime: 0.8,          // seconds
         harvestYield: { min: 1, max: 3 },
     },
@@ -122,7 +122,7 @@ export const INTERACTABLE_PROP_TYPES = {
         texture: 'ore_iron',
         fallbackColor: 0x8fa0b0,
         scaleRange: { min: 1, max: 2.5 },
-        glowColor: 0xaabbcc,
+        glowColor: 'orange',
         harvestTime: 2.0,          // seconds
         harvestYield: { min: 1, max: 3 },
     },
@@ -155,6 +155,7 @@ export const INTERACTABLE_PROP_TYPES = {
         fallbackColor: 0x44eecc,
         scaleRange: { min: 1.5, max: 3 },
         glowColor: 0x66ffee,
+        vfxGlowAlpha: 0.1,
         harvestTime: 3.0,          // seconds
         harvestYield: { min: 1, max: 2 },
         rare: true,
@@ -188,7 +189,6 @@ export const INTERACTABLE_PROP_TYPES = {
         texture: 'herb_green',
         fallbackColor: 0x44bb44,
         scaleRange: { min: 2, max: 2.7 },
-        glowColor: 0x88ff88,
         harvestTime: 0.5,          // seconds
         harvestYield: { min: 1, max: 3 },
     },
@@ -197,14 +197,14 @@ export const INTERACTABLE_PROP_TYPES = {
         id: 'herb_ice',
         label: 'Frostbloom',
         category: 'herb',
-        radius: 14,
-        interactRange: 60,
+        radius: 30,
+        interactRange: 160,
         respawnTime: 180_000,
         lootTable: 'herb_ice',
         texture: 'herb_ice',
         fallbackColor: 0xaaddff,
-        scaleRange: { min: 0.4, max: 0.65 },
-        glowColor: 0xccffff,
+        scaleRange: { min: 2, max: 3.65 },
+        //glowColor: 0xccffff,
         harvestTime: 0.5,          // seconds
         harvestYield: { min: 1, max: 2 },
     },
@@ -221,7 +221,7 @@ export const INTERACTABLE_PROP_TYPES = {
         texture: 'barrel',
         fallbackColor: 0x8B4513,
         scaleRange: { min: 0.5, max: 0.75 },
-        glowColor: 0xcc8833,
+        //glowColor: 0xcc8833,
     },
 
     crate: {
@@ -235,7 +235,7 @@ export const INTERACTABLE_PROP_TYPES = {
         texture: 'crate',
         fallbackColor: 0xbb8855,
         scaleRange: { min: 0.55, max: 0.8 },
-        glowColor: 0xddaa55,
+        //glowColor: 0xddaa55,
     },
 };
 
