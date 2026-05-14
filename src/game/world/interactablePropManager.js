@@ -402,7 +402,7 @@ export class InteractablePropManager {
 
         // Optional additive sprite glow (texture `glow2`); set def.vfxGlow === false to skip
         let vfxGlowSprite = null;
-        if (def.vfxGlow !== false) {
+        if (def.glowColor) {
             const gh = visual instanceof Sprite ? visual.height : targetSize;
             const oy = -Math.max(24, gh * 0.45);
             const gScale = 0.75 + (def.radius || 28) / 80;
