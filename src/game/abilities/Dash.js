@@ -1,7 +1,6 @@
-import { Sprite } from 'pixi.js';
 import {useGameStore} from "../../stores/gameStore.js";
 
-export function createDashAbility({ input, world }) {
+export function createDashAbility({ input }) {
 
     let dashCooldown = 0;
     let dashTime = 0;
@@ -9,8 +8,6 @@ export function createDashAbility({ input, world }) {
     let dashDirY = 0;
     let lastDirX = 0;
     let lastDirY = -1;
-
-    const ghosts = [];
 
     function tryDash() {
         const store = useGameStore.getState();
@@ -45,23 +42,6 @@ export function createDashAbility({ input, world }) {
         return { dashDirX, dashDirY };
     }
 
-    function spawnGhost(playerSprite, px, py) {
-        if (!playerSprite) return;
-
-        const ghost = new Sprite(playerSprite.texture);
-        ghost.anchor.set(0.5);
-        ghost.x = px;
-        ghost.y = py;
-        ghost.alpha = 0.4;
-        ghost.scale.set(
-            playerSprite.scale.x * 1.15,
-            playerSprite.scale.y * 0.85
-        );
-        ghost.tint = 0x66ccff;
-        world.addChild(ghost);
-        ghosts.push(ghost);
-    }
-
     function update(stats, dt) {  // dt in seconds
         let dx = 0, dy = 0;
         if (input.isDown('w')) dy -= 1;
@@ -78,7 +58,9 @@ export function createDashAbility({ input, world }) {
         if (dashCooldown > 0) dashCooldown -= dt;  // ← real time
 
         if (dashTime > 0) {
+            const dashing = true;
             dashTime -= dt;  // ← real time
+            dashTime = Math.max(0, dashTime);
 
             // speed = total distance / total duration (per second)
             const speed = stats.dashRange / stats.dashDuration;
@@ -86,21 +68,12 @@ export function createDashAbility({ input, world }) {
             return {
                 active: true,
                 vx: dashDirX * speed * dt,  // ← scale by dt
-                vy: dashDirY * speed * dt
+                vy: dashDirY * speed * dt,
+                dashing,
             };
         }
 
-        // fade ghosts
-        for (let i = ghosts.length - 1; i >= 0; i--) {
-            const g = ghosts[i];
-            g.alpha -= (1 - 0.92) * dt * 60; // ← framerate-independent fade
-            if (g.alpha < 0.05) {
-                world.removeChild(g);
-                ghosts.splice(i, 1);
-            }
-        }
-
-        return { active: false, vx: 0, vy: 0 };
+        return { active: false, vx: 0, vy: 0, dashing: false };
     }
 
     return {

@@ -186,7 +186,7 @@ export function createPlayerEntity(world) {
     }
 
     return {
-        pCont, pGlow, pBody, pShadow, hpBar,
+        pCont, pGlow, pBody, pShadow, hpBar, hpBg,
         leftEye, rightEye,
         tickAnimations, playWeaponShoot
     };

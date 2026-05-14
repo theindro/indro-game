@@ -7,6 +7,7 @@ import {createDebugColliderToggle, resolveVsColliders} from './world/collision.j
 import {createCombatController} from './controllers/createCombatController.js';
 import {GS, PLAYER_SPEED, PLAYER_RADIUS, CAM_SMOOTH, frameScale} from './constants.js';
 import {createDashAbility} from './abilities/Dash.js';
+import {createDashAfterimageEffect} from './vfx/dashAfterimageEffect.js';
 import {createPlayerController} from "./controllers/createPlayerController.js";
 import {useGameStore} from '../stores/gameStore.js';
 import {createDevTool} from "./devtool.js";
@@ -68,7 +69,7 @@ export async function createGame() {
     createDevTool(useGameStore);
 
     // ==================== PLAYER ====================
-    const {pCont, pGlow, pBody, hpBar, tickAnimations, playWeaponShoot} = createPlayerEntity(world);
+    const {pCont, pGlow, pBody, hpBar, hpBg, pShadow, tickAnimations, playWeaponShoot} = createPlayerEntity(world);
     let px = 0, py = 0;
 
     const playerController = createPlayerController({
@@ -113,7 +114,7 @@ export async function createGame() {
     });
 
     // ==================== ABILITIES ====================
-    const dash = createDashAbility({input, world});
+    const dash = createDashAbility({input});
 
     // ==================== UI ====================
     const minimap = new MinimapManager(app, openWorld, {x: px, y: py, rotation: 0}, entities);
@@ -127,6 +128,13 @@ export async function createGame() {
     pCont.y = py;
 
     openWorld.entityLayer.addChild(pCont);
+
+    const dashAfterimages = createDashAfterimageEffect(
+        app.renderer,
+        openWorld.entityLayer,
+        pCont,
+        () => [hpBg, hpBar, pShadow]
+    );
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'F2') {
@@ -245,6 +253,8 @@ export async function createGame() {
         const myRel = mouseWorld.y - py;
         tickAnimations(pBobT, mxRel, myRel);
 
+        dashAfterimages.update(dt, pCont.x, pCont.y, movement.dashing);
+
         // Update player depth zindex
         pCont.zIndex = pCont.y;
 
@@ -288,7 +298,10 @@ export async function createGame() {
         checkDeath(playerState, gameState, killsRef);
     });
 
-    return () => cleanup(input, debug, app, chunkMonitor, world);
+    return () => {
+        dashAfterimages.destroy();
+        cleanup(input, debug, app, chunkMonitor, world);
+    };
 }
 
 // ==================== HELPER FUNCTIONS ====================
@@ -395,7 +408,7 @@ async function spawnTestBoss(bosses, openWorld) {
     VFX.shake(10);
 
     if (window.audioManager) {
-        window.audioManager.playSFX('/sounds/boss-spawn.ogg', 0.5);
+        window.audioManager.play('/sounds/boss.mp3');
     }
 }
 
@@ -446,7 +459,7 @@ function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders, 
     const clamped = openWorld.clampToWorld(nx, ny, PLAYER_RADIUS);
     const resolved = resolveVsColliders(clamped.x, clamped.y, PLAYER_RADIUS, colliders);
 
-    return {x: resolved.x, y: resolved.y, moving};
+    return {x: resolved.x, y: resolved.y, moving, dashing: dashState.dashing ?? false};
 }
 
 function updatePlayerVisuals(pCont, pGlow, px, py, moving, pBobT) {

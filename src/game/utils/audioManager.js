@@ -10,6 +10,14 @@ export class AudioManager {
         this.isMuted = false;
         this.musicVolume = 0.1;
         this.sfxVolume = 0.5;
+
+
+        this.unlocked = false;
+
+        this.unlockAudio = this.unlockAudio.bind(this);
+
+        window.addEventListener('pointerdown', this.unlockAudio, { once: true });
+        window.addEventListener('keydown', this.unlockAudio, { once: true });
     }
 
     setMuted(muted) {
@@ -26,6 +34,31 @@ export class AudioManager {
         }
     }
 
+    unlockAudio() {
+        if (this.unlocked) return;
+
+        const audio = new Audio('/sounds/bgnoise.mp3');
+
+        audio.volume = 0;
+        audio.loop = true;
+
+        audio.play()
+            .then(() => {
+                console.log('Audio unlocked');
+
+                this.unlocked = true;
+
+                this.current = audio;
+                this.currentPath = '/sounds/bgnoise.mp3';
+
+                // fade in
+                audio.volume = this.musicVolume;
+            })
+            .catch(err => {
+                console.warn('Audio unlock failed:', err);
+            });
+    }
+
     setSfxVolume(volume) {
         this.sfxVolume = Math.max(0, Math.min(1, volume));
     }
@@ -35,18 +68,13 @@ export class AudioManager {
 
         if (this.current) {
             this.current.pause();
-            this.current = null;
-        }
-
-        if (this.isMuted) {
-            this.currentPath = path;
-            return;
         }
 
         const audio = new Audio(path);
-        console.log(audio);
+
         audio.loop = true;
-        audio.volume = this.musicVolume;
+        audio.preload = 'auto';
+        audio.volume = this.isMuted ? 0 : this.musicVolume;
 
         audio.play().catch((err) => {
             console.warn("Audio blocked:", err);
