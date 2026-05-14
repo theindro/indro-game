@@ -2,11 +2,10 @@ import {
     Container,
     Graphics,
     Sprite,
-    RenderTexture
 } from "pixi.js";
 
 import {BIOME_COLORS} from "../constants.js";
-import {VOID_SHAPE, VOID_SHAPE_3, VOID_SHAPE_7} from "../monsters.js";
+import {VOID_SHAPE_7} from "../monsters.js";
 import {OutlineFilter} from "pixi-filters";
 
 const HOVER_FILTER = new OutlineFilter({
@@ -16,15 +15,27 @@ const HOVER_FILTER = new OutlineFilter({
     quality: 0.4,
 });
 
-// texture cache
-const textureCache = new Map();
+/**
+ * Per-renderer caches so textures are never reused across Pixi apps (new game / HMR).
+ * Keys include shape fingerprint — same size/color can differ by archetype silhouette.
+ * @type {WeakMap<import('pixi.js').Renderer, Map<string, import('pixi.js').Texture>>}
+ */
+const mobBodyTextureCacheByRenderer = new WeakMap();
 
-function drawVoidShape(g, pts, scale = 1, color = 0x7c5cff) {
+function shapeTextureKey(shape) {
+    if (!shape?.body?.length) return 'empty';
+    const b0 = shape.body[0];
+    const ex = shape.eye?.x ?? 0;
+    const ey = shape.eye?.y ?? 0;
+    return `${shape.body.length}_${b0.x}_${b0.y}_${ex}_${ey}`;
+}
+
+function drawVoidShape(g, pts, scale = 1, color = 'black') {
     g.clear();
 
-    color = "rgba(0,0,0,1)"
-
     if (!pts || pts.length < 2) return;
+
+    const fillColor = typeof color === 'number' ? color : 'black';
 
     g.moveTo(
         pts[0].x * scale,
@@ -47,16 +58,22 @@ function drawVoidShape(g, pts, scale = 1, color = 0x7c5cff) {
     g.closePath();
 
     g.fill({
-        color,
+        color: fillColor,
         alpha: 1
     });
 }
 
 function getMobTexture(renderer, size, color, shape) {
-    const key = `${size}_${color}`;
+    let cache = mobBodyTextureCacheByRenderer.get(renderer);
+    if (!cache) {
+        cache = new Map();
+        mobBodyTextureCacheByRenderer.set(renderer, cache);
+    }
 
-    if (textureCache.has(key)) {
-        return textureCache.get(key);
+    const key = `${size}_${color}_${shapeTextureKey(shape)}`;
+
+    if (cache.has(key)) {
+        return cache.get(key);
     }
 
     const g = new Graphics();
@@ -65,15 +82,13 @@ function getMobTexture(renderer, size, color, shape) {
 
     drawVoidShape(g, shape.body, scale, color);
 
-    // IMPORTANT
-    // generate texture ONCE
     const texture = renderer.generateTexture({
         target: g,
         resolution: 1,
         antialias: true
     });
 
-    textureCache.set(key, texture);
+    cache.set(key, texture);
 
     g.destroy();
 

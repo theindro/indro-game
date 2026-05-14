@@ -32,7 +32,8 @@ export class OpenWorldManager {
         this.renderDistance = 1;
         this.loadedChunks = new Map();
         this.spawnedEntities = new Map();
-        this.lastPlayerChunk = {x: 0, z: 0};
+        /** Sentinel so the first `update` always runs chunk-change + weather (was 0,0 matching spawn chunk). */
+        this.lastPlayerChunk = null;
         this.worldBounds = {
             minX: -200000,
             maxX: 200000,
@@ -285,6 +286,7 @@ export class OpenWorldManager {
 
         // 7. Reset procedural systems state
         this.pendingChunks.clear();
+        this.lastPlayerChunk = null;
 
         console.log("WORLD RESET DONE");
     }
@@ -480,11 +482,16 @@ export class OpenWorldManager {
             this.chunkDebugGraphics.clear();
         }
 
-        // 🔥 CHECK FOR CHUNK CHANGE 🔥
-        if (centerChunkX !== this.lastPlayerChunk.x || centerChunkZ !== this.lastPlayerChunk.z) {
+        // 🔥 CHECK FOR CHUNK CHANGE (null last chunk ⇒ first sample ⇒ apply weather immediately)
+        const chunkMoved =
+            this.lastPlayerChunk == null ||
+            centerChunkX !== this.lastPlayerChunk.x ||
+            centerChunkZ !== this.lastPlayerChunk.z;
+
+        if (chunkMoved) {
             // Get the new biome
             const newBiome = this.getBiomeAtChunk(centerChunkX, centerChunkZ);
-            const oldBiome = this.lastPlayerChunk.biome;
+            const oldBiome = this.lastPlayerChunk?.biome;
 
             // Get chunk key for accessing data
             const chunkKey = `${centerChunkX},${centerChunkZ}`;
@@ -510,9 +517,9 @@ export class OpenWorldManager {
                     biome: newBiome,
                     x: centerChunkX * chunkSizeWorld,
                     z: centerChunkZ * chunkSizeWorld,
-                    oldChunkX: this.lastPlayerChunk.x,
-                    oldChunkZ: this.lastPlayerChunk.z,
-                    oldBiome: this.lastPlayerChunk.biome,
+                    oldChunkX: this.lastPlayerChunk?.x ?? centerChunkX,
+                    oldChunkZ: this.lastPlayerChunk?.z ?? centerChunkZ,
+                    oldBiome: this.lastPlayerChunk?.biome,
                     mobCount: mobCount,
                     propCount: propCount,
                     weather: weather
