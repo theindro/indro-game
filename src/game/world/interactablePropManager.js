@@ -77,6 +77,17 @@ export class InteractablePropManager {
         return (this.worldSeed ^ (cx * 73856093) ^ (cz * 19349663) ^ (extra * 83492791)) >>> 0;
     }
 
+    /** FNV-1a-ish string hash for stable loot / VFX seeds from ids. */
+    hashString(str) {
+        let h = 2166136261 >>> 0;
+        const s = String(str);
+        for (let i = 0; i < s.length; i++) {
+            h ^= s.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return h | 0;
+    }
+
     // ── Chunk lifecycle ───────────────────────────────────────────────────────
 
     async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize) {
@@ -420,7 +431,7 @@ export class InteractablePropManager {
             collider,
             shadowId,
             vfxGlowSprite,
-            _phase:        Math.random() * Math.PI * 2,
+            _phase: this.seededRandom(this.worldSeed ^ this.hashString(id) ^ 945612341) * Math.PI * 2,
             _harvesting:   false,
             _harvestAccum: 0,
         };
@@ -495,7 +506,7 @@ export class InteractablePropManager {
     // ── Interaction logic ─────────────────────────────────────────────────────
 
     _openProp(prop) {
-        const loot = this._rollLoot(prop.def.lootTable);
+        const loot = this._rollLoot(prop.def.lootTable, prop.id);
 
         this._playOpenAnim(prop);
 
@@ -537,14 +548,20 @@ export class InteractablePropManager {
 
     // ── Loot rolling ─────────────────────────────────────────────────────────
 
-    _rollLoot(tableId) {
+    _rollLoot(tableId, basisId = '') {
         const table = LOOT_TABLES[tableId];
         if (!table) return [];
 
+        const basis = this.hashString(String(tableId)) ^ this.hashString(String(basisId));
         const drops = [];
+        let idx = 0;
+
         for (const entry of table) {
-            if (Math.random() <= entry.chance) {
-                const amount = entry.min + Math.floor(Math.random() * (entry.max - entry.min + 1));
+            const rollSeed = this.worldSeed ^ basis ^ (idx++ * 0x9e3779b9);
+            if (this.seededRandom(rollSeed) <= entry.chance) {
+                const amtSeed = rollSeed + 9181;
+                const span = entry.max - entry.min + 1;
+                const amount = entry.min + Math.floor(this.seededRandom(amtSeed) * span);
                 drops.push({ id: entry.id, amount });
             }
         }

@@ -17,7 +17,13 @@ const weatherConfig = {
 };
 
 export class OpenWorldManager {
-    constructor(world, colliders, app) {
+    /**
+     * @param {import('pixi.js').Container} world
+     * @param {unknown[]} colliders
+     * @param {import('pixi.js').Application} app
+     * @param {number} [worldSeedFromStore] Persisted run seed (layout deterministic per value).
+     */
+    constructor(world, colliders, app, worldSeedFromStore) {
         this.world = world;
         this.colliders = colliders;
         this.renderer = app.renderer;
@@ -40,7 +46,10 @@ export class OpenWorldManager {
 
         this.entitiesList = null;
         this.initialized = false;
-        this.worldSeed = Math.floor(Math.random() * 1000000);
+        this.worldSeed =
+            typeof worldSeedFromStore === 'number' && Number.isFinite(worldSeedFromStore)
+                ? worldSeedFromStore | 0
+                : 1337;
         this.config = {
             biomeScale: 0.006,
             debugChunks: false,
@@ -391,13 +400,19 @@ export class OpenWorldManager {
 
         const entities = {mobs: []};
 
-        for (const pack of chunkData.packs) {
+        for (let pi = 0; pi < chunkData.packs.length; pi++) {
+            const pack = chunkData.packs[pi];
 
             for (let i = 0; i < pack.mobCount; i++) {
+                const mobSeed =
+                    chunkData.seed ^
+                    (pi * 7919) ^
+                    (i * 7933) ^
+                    (Math.floor(pack.x) * 17) ^
+                    (Math.floor(pack.z) * 31);
 
-                const angle = Math.random() * Math.PI * 2;
-
-                const dist = Math.random() * pack.radius;
+                const angle = this.seededRandom(mobSeed) * Math.PI * 2;
+                const dist = this.seededRandom(mobSeed + 424242) * pack.radius;
 
                 const x = pack.x + Math.cos(angle) * dist;
                 const z = pack.z + Math.sin(angle) * dist;
@@ -412,11 +427,11 @@ export class OpenWorldManager {
                     const dx = c.x - x;
                     const dy = c.y - z;
 
-                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const d = Math.sqrt(dx * dx + dy * dy);
 
                     const minDist = Math.max(c.width || 40, c.height || 40) * 0.5;
 
-                    return dist < minDist;
+                    return d < minDist;
                 });
 
                 if (isBlocked) continue;
@@ -426,7 +441,8 @@ export class OpenWorldManager {
                     z,
                     chunkData.biome,
                     '',
-                    difficulty
+                    difficulty,
+                    mobSeed
                 );
 
                 if (mob) {
@@ -762,7 +778,8 @@ export class OpenWorldManager {
                 m.y,
                 biome,
                 m.archetype,
-                1
+                1,
+                this.worldSeed ^ (Math.floor(m.x * 17) ^ Math.floor(m.y * 31))
             );
 
             this.entitiesList.mobs.push(mob);

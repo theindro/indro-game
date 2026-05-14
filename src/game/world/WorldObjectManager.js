@@ -45,7 +45,7 @@ export class WorldObjectManager {
         this.colliders.length = 0;
     }
 
-    spawnMob(x, y, biome = 'forest', archetype = null, difficulty = 1) {
+    spawnMob(x, y, biome = 'forest', archetype = null, difficulty = 1, spawnSeed) {
         const mob = spawnMobEntity(
             this.renderer,
             this.entityLayer,
@@ -53,7 +53,8 @@ export class WorldObjectManager {
             y,
             biome,
             archetype,
-            difficulty
+            difficulty,
+            spawnSeed
         );
         mob.worldEntityId = this._nextMobId++;
         return mob;

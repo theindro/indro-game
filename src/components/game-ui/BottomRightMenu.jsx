@@ -112,12 +112,16 @@ const BottomRightMenu = () => {
     };
 
     const openSettings = () => {
+        if (useGameStore.getState().showStartScreen) return;
         useGameStore.getState().togglePause();
-    }
+    };
 
 
     useEffect(() => {
         const handleKey = (e) => {
+            if (useGameStore.getState().showStartScreen) {
+                return;
+            }
             if (e.key.toLowerCase() === 'i') setOpenPanel(openPanel === 'inventory' ? '' : 'inventory');
             if (e.key.toLowerCase() === 'c') setOpenPanel(openPanel === 'character' ? '' : 'character');
             if (e.key.toLowerCase() === 'k') setOpenPanel(openPanel === 'crafting' ? '' : 'crafting');

@@ -6,6 +6,12 @@ import { ARCHETYPES, archetypeMap, ARCHETYPE_STATS, applyArchetypeVisuals } from
 import {updateStatusEffects} from "../statusEffects.js";
 import {VFX} from '../GlobalEffects.js';
 
+/** Deterministic [0,1) from integer seed (matches world `seededRandom` style). */
+export function mobSeededUnit(seed) {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+
 export function createMobController(mob, entityLayer) {
     let archetypeBehavior = null;
     const archetypeType = mob.archetype || ARCHETYPES.RUSHER;
@@ -93,8 +99,11 @@ export function createMobController(mob, entityLayer) {
                 if (time - lastPatrolChange > 2200 ||
                     Math.hypot(m.x - patrolTargetX, m.y - patrolTargetY) < 25) {
 
-                    const angle = Math.random() * Math.PI * 2;
-                    const dist = 40 + Math.random() * PATROL_RADIUS;
+                    const rng = mob.spawnRngSeed ?? ((Math.floor(m.x * 73856093) ^ Math.floor(m.y * 19349663)) | 0);
+                    mob._patrolStep = (mob._patrolStep || 0) + 1;
+                    const s = rng ^ (mob._patrolStep * 0x9e3779b9);
+                    const angle = mobSeededUnit(s) * Math.PI * 2;
+                    const dist = 40 + mobSeededUnit(s + 11111) * PATROL_RADIUS;
                     patrolTargetX = spawnX + Math.cos(angle) * dist;
                     patrolTargetY = spawnY + Math.sin(angle) * dist;
                     lastPatrolChange = time;
@@ -191,10 +200,16 @@ export function createMobController(mob, entityLayer) {
 
 
 
-export function spawnMob(renderer,world, x, y, biome = 'forest', archetype = null, difficulty = 1) {
+export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = null, difficulty = 1, spawnSeed) {
+    const rng =
+        spawnSeed != null && Number.isFinite(spawnSeed)
+            ? spawnSeed | 0
+            : ((Math.floor(x * 73856093) ^ Math.floor(y * 19349663)) | 0);
+
     let finalArchetype = archetype;
     if (!finalArchetype || !ARCHETYPE_STATS[finalArchetype]) {
-        finalArchetype = Object.values(ARCHETYPES)[Math.floor(Math.random() * Object.values(ARCHETYPES).length)];
+        const archetypes = Object.values(ARCHETYPES);
+        finalArchetype = archetypes[Math.floor(mobSeededUnit(rng ^ 0xbeeff00d) * archetypes.length)];
     }
 
     const stats = ARCHETYPE_STATS[finalArchetype];
@@ -223,7 +238,9 @@ export function spawnMob(renderer,world, x, y, biome = 'forest', archetype = nul
         attackSpeed: baseAtkSpeed,
         attackCooldown: 0,
         exp: stats.exp,
-        animOffset: Math.random() * 1000,
+        animOffset: mobSeededUnit(rng ^ 0xdeadbeef) * 1000,
+        spawnRngSeed: rng,
+        _patrolStep: 0,
         // Core identifiers
         archetype: finalArchetype,
         biome,

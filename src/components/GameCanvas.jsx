@@ -1,11 +1,13 @@
 // GameCanvas.jsx
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { useGame } from '../hooks/useGame.js';
+import { useGameStore } from '../stores/gameStore.js';
 
 export default function GameCanvas() {
     const containerRef = useRef(null);
+    const restartGeneration = useGameStore((s) => s.restartGeneration);
 
-    useGame(containerRef); // Pass container ref to game
+    useGame(containerRef, restartGeneration);
 
     return (
         <div

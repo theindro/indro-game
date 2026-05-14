@@ -84,6 +84,44 @@ export class AudioManager {
         this.currentPath = path;
     }
 
+    playSpatialSFX(path, soundX, soundY, playerX, playerY) {
+        if (this.isMuted) return;
+
+        const dx = soundX - playerX;
+        const dy = soundY - playerY;
+
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const maxDistance = 2000;
+
+        if (distance > maxDistance) return;
+
+        // Volume falloff
+        const volume = Math.max(0, 1 - distance / maxDistance);
+
+        // Stereo pan (-1 left, +1 right)
+        const pan = Math.max(-1, Math.min(1, dx / maxDistance));
+
+        const audio = new Audio(path);
+
+        audio.volume = volume * this.sfxVolume;
+
+        // Stereo panning
+        const ctx = this.audioContext || new AudioContext();
+        this.audioContext = ctx;
+
+        const source = ctx.createMediaElementSource(audio);
+
+        const panner = new StereoPannerNode(ctx, {
+            pan
+        });
+
+        source.connect(panner);
+        panner.connect(ctx.destination);
+
+        audio.play();
+    }
+
     setCooldown(path, ms = 500) {
         this.cooldowns.set(path, ms);
     }

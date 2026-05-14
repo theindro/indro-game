@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createGame } from '../game/index.js';
 
-export function useGame(containerRef) {
+export function useGame(containerRef, restartGeneration = 0) {
     const destroyRef = useRef(null);
 
     useEffect(() => {
@@ -42,5 +42,5 @@ export function useGame(containerRef) {
             destroyRef.current?.();
             destroyRef.current = null;
         };
-    }, [containerRef]);
+    }, [containerRef, restartGeneration]);
 }

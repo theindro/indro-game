@@ -1,16 +1,9 @@
 // components/PauseScreen.jsx - Updated to use store
 import { Modal, Button, Space, Switch, Slider, Divider, Typography } from 'antd';
-import {
-    PauseCircleOutlined,
-    CaretRightOutlined,
-    SoundOutlined,
-    SoundFilled,
-    HomeOutlined,
-    ReloadOutlined,
-} from '@ant-design/icons';
+import { CaretRightOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useGameStore } from '../../stores/gameStore.js';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 export default function PauseScreen() {
     const gameState = useGameStore(state => state.gameState);
@@ -19,8 +12,7 @@ export default function PauseScreen() {
     const setMuted = useGameStore(state => state.setMuted);
     const setMusicVolume = useGameStore(state => state.setMusicVolume);
     const setSfxVolume = useGameStore(state => state.setSfxVolume);
-
-    console.log('rendering pause');
+    const restartGame = useGameStore(state => state.restartGame);
 
     const handleResume = () => {
         togglePause();
@@ -28,13 +20,19 @@ export default function PauseScreen() {
     };
 
     const handleRestart = () => {
-        window.location.reload();
-    }
+        restartGame();
+    };
 
     if (!gameState?.paused) return null;
 
     return (
-        <Modal footer={false} open={gameState.paused} onClose={handleResume} style={{textAlign: "center"}}>
+        <Modal
+            footer={false}
+            open={gameState.paused}
+            onCancel={handleResume}
+            zIndex={10080}
+            style={{ textAlign: 'center' }}
+        >
             <img src="/templogo.png" alt="" style={{width:'100%'}} />
 
                 {/* Audio Settings */}

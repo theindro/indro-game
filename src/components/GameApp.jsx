@@ -4,7 +4,9 @@ import { ConfigProvider, message } from 'antd';
 import GameCanvas from './GameCanvas.jsx';
 import { cartoonTheme } from '../styles/cartoonTheme';
 import '../styles/global.css';
+import { useGameStore } from '../stores/gameStore.js';
 import DeathScreen from "./screens/DeathScreen.jsx";
+import StartGameScreen from "./screens/StartGameScreen.jsx";
 import AbilityBar from "./game-ui/PlayerAbilityBar.jsx";
 import LevelUpEffect from "./game-ui/LevelUpEffect.jsx";
 import BottomRightMenu from "./game-ui/BottomRightMenu.jsx";
@@ -13,6 +15,7 @@ import BottomDevMenu from "./devtools/BottomDevMenu.jsx";
 export default function GameApp() {
     const [messageApi, contextHolder] = message.useMessage();
     const theme = useMemo(() => cartoonTheme, []);
+    const showStartScreen = useGameStore((s) => s.showStartScreen);
 
     return (
         <ConfigProvider theme={theme}>
@@ -30,11 +33,13 @@ export default function GameApp() {
 
             {import.meta.env.DEV && <BottomDevMenu />}
 
-            <BottomRightMenu />
+            {!showStartScreen && <BottomRightMenu />}
 
             <DeathScreen />
 
-            <AbilityBar />
+            <StartGameScreen />
+
+            {!showStartScreen && <AbilityBar />}
 
             <LevelUpEffect />
         </ConfigProvider>

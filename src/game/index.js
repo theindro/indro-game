@@ -71,7 +71,9 @@ export async function createGame() {
 
     // ==================== PLAYER ====================
     const {pCont, pGlow, pBody, hpBar, hpBg, pShadow, tickAnimations, playWeaponShoot} = createPlayerEntity(world);
-    let px = 0, py = 0;
+    const startLoc = useGameStore.getState().player?.location ?? {x: 0, y: 0};
+    let px = typeof startLoc.x === 'number' ? startLoc.x : 0;
+    let py = typeof startLoc.y === 'number' ? startLoc.y : 0;
 
     const playerController = createPlayerController({
         pBody, hpBar, world
@@ -80,7 +82,7 @@ export async function createGame() {
     const playerState = useGameStore.getState().player;
 
     // ==================== WORLD ====================
-    const openWorld = new OpenWorldManager(world, colliders, app);
+    const openWorld = new OpenWorldManager(world, colliders, app, useGameStore.getState().worldSeed);
 
     openWorld.setEntitiesList(entities);
 
@@ -212,7 +214,7 @@ export async function createGame() {
         // Weather
         updateWeather(weatherSystem, dt, camX, camY, openWorld);
 
-        if (gameState.paused || gameState.dead) return;
+        if (store.showStartScreen || gameState.paused || gameState.dead) return;
 
         perfMonitor.update(entities.mobs.length);
 
@@ -319,7 +321,7 @@ async function initApp() {
         autoDensity: true,
     });
     document.body.prepend(app.canvas);
-    document.body.style.cursor = 'none';
+    document.body.style.cursor = useGameStore.getState().showStartScreen ? 'default' : 'none';
     return app;
 }
 
