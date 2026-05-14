@@ -130,6 +130,8 @@ class AssetManager {
             { file: '/gameprops/interactable/lava-ore.png', id: 'ore_lava', type: 'ore_lava', itemId: null },
             { file: '/gameprops/interactable/void-ore.png', id: 'ore_void', type: 'ore_void', itemId: null },
 
+            { file: '/gameprops/interactable/herb_green.png', id: 'herb_green', type: 'herb_green', itemId: null },
+
             { file: '/vfx/glow.png', id: 'glow', type: 'glow', itemId: null },
             { file: '/vfx/glow2.png', id: 'glow2', type: 'glow2', itemId: null },
         ];

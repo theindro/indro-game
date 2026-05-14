@@ -21,7 +21,7 @@ import { OutlineFilter } from 'pixi-filters';
 const HOVER_FILTER = new OutlineFilter({
     thickness: 2,
     color: 'white',
-    alpha: 0.25,
+    alpha: 0.75,
     quality: 0.4,
 });
 
@@ -29,7 +29,7 @@ const HOVER_FILTER = new OutlineFilter({
 const GLOW_PULSE_SPEED   = 25;
 const GLOW_MIN_ALPHA     = 0;
 const GLOW_MAX_ALPHA     = 0;
-const INDICATOR_FONT     = { fontFamily: 'monospace', fontSize: 11, fill: 0xffffff, align: 'center' };
+const INDICATOR_FONT     = { fontFamily: 'Nunito', fontSize: 12, fill: 0xffffff, align: 'center' };
 const INTERACT_KEY_LABEL = '[E]';
 const HARVEST_BAR_W      = 48;
 const HARVEST_BAR_H      = 6;
@@ -42,6 +42,7 @@ export class InteractablePropManager {
         this.worldObjects    = worldObjects;
         this.worldSeed       = worldSeed;
         this.onLoot          = options.onLoot ?? null;
+        this._hovered = null;
 
         this.layer = null;
 
@@ -217,11 +218,13 @@ export class InteractablePropManager {
             }
         }
 
-        const nearest = this._findNearest(playerX, playerZ);
+        const active =
+            this._hovered ||
+            this._findNearest(playerX, playerZ);
 
-        if (nearest !== this._highlighted) {
+        if (active !== this._highlighted) {
             if (this._highlighted) this._hideIndicator(this._highlighted);
-            this._highlighted = nearest;
+            this._highlighted = active;
         }
 
         if (this._highlighted) {
@@ -416,7 +419,7 @@ export class InteractablePropManager {
             );
         }
 
-        return {
+        const prop = {
             def,
             id,
             x, z,
@@ -437,6 +440,28 @@ export class InteractablePropManager {
             _harvesting:   false,
             _harvestAccum: 0,
         };
+
+        this._attachHover(prop);
+        return prop;
+    }
+
+    _attachHover(prop) {
+        const visual = prop.visual;
+
+        visual.eventMode = 'static';
+        visual.cursor = 'pointer';
+
+        visual.on('pointerover', () => {
+            this._hovered = prop;
+            visual.filters = [HOVER_FILTER];
+        });
+
+        visual.on('pointerout', () => {
+            if (this._hovered === prop) {
+                this._hovered = null;
+            }
+            visual.filters = null;
+        });
     }
 
     _isColliding(x, z, radius) {

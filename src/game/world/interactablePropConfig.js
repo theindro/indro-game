@@ -187,7 +187,7 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'herb_green',
         texture: 'herb_green',
         fallbackColor: 0x44bb44,
-        scaleRange: { min: 0.4, max: 0.7 },
+        scaleRange: { min: 2, max: 2.7 },
         glowColor: 0x88ff88,
         harvestTime: 0.5,          // seconds
         harvestYield: { min: 1, max: 3 },

@@ -43,7 +43,6 @@ export async function createGame() {
     // ==================== GAME STATE ====================
 
     let mouseWorld = {x: 0, y: 0};
-    let camX = 0, camY = 0;
     let pBobT = 0;
     let saveTimer = 0;
     let shootCooldown = 0;
@@ -74,6 +73,8 @@ export async function createGame() {
     const startLoc = useGameStore.getState().player?.location ?? {x: 0, y: 0};
     let px = typeof startLoc.x === 'number' ? startLoc.x : 0;
     let py = typeof startLoc.y === 'number' ? startLoc.y : 0;
+    let camX = px;
+    let camY = py;
 
     const playerController = createPlayerController({
         pBody, hpBar, world
