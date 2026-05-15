@@ -108,6 +108,7 @@ export class ChunkMonitor {
             </div>
 
             <div>Biome: ${biome}</div>
+            <div>Name: ${chunkData?.landscapeProfile?.label}</div>
             <div>Weather: ${weather?.type}</div>
             
                        <hr style="border-color:rgba(255,255,255,0.08)" />

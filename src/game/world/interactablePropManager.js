@@ -17,6 +17,8 @@ import { shadowManager } from '../controllers/createShadowController.js';
 import { VFX } from '../GlobalEffects.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { OutlineFilter } from 'pixi-filters';
+import { scaleInteractableIntensity } from './chunkProfile.js';
+import { sampleInteractablePosition } from './chunkPlacement.js';
 
 const HOVER_FILTER = new OutlineFilter({
     thickness: 2,
@@ -91,13 +93,13 @@ export class InteractablePropManager {
 
     // ── Chunk lifecycle ───────────────────────────────────────────────────────
 
-    async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize) {
+    async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize, landscapeContext = null) {
         const key = `${chunkX},${chunkZ}`;
         if (this.activeChunks.has(key)) return;
 
         const chunkSizeWorld = chunkSize * tileSize;
-        const startX  = chunkX * chunkSizeWorld;
-        const startZ  = chunkZ * chunkSizeWorld;
+        const startX = chunkX * chunkSizeWorld;
+        const startZ = chunkZ * chunkSizeWorld;
         const baseSeed = this.hash(chunkX, chunkZ);
 
         const biomeConfig = getBiomeInteractableConfig()[biome];
@@ -105,6 +107,9 @@ export class InteractablePropManager {
             this.activeChunks.set(key, { props: [] });
             return;
         }
+
+        const profile = landscapeContext?.profile;
+        const anchors = landscapeContext?.anchors;
 
         const spawned         = [];
         const placedPositions = [];
@@ -116,8 +121,12 @@ export class InteractablePropManager {
             const catSeed = baseSeed + categoryIndex * 77777;
             categoryIndex++;
 
+            const effectiveIntensity = profile
+                ? scaleInteractableIntensity(profile, category, categoryConfig.intensity)
+                : categoryConfig.intensity;
+
             const rollIntensity = this.seededRandom(catSeed);
-            if (rollIntensity > categoryConfig.intensity) continue;
+            if (rollIntensity > effectiveIntensity) continue;
 
             const pool = [];
             for (const entry of categoryConfig.props) {
@@ -135,8 +144,14 @@ export class InteractablePropManager {
                 const propDef = getInteractablePropTypes()[typeId];
                 if (!propDef) continue;
 
-                const x = startX + this.seededRandom(aSeed + 11) * chunkSizeWorld;
-                const z = startZ + this.seededRandom(aSeed + 22) * chunkSizeWorld;
+                const pos = anchors
+                    ? sampleInteractablePosition(anchors, aSeed)
+                    : {
+                        x: startX + this.seededRandom(aSeed + 11) * chunkSizeWorld,
+                        z: startZ + this.seededRandom(aSeed + 22) * chunkSizeWorld,
+                    };
+                const x = pos.x;
+                const z = pos.z;
 
                 let ok = true;
                 for (const p of placedPositions) {

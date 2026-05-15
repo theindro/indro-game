@@ -6,7 +6,9 @@ import {useGameStore} from "../../stores/gameStore.js";
 import {InteractablePropManager} from './interactablePropManager.js';
 import {WorldObjectManager} from './WorldObjectManager.js';
 
-import {WorldEditorController} from "../devtools/WorldEditorController";
+import { WorldEditorController } from '../devtools/WorldEditorController.js';
+import { pickChunkProfile, computeLayoutAnchors } from './chunkProfile.js';
+import { sampleMobPackCenter } from './chunkPlacement.js';
 import {editorBridge} from "../../components/devtools/editorBridge.js";
 
 const weatherConfig = {
@@ -154,6 +156,16 @@ export class OpenWorldManager {
             (chunkX * 73856093) ^
             (chunkZ * 19349663);
 
+        const landscapeProfile = pickChunkProfile(biome, chunkX, chunkZ, this.worldSeed);
+        const chunkSizeWorld = this.chunkSize * this.tileSize;
+        const layoutAnchors = computeLayoutAnchors(
+            landscapeProfile,
+            chunkX,
+            chunkZ,
+            this.worldSeed,
+            chunkSizeWorld
+        );
+
         const rand = this.seededRandom(seed);
 
         let cumulative = 0;
@@ -168,6 +180,11 @@ export class OpenWorldManager {
             }
         }
 
+        const mobBonus = landscapeProfile.mobPackBonus ?? 0;
+        if (mobBonus > 0 && type === 'empty' && this.seededRandom(seed + 55555) < mobBonus) {
+            type = 'mob_pack';
+        }
+
         const chunkLevel = Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
         const difficulty = Math.pow(1.08, chunkLevel);
 
@@ -179,15 +196,20 @@ export class OpenWorldManager {
             difficulty,
             packs: [],
             poi: null,
+            landscapeProfile,
+            layoutAnchors,
         };
 
         // Generate encounters
+        const packMul = landscapeProfile.mobPackCountMul ?? 1;
+
         if (type === 'mob_pack') {
-            data.packs = this.generateMobPacks(chunkX, chunkZ, 1, seed, difficulty);
+            data.packs = this.generateMobPacks(chunkX, chunkZ, 1, seed, difficulty, layoutAnchors, packMul);
         }
 
         if (type === 'dense_pack') {
-            data.packs = this.generateMobPacks(chunkX, chunkZ, 3, seed, difficulty);
+            const denseCount = Math.max(1, Math.round(3 * packMul));
+            data.packs = this.generateMobPacks(chunkX, chunkZ, denseCount, seed, difficulty, layoutAnchors, packMul);
         }
 
         if (type === 'elite') {
@@ -209,7 +231,7 @@ export class OpenWorldManager {
         return data;
     }
 
-    generateMobPacks(chunkX, chunkZ, packCount, seed, difficulty) {
+    generateMobPacks(chunkX, chunkZ, packCount, seed, difficulty, layoutAnchors = null, packMul = 1) {
         const packs = [];
 
         const defaultPackSize = difficulty;
@@ -222,20 +244,25 @@ export class OpenWorldManager {
 
             const packSeed = seed + i * 9999;
 
-            const centerX =
-                startX +
-                this.seededRandom(packSeed) * chunkSizeWorld;
+            let centerX;
+            let centerZ;
 
-            const centerZ =
-                startZ +
-                this.seededRandom(packSeed + 5555) * chunkSizeWorld;
+            if (layoutAnchors) {
+                const center = sampleMobPackCenter(layoutAnchors, i, packSeed);
+                centerX = center.x;
+                centerZ = center.z;
+            } else {
+                centerX = startX + this.seededRandom(packSeed) * chunkSizeWorld;
+                centerZ = startZ + this.seededRandom(packSeed + 5555) * chunkSizeWorld;
+            }
 
             packs.push({
                 x: centerX,
                 z: centerZ,
                 radius: 120 + this.seededRandom(packSeed + 888) * 120,
-                mobCount: defaultPackSize + Math.floor(this.seededRandom(packSeed + 999) * 5),
-                archetype: 'melee'
+                mobCount:
+                    Math.max(1, Math.floor((defaultPackSize + Math.floor(this.seededRandom(packSeed + 999) * 5)) * packMul)),
+                archetype: 'melee',
             });
         }
 
@@ -570,12 +597,16 @@ export class OpenWorldManager {
 
             this.debugCountScene();
 
-            // 🔥 TRIGGER THE CALLBACK HERE 🔥
+            const chunkData = this.chunkData.get(chunkKey);
+            const landscape = chunkData?.landscapeProfile;
+
             if (this.onChunkChangeCallback) {
                 this.onChunkChangeCallback({
                     chunkX: centerChunkX,
                     chunkZ: centerChunkZ,
                     biome: newBiome,
+                    landscapeId: landscape?.id ?? null,
+                    landscapeLabel: landscape?.label ?? null,
                     x: centerChunkX * chunkSizeWorld,
                     z: centerChunkZ * chunkSizeWorld,
                     oldChunkX: this.lastPlayerChunk?.x ?? centerChunkX,
@@ -583,7 +614,7 @@ export class OpenWorldManager {
                     oldBiome: this.lastPlayerChunk?.biome,
                     mobCount: mobCount,
                     propCount: propCount,
-                    weather: weather
+                    weather: weather,
                 });
             }
 
@@ -793,9 +824,28 @@ export class OpenWorldManager {
 
         this.groundLayer.addChild(chunk);
 
-        await this.propManager.generateChunkProps(chunkX, chunkZ, chunkData.biome, this.chunkSize, this.tileSize);
+        const landscapeContext = {
+            profile: chunkData.landscapeProfile,
+            anchors: chunkData.layoutAnchors,
+        };
 
-        await this.interactablePropManager.generateChunkProps(chunkX, chunkZ, chunkData.biome, this.chunkSize, this.tileSize);
+        await this.propManager.generateChunkProps(
+            chunkX,
+            chunkZ,
+            chunkData.biome,
+            this.chunkSize,
+            this.tileSize,
+            landscapeContext
+        );
+
+        await this.interactablePropManager.generateChunkProps(
+            chunkX,
+            chunkZ,
+            chunkData.biome,
+            this.chunkSize,
+            this.tileSize,
+            landscapeContext
+        );
 
         await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData);
 

@@ -1,7 +1,16 @@
 import { Sprite, Graphics, Texture, AnimatedSprite } from 'pixi.js';
-import { getBiomePropConfig, getPropTypes, getPropTypeByAssetId } from './propConfig.js';
+import { getPropTypes, getPropTypeByAssetId } from './propConfig.js';
 import { assetManager } from '../utils/assetManager.js';
-import {shadowManager} from "../controllers/createShadowController.js";
+import { shadowManager } from '../controllers/createShadowController.js';
+import {
+    pickChunkProfile,
+    buildPropPool,
+    pickVariantAssetId,
+    getSpacingDistance,
+    getTargetPropCount,
+    computeLayoutAnchors,
+} from './chunkProfile.js';
+import { samplePropPosition } from './chunkPlacement.js';
 
 export class PropManager {
     constructor(worldObjects, worldSeed = 1) {
@@ -286,70 +295,61 @@ export class PropManager {
         this.activeChunks.delete(key);
     }
 
-    async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize) {
+    async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize, landscapeContext = null) {
         const key = `${chunkX},${chunkZ}`;
 
-        // Check if already generated
         if (this.activeChunks.has(key)) {
-            console.log(`Props already exist for chunk ${key}`);
             return this.activeChunks.get(key);
         }
 
-        // DON'T create a container for props - we'll add directly to propLayer
-        const propsList = []; // Store references to cleanup later
-        const shadowsList = []; // Store references to cleanup later
+        const propsList = [];
+        const shadowsList = [];
 
         const chunkSizeWorld = chunkSize * tileSize;
-        const startX = chunkX * chunkSizeWorld;
-        const startZ = chunkZ * chunkSizeWorld;
 
-        const biomeConfig = getBiomePropConfig()[biome];
-        if (!biomeConfig) {
-            console.warn(`No prop config for biome: ${biome}`);
-            return { propsList }; // Return empty
-        }
+        const profile =
+            landscapeContext?.profile ??
+            pickChunkProfile(biome, chunkX, chunkZ, this.worldSeed);
 
-        // Build prop pool based on weights
-        const propPool = [];
-        for (const def of biomeConfig.props) {
-            const type = getPropTypes()[def.type];
-            if (!type) continue;
+        const anchors =
+            landscapeContext?.anchors ??
+            computeLayoutAnchors(profile, chunkX, chunkZ, this.worldSeed, chunkSizeWorld);
 
-            for (let i = 0; i < def.weight; i++) {
-                propPool.push(type);
-            }
+        const propTypes = getPropTypes();
+        const propPool = buildPropPool(profile, propTypes);
+
+        if (propPool.length === 0) {
+            console.warn(`[PropManager] Empty prop pool for chunk ${key} (${profile.id})`);
+            return { propsList };
         }
 
         const placed = [];
         const baseSeed = this.hash(chunkX, chunkZ);
-        const targetCount = Math.floor((biomeConfig.density || 0.5) * 25);
+        const targetCount = getTargetPropCount(profile);
         let actualCount = 0;
 
-        for (let i = 0; i < targetCount * 5 && actualCount < targetCount; i++) {
-            const propType = propPool[
-                Math.floor(this.seededRandom(baseSeed + i * 13) * propPool.length)
-                ];
+        for (let i = 0; i < targetCount * 8 && actualCount < targetCount; i++) {
+            const entry = propPool[Math.floor(this.seededRandom(baseSeed + i * 13) * propPool.length)];
+            const propType = entry.propType;
+            const typeKey = entry.typeKey;
 
             if (!propType) continue;
 
-            const x = startX + this.seededRandom(baseSeed + i * 17) * chunkSizeWorld;
-            const z = startZ + this.seededRandom(baseSeed + i * 23) * chunkSizeWorld;
+            const pos = samplePropPosition(anchors, typeKey, baseSeed + i * 41);
+            const x = pos.x;
+            const z = pos.z;
 
-            // Check spacing
+            const minDist = getSpacingDistance(profile, typeKey, propType);
             let ok = true;
             for (const p of placed) {
-                if (Math.hypot(p.x - x, p.z - z) < (propType.minDistance || 30)) {
+                if (Math.hypot(p.x - x, p.z - z) < Math.max(minDist, p.minDist ?? 0)) {
                     ok = false;
                     break;
                 }
             }
             if (!ok) continue;
 
-            const assetId = propType.variants?.length
-                ? propType.variants[
-                    Math.floor(this.seededRandom(baseSeed + i * 29) * propType.variants.length)
-                    ]
-                : propType.name;
+            const assetId = pickVariantAssetId(profile, propType, baseSeed + i * 29);
 
             let texture = this.getTexture(assetId);
 
@@ -454,15 +454,12 @@ export class PropManager {
             }
 
             propsList.push(propVisual);
-            placed.push({ x, z });
+            placed.push({ x, z, minDist });
             actualCount++;
         }
 
-        // Store just the list of props for this chunk
-        const result = { propsList , shadowsList };
+        const result = { propsList, shadowsList, profileId: profile.id, profileLabel: profile.label };
         this.activeChunks.set(key, result);
-
-        console.log(`Chunk ${chunkX},${chunkZ} added ${actualCount} props and ${shadowsList.length} shadows directly to entityLayer`);
 
         return result;
     }

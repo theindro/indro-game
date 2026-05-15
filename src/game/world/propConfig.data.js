@@ -83,16 +83,15 @@ export function getPropTypeByAssetId(assetId) {
     return null;
 }
 
-// Biome configurations - Easy to adjust density per biome
-// propConfig.js - Move density to root level
+// Legacy biome-wide fallback (forest uses chunkProfiles.data.js per-chunk identity).
 export const BIOME_PROP_CONFIG = {
     forest: {
-        density: 1.2,  // Move density here (root level)
+        density: 1.0,
         props: [
             { type: 'STONE', weight: 10 },
             { type: 'TREE', weight: 30 },
             { type: 'BUSH', weight: 40 },
-        ]
+        ],
     },
     desert: {
         density: 0.5,  // Root level
