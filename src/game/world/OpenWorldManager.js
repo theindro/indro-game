@@ -360,27 +360,90 @@ export class OpenWorldManager {
 
     async generateChunk(chunkX, chunkZ) {
         const chunkContainer = new Container();
+
         const startX = chunkX * this.chunkSize * this.tileSize;
         const startZ = chunkZ * this.chunkSize * this.tileSize;
+
         const chunkWidth = this.chunkSize * this.tileSize;
         const chunkHeight = this.chunkSize * this.tileSize;
+
         const centerX = (chunkX + 0.5) * this.chunkSize;
         const centerZ = (chunkZ + 0.5) * this.chunkSize;
+
         const biome = this.getBiomeAt(centerX, centerZ);
+
+        const biomeColor = this.getBiomeColor(biome);
         const texture = await this.getBiomeTexture(biome);
+
+        //
+        // BASE GROUND COLOR
+        // Always render this first
+        //
+        const baseGround = new Graphics();
+
+        baseGround
+            .rect(0, 0, chunkWidth, chunkHeight)
+            .fill({ color: biomeColor });
+
+        baseGround.x = startX;
+        baseGround.y = startZ;
+
+        chunkContainer.addChild(baseGround);
+
+        //
+        // TEXTURE OVERLAY
+        // Blend softly on top instead of tinting the texture fully
+        //
         if (texture) {
-            const tilingSprite = new TilingSprite(texture, chunkWidth, chunkHeight);
-            tilingSprite.x = startX;
-            tilingSprite.y = startZ;
-            chunkContainer.addChild(tilingSprite);
-        } else {
-            const color = this.getBiomeColor(biome);
-            const rect = new Graphics();
-            rect.rect(0, 0, chunkWidth, chunkHeight).fill({color});
-            rect.x = startX;
-            rect.y = startZ;
-            chunkContainer.addChild(rect);
+            const overlay = new TilingSprite({
+                texture,
+                width: chunkWidth,
+                height: chunkHeight,
+            });
+
+            overlay.x = startX;
+            overlay.y = startZ;
+
+            //
+            // IMPORTANT:
+            // Offset texture so all chunks connect seamlessly
+            //
+            overlay.tilePosition.set(-startX, -startZ);
+
+            //
+            // Very subtle alpha
+            //
+            let textureAlpha = 0.17;
+
+            if (biome === 'ice') {
+                textureAlpha = 0.25
+            }
+
+            overlay.alpha = textureAlpha;
+
+            //
+            // Slight tint variation instead of exact biome color
+            // Makes texture retain detail
+            //
+            overlay.tint = 0xffffff;
+
+            //
+            // Use multiply for grounded detail
+            // Alternatives:
+            // "overlay", "soft-light" if you add custom blend modes later
+            //
+
+            overlay.blendMode = 'multiply';
+
+            chunkContainer.addChild(overlay);
         }
+
+        //
+        // OPTIONAL:
+        // Macro tint variation per chunk
+        // Huge visual improvement
+        //
+
 
         return chunkContainer;
     }

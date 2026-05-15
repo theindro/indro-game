@@ -52,7 +52,7 @@ export class CreateWeatherController {
     getAmbientForWeather(weatherType, intensity) {
         const ambients = {
             rain: { color: 0x000000, alpha: 0.5 * intensity },
-            snow: { color: 0x1a2a4a, alpha: 0.55 * intensity },
+            snow: { color: 0x1a2a4a, alpha: 0.15 * intensity },
             embers: { color: 0x262626, alpha: 0.5 * intensity },
             sandstorm: { color: 0x461f06, alpha: 0.5 * intensity },
             fog: { color: 0x88aaff, alpha: 0.5 * intensity },

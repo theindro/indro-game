@@ -23,7 +23,7 @@ export const PROP_TYPES = {
     },
     TREE: {
         name: 'tree',
-        variants: ['tree1', 'tree2', 'tree3'],
+        variants: ['tree1', 'tree2', 'tree3', 'tree4', 'tree5'],
         collision: false,
         collisionType: 'rect',
         minDistance: 80,
@@ -43,7 +43,7 @@ export const PROP_TYPES = {
     },
     BUSH: {
         name: 'bush',
-        variants: ['bush1', 'bush2', 'bush3'],
+        variants: ['bush1', 'bush2', 'bush3', 'bush4', 'bush5', 'bush6'],
         collision: false,
         collisionType: 'auto',
         minDistance: 40,

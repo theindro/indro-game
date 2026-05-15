@@ -68,18 +68,21 @@ export const BIOME_COLORS = {
         accent: 0x1a4a22,
         props: true,
         tint: '',
+        texture: "/testgrass.jpg",
     },
     desert: {
         base: '#855655',
         accent: 0xd4a055,
         tint: 0xddbb88,
-        props: false
+        props: false,
+        texture: "/testgrass.jpg"
     },
     ice: {
         base: '#c9e2ff',
         accent: 0xb8e4f4,
         tint: 0xcceeff,
-        props: false
+        props: false,
+        texture: "/testgrass3.jpg"
     },
     lava: {
         base: '#262626',
@@ -88,6 +91,7 @@ export const BIOME_COLORS = {
         magma: 0xff6600,
         obsidian: 0x1a0a0a,
         props: true,
+        texture: "/testgrass.jpg"
     },
 };
 
