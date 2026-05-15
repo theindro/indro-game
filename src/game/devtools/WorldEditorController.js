@@ -20,9 +20,7 @@ import {
     applyArchetypeVisuals
 } from "../controllers/mobArchetypes/index.js";
 
-import {
-    INTERACTABLE_PROP_TYPES
-} from "../world/interactablePropConfig.js";
+import { getInteractablePropTypes } from "../world/interactablePropConfig.js";
 
 export class WorldEditorController {
 
@@ -204,7 +202,7 @@ export class WorldEditorController {
      */
     createInteractablePreview() {
 
-        const def = INTERACTABLE_PROP_TYPES[this.selectedId];
+        const def = getInteractablePropTypes()[this.selectedId];
         if (!def) return null;
 
         // User scale from settings (restored when picking, defaults to 1 for new placements)

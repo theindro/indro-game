@@ -1,0 +1,10 @@
+{
+  "schema": "spritesheet",
+  "id": "blue_fire",
+  "animated": true,
+  "frameWidth": 126,
+  "frameHeight": 274,
+  "cols": 4,
+  "rows": 3,
+  "fps": 14
+}

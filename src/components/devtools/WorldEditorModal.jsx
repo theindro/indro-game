@@ -18,7 +18,7 @@ import {
 } from "antd";
 
 import {assetManager} from "../../game/utils/assetManager.js";
-import {EDITOR_INTERACTABLES, EDITOR_MOBS} from "./editorRegistry.js";
+import {getEditorInteractables, EDITOR_MOBS} from "./editorRegistry.js";
 
 const {Text} = Typography;
 
@@ -46,6 +46,16 @@ const WorldEditorModal = ({
 
     const [search, setSearch] = useState("");
     const [selectedAsset, setSelectedAsset] = useState(null);
+    const [assetListTick, setAssetListTick] = useState(0);
+
+    useEffect(() => {
+        if (!open) return;
+        if (assetManager.loaded) {
+            setAssetListTick((t) => t + 1);
+            return;
+        }
+        assetManager.loadAssets().then(() => setAssetListTick((t) => t + 1));
+    }, [open]);
 
     // editable settings
     const [scale, setScale] = useState(1);
@@ -57,22 +67,26 @@ const WorldEditorModal = ({
     const [snapToGrid, setSnapToGrid] = useState(true);
     const [spawnChance, setSpawnChance] = useState(1);
 
-    const editorData = [
-        {
-            category: 'Props',
-            assets: assetManager.getEditorAssets()
-        },
+    const editorData = useMemo(
+        () => [
+            {
+                category: 'Props',
+                assets: assetManager.getEditorAssets(),
+            },
+            {
+                category: 'Mobs',
+                assets: EDITOR_MOBS,
+            },
+            {
+                category: 'Interactables',
+                assets: getEditorInteractables(),
+            },
+        ],
+        [open, assetListTick]
+    );
 
-        {
-            category: 'Mobs',
-            assets: EDITOR_MOBS
-        },
-
-        {
-            category: 'Interactables',
-            assets: EDITOR_INTERACTABLES
-        }
-    ]
+    const previewSrc = (asset) =>
+        asset?.previewUrl ?? asset?.source ?? asset?.meta?.file ?? '';
 
     const handlePlace = () => {
 
@@ -161,15 +175,21 @@ const WorldEditorModal = ({
                                                                 marginBottom: 6,
                                                             }}
                                                         >
-                                                            <img
-                                                                src={asset?.meta?.file}
-                                                                alt={asset.id}
-                                                                style={{
-                                                                    maxWidth: "100%",
-                                                                    maxHeight: "100%",
-                                                                    imageRendering: "pixelated",
-                                                                }}
-                                                            />
+                                                            {previewSrc(asset) ? (
+                                                                <img
+                                                                    src={previewSrc(asset)}
+                                                                    alt={asset.id}
+                                                                    style={{
+                                                                        maxWidth: "100%",
+                                                                        maxHeight: "100%",
+                                                                        imageRendering: "pixelated",
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <Text type="secondary" style={{ fontSize: 10 }}>
+                                                                    {asset.type}
+                                                                </Text>
+                                                            )}
                                                         </div>
 
                                                         <Text style={{ fontSize: 11 }}>{asset.id}</Text>
@@ -219,17 +239,21 @@ const WorldEditorModal = ({
                                         borderRadius: 8,
                                     }}
                                 >
-                                    <img
-                                        src={selectedAsset.source}
-                                        alt={selectedAsset.id}
-                                        style={{
-                                            maxWidth: "100%",
-                                            maxHeight: "100%",
-                                            imageRendering: "pixelated",
-                                            transform: `rotate(${rotation}deg) scale(${scale})`,
-                                            opacity: alpha,
-                                        }}
-                                    />
+                                    {previewSrc(selectedAsset) ? (
+                                        <img
+                                            src={previewSrc(selectedAsset)}
+                                            alt={selectedAsset.id}
+                                            style={{
+                                                maxWidth: "100%",
+                                                maxHeight: "100%",
+                                                imageRendering: "pixelated",
+                                                transform: `rotate(${rotation}deg) scale(${scale})`,
+                                                opacity: alpha,
+                                            }}
+                                        />
+                                    ) : (
+                                        <Text type="secondary">No preview</Text>
+                                    )}
                                 </div>
 
                                 <Space direction="vertical" style={{width: "100%"}}>

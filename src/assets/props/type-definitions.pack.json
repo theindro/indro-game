@@ -1,0 +1,45 @@
+{
+  "schema": "prop_definitions",
+  "definitions": [
+    {
+      "typeKey": "STONE",
+      "name": "stone",
+      "variants": ["stone1", "stone2", "stone3", "stone4", "stone5", "stone6", "stone7", "stone8"],
+      "collision": true,
+      "collisionType": "auto",
+      "minDistance": 500,
+      "margin": 0.7,
+      "scaleRange": { "min": 0.6, "max": 0.6 }
+    },
+    {
+      "typeKey": "SNOW_STONE",
+      "name": "snow_stone",
+      "variants": ["snowstone1", "snowstone2", "snowstone3", "snowstone4", "snowstone5", "snowstone7"],
+      "collision": true,
+      "collisionType": "auto",
+      "minDistance": 500,
+      "margin": 0.8,
+      "scaleRange": { "min": 0.5, "max": 0.7 }
+    },
+    {
+      "typeKey": "TREE",
+      "name": "tree",
+      "variants": ["tree1", "tree2", "tree3"],
+      "collision": false,
+      "collisionType": "rect",
+      "minDistance": 80,
+      "margin": 0.8,
+      "scaleRange": { "min": 0.9, "max": 1.0 }
+    },
+    {
+      "typeKey": "BUSH",
+      "name": "bush",
+      "variants": ["bush1", "bush2", "bush3"],
+      "collision": false,
+      "collisionType": "auto",
+      "minDistance": 40,
+      "margin": 0.7,
+      "scaleRange": { "min": 0.7, "max": 0.8 }
+    }
+  ]
+}

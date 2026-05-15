@@ -1,0 +1,10 @@
+{
+  "schema": "spritesheet",
+  "id": "burst",
+  "animated": true,
+  "frameWidth": 1024,
+  "frameHeight": 1024,
+  "cols": 4,
+  "rows": 4,
+  "fps": 16
+}

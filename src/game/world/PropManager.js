@@ -1,5 +1,5 @@
 import { Sprite, Graphics, Texture, AnimatedSprite } from 'pixi.js';
-import { BIOME_PROP_CONFIG, PROP_TYPES, getPropTypeByAssetId } from './propConfig.js';
+import { getBiomePropConfig, getPropTypes, getPropTypeByAssetId } from './propConfig.js';
 import { assetManager } from '../utils/assetManager.js';
 import {shadowManager} from "../controllers/createShadowController.js";
 
@@ -303,7 +303,7 @@ export class PropManager {
         const startX = chunkX * chunkSizeWorld;
         const startZ = chunkZ * chunkSizeWorld;
 
-        const biomeConfig = BIOME_PROP_CONFIG[biome];
+        const biomeConfig = getBiomePropConfig()[biome];
         if (!biomeConfig) {
             console.warn(`No prop config for biome: ${biome}`);
             return { propsList }; // Return empty
@@ -312,7 +312,7 @@ export class PropManager {
         // Build prop pool based on weights
         const propPool = [];
         for (const def of biomeConfig.props) {
-            const type = PROP_TYPES[def.type];
+            const type = getPropTypes()[def.type];
             if (!type) continue;
 
             for (let i = 0; i < def.weight; i++) {

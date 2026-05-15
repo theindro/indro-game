@@ -1,0 +1,115 @@
+// propConfig.js - Simplified with multiple variants
+export const PROP_TYPES = {
+    // Stone has multiple variants
+    STONE: {
+        name: 'stone',
+        variants: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5', 'stone6', 'stone7', 'stone8'],
+        collision: true,
+        collisionType: 'auto',
+        minDistance: 500,  // Stones can be closer together
+        margin: 0.7,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.6, max: 0.6}  // Random size variation
+    },
+    SNOW_STONE: {
+        name: 'snow_stone',
+        variants: ['snowstone1', 'snowstone2', 'snowstone3' , 'snowstone4', 'snowstone5'],
+        collision: true,
+        collisionType: 'auto',
+        minDistance: 500,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.5, max: 0.7 }
+    },
+    TREE: {
+        name: 'tree',
+        variants: ['tree1', 'tree2', 'tree3'],
+        collision: false,
+        collisionType: 'rect',
+        minDistance: 80,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.9, max: 1.0 }
+    },
+    SNOW_TREE: {
+        name: 'tree',
+        variants: ['log_pile', 'dead_tree'],
+        collision: false,
+        collisionType: 'rect',
+        minDistance: 80,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.15, max: 0.25 }
+    },
+    BUSH: {
+        name: 'bush',
+        variants: ['bush1', 'bush2', 'bush3'],
+        collision: false,
+        collisionType: 'auto',
+        minDistance: 40,
+        margin: 0.7,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.7, max: 0.8}
+    },
+    FLOWER: {
+        name: 'flower',
+        variants: ['flower'],
+        collision: false,
+        collisionType: 'none',
+        minDistance: 25,
+        margin: 0,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.4, max: 0.7 }
+    },
+    CACTUS: {
+        name: 'cactus',
+        variants: [],
+        collision: true,
+        collisionType: 'auto',
+        minDistance: 60,
+        margin: 0.75,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.6, max: 1.0 }
+    }
+};
+
+/** Resolve procedural prop definition from a placed asset id (e.g. tree2, snowstone1). */
+export function getPropTypeByAssetId(assetId) {
+    if (!assetId) return null;
+    for (const def of Object.values(PROP_TYPES)) {
+        if (def.name === assetId) return def;
+        if (def.variants?.includes(assetId)) return def;
+    }
+    return null;
+}
+
+// Biome configurations - Easy to adjust density per biome
+// propConfig.js - Move density to root level
+export const BIOME_PROP_CONFIG = {
+    forest: {
+        density: 1.2,  // Move density here (root level)
+        props: [
+            { type: 'STONE', weight: 10 },
+            { type: 'TREE', weight: 30 },
+            { type: 'BUSH', weight: 40 },
+        ]
+    },
+    desert: {
+        density: 0.5,  // Root level
+        props: [
+            { type: 'STONE', weight: 100 },
+        ]
+    },
+    ice: {
+        density: 0.5,  // Root level
+        props: [
+            { type: 'SNOW_STONE', weight: 35 },
+        ]
+    },
+    lava: {
+        density: 0.5,  // Root level
+        props: [
+            { type: 'STONE', weight: 70 },
+        ]
+    }
+};

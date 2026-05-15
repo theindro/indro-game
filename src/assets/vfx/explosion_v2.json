@@ -1,0 +1,10 @@
+{
+  "schema": "spritesheet",
+  "id": "explosion_v2",
+  "animated": true,
+  "frameWidth": 400,
+  "frameHeight": 288,
+  "cols": 5,
+  "rows": 2,
+  "fps": 14
+}

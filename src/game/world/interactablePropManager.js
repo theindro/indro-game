@@ -8,9 +8,9 @@
 
 import { Container, Sprite, Graphics, Texture, Text } from 'pixi.js';
 import {
-    INTERACTABLE_PROP_TYPES,
-    BIOME_INTERACTABLE_CONFIG,
-    LOOT_TABLES,
+    getInteractablePropTypes,
+    getBiomeInteractableConfig,
+    getLootTables,
 } from './interactablePropConfig.js';
 import { assetManager } from '../utils/assetManager.js';
 import { shadowManager } from '../controllers/createShadowController.js';
@@ -100,7 +100,7 @@ export class InteractablePropManager {
         const startZ  = chunkZ * chunkSizeWorld;
         const baseSeed = this.hash(chunkX, chunkZ);
 
-        const biomeConfig = BIOME_INTERACTABLE_CONFIG[biome];
+        const biomeConfig = getBiomeInteractableConfig()[biome];
         if (!biomeConfig) {
             this.activeChunks.set(key, { props: [] });
             return;
@@ -132,7 +132,7 @@ export class InteractablePropManager {
             for (let attempt = 0; attempt < max * 8 && placed < max; attempt++) {
                 const aSeed  = catSeed + attempt * 3331;
                 const typeId = pool[Math.floor(this.seededRandom(aSeed) * pool.length)];
-                const propDef = INTERACTABLE_PROP_TYPES[typeId];
+                const propDef = getInteractablePropTypes()[typeId];
                 if (!propDef) continue;
 
                 const x = startX + this.seededRandom(aSeed + 11) * chunkSizeWorld;
@@ -576,7 +576,7 @@ export class InteractablePropManager {
     // ── Loot rolling ─────────────────────────────────────────────────────────
 
     _rollLoot(tableId, basisId = '') {
-        const table = LOOT_TABLES[tableId];
+        const table = getLootTables()[tableId];
         if (!table) return [];
 
         const basis = this.hashString(String(tableId)) ^ this.hashString(String(basisId));
@@ -674,7 +674,7 @@ export class InteractablePropManager {
     }
 
     spawnManualProp(typeId, x, z, scale = 1, chunkKey = 'editor') {
-        const def = INTERACTABLE_PROP_TYPES[typeId];
+        const def = getInteractablePropTypes()[typeId];
         if (!def) return null;
 
         const id = `${chunkKey}_${typeId}_${x.toFixed(0)}_${z.toFixed(0)}`;

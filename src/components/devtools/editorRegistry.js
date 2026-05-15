@@ -1,7 +1,8 @@
 // devtools/editorRegistry.js
 
 import { ARCHETYPES } from "../../game/controllers/mobArchetypes/index.js";
-import { INTERACTABLE_PROP_TYPES } from "../../game/world/interactablePropConfig.js";
+import { getInteractablePropTypes } from "../../game/world/interactablePropConfig.js";
+import { assetManager } from "../../game/utils/assetManager.js";
 
 export const EDITOR_MOBS = [
     {
@@ -26,10 +27,23 @@ export const EDITOR_MOBS = [
     },
 ];
 
-export const EDITOR_INTERACTABLES =
-    Object.values(INTERACTABLE_PROP_TYPES).map(p => ({
-        id: p.id,
-        label: p.label,
-        type: 'interactable',
-        def: p
-    }));
+export function getEditorInteractables() {
+    return Object.values(getInteractablePropTypes()).map((p) => {
+        const textureId = p.texture ?? p.id;
+        const texture = assetManager.getTexture(textureId);
+        const previewUrl = assetManager.getTexturePreviewUrl(textureId);
+
+        return {
+            id: p.id,
+            label: p.label,
+            type: 'interactable',
+            def: p,
+            texture,
+            source: previewUrl,
+            previewUrl,
+            width: texture?.width ?? 64,
+            height: texture?.height ?? 64,
+            meta: { file: previewUrl },
+        };
+    });
+}

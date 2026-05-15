@@ -314,7 +314,7 @@ export function createDevTool(gameStore) {
     window.addEventListener('keydown', (e) => {
         if (e.key === 'F3') {
             e.preventDefault();
-            //toggle();
+            toggle();
         }
     });
 
