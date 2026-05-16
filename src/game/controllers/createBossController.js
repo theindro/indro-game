@@ -1,7 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
 import {
-    BOSS_HP,
-    BOSS_SPEED,
     BOSS_SHOOT_INTERVAL,
     BOSS_RADIUS,
     BIOME_COLORS,
@@ -10,6 +8,7 @@ import {
     GROUND_WARN_NORMAL,
     GROUND_WARN_SLOW,
 } from '../constants.js';
+import { applyBossDifficulty, scaleBossDamage } from '../difficultyScaling.js';
 import { createEnemyProj } from './createProjectileController.js';
 import { resolveVsColliders } from '../world/collision.js';
 import {useGameStore} from "../../stores/gameStore.js";
@@ -62,7 +61,7 @@ function patternRadialSlices(boss, _px, _py, groundFx, enraged) {
                 angle,
                 arcAngle: Math.PI / 2,
                 warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_SLOW,
-                damage: enraged ? 45 : 35,
+                damage: scaleBossDamage(enraged ? 45 : 35, boss.damageScale),
                 ...groundFx,
             });
         });
@@ -78,7 +77,7 @@ function patternTrackingCone(boss, px, py, groundFx, enraged) {
         angle,
         arcAngle: Math.PI / 3,
         warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_NORMAL,
-        damage: enraged ? 40 : 30,
+        damage: scaleBossDamage(enraged ? 40 : 30, boss.damageScale),
         anchor: boss,
         trackPlayer: true,
         ...groundFx,
@@ -93,7 +92,7 @@ function patternLineBeam(boss, px, py, groundFx, enraged) {
         width: enraged ? 1100 : 900,
         angle,
         warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_NORMAL,
-        damage: enraged ? 35 : 25,
+        damage: scaleBossDamage(enraged ? 35 : 25, boss.damageScale),
         hitboxRadius: 22,
         ...groundFx,
     });
@@ -106,7 +105,7 @@ function patternLineBeam(boss, px, py, groundFx, enraged) {
                 width: 900,
                 angle: a,
                 warningDuration: GROUND_WARN_FAST,
-                damage: 28,
+                damage: scaleBossDamage(28, b.damageScale),
                 hitboxRadius: 20,
                 ...groundFx,
             });
@@ -122,7 +121,7 @@ function patternCrossSlam(boss, px, py, groundFx, enraged) {
         width: size,
         height: size,
         warningDuration: enraged ? GROUND_WARN_NORMAL : GROUND_WARN_SLOW,
-        damage: enraged ? 38 : 28,
+        damage: scaleBossDamage(enraged ? 38 : 28, boss.damageScale),
         ...groundFx,
     });
 }
@@ -143,7 +142,7 @@ function patternOrbitCircles(boss, _px, _py, groundFx, enraged) {
                     shape: 'circle',
                     radius: hitR,
                     warningDuration: GROUND_WARN_FAST,
-                    damage: enraged ? 22 : 16,
+                    damage: scaleBossDamage(enraged ? 22 : 16, b.damageScale),
                     ...groundFx,
                 }
             );
@@ -158,7 +157,7 @@ function patternRectSlam(boss, px, py, groundFx, enraged) {
         width: enraged ? 440 : 360,
         height: enraged ? 440 : 360,
         warningDuration: enraged ? GROUND_WARN_NORMAL : GROUND_WARN_SLOW,
-        damage: enraged ? 32 : 24,
+        damage: scaleBossDamage(enraged ? 32 : 24, boss.damageScale),
         ...groundFx,
     });
 }
@@ -170,7 +169,7 @@ function patternPlayerCircle(boss, px, py, groundFx, enraged) {
             shape: 'circle',
             radius: enraged ? 220 : 185,
             warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_NORMAL,
-            damage: enraged ? 28 : 20,
+            damage: scaleBossDamage(enraged ? 28 : 20, b.damageScale),
             ...groundFx,
         });
     });
@@ -183,18 +182,19 @@ function runBossGroundPattern(boss, px, py, groundFx, enraged) {
 }
 
 /* ── MAIN SPAWN ── */
-export function spawnBoss(world, type, x, y, scale = 1) {
+export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
     const { c, gl, body, hpBar } = createBossEntity(type);
     c.x = x; c.y = y;
-    c.scale.set(scale);
+    c.scale.set(visualScale);
     c.sortableChildren = true;
     world.addChild(c);
 
     const biome   = BIOME_COLORS[type] ?? {};
     const glowCol = biome.glow ?? biome.accent ?? 0x00ccff;
     const groundFx = resolveGroundAttackPalette(glowCol);
-    const maxHp   = BOSS_HP * scale;
-    const speed   = BOSS_SPEED * (1 / scale);
+    const scaled  = applyBossDifficulty(difficulty, visualScale);
+    const maxHp   = scaled.maxHp;
+    const speed   = scaled.speed;
 
     // Create ground attack manager for this boss
     const groundAttacks = new GroundAttackController(world);
@@ -210,7 +210,10 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         spawnCenterY,
         hp: maxHp, maxHp,
         speed,
-        radius: BOSS_RADIUS * scale,
+        radius: BOSS_RADIUS * visualScale,
+        damageScale: scaled.damageScale,
+        attackSpeedMul: scaled.attackSpeedMul,
+        difficulty: scaled.difficulty,
         shootTimer: 0,
         shootInterval: BOSS_SHOOT_INTERVAL,
         waveTimer: 0,
@@ -264,7 +267,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
 
             // Wobble
             this.wobble += 0.04 * fs;
-            this.c.scale.set(scale + Math.sin(this.wobble) * 0.03);
+            this.c.scale.set(visualScale + Math.sin(this.wobble) * 0.03);
 
             const dxPlayer = px - this.x;
             const dyPlayer = py - this.y;
@@ -322,25 +325,30 @@ export function spawnBoss(world, type, x, y, scale = 1) {
 
             // Projectile shoot — only while chasing the player
             this.shootTimer += fs;
-            const shootInterval = enraged ? this.shootInterval * 0.6 : this.shootInterval;
+            const atkMul = this.attackSpeedMul ?? 1;
+            const shootInterval = (enraged ? this.shootInterval * 0.6 : this.shootInterval) / atkMul;
             if (isChasing && this.shootTimer >= shootInterval) {
                 this.shootTimer = 0;
-                enemyProjs.push(createEnemyProj(openWorld.entityLayer, this.x, this.y, px, py, this.type, enraged ? 40 : 14, 4.2, 20));
+                const mainDmg = scaleBossDamage(enraged ? 40 : 14, this.damageScale);
+                const sideDmg = scaleBossDamage(10, this.damageScale);
+                enemyProjs.push(createEnemyProj(openWorld.entityLayer, this.x, this.y, px, py, this.type, mainDmg, 4.2, 20));
                 if (enraged) {
                     [-0.4, 0.4].forEach(off =>
-                        enemyProjs.push(createEnemyProj(openWorld.entityLayer, this.x, this.y, px, py, this.type, 10, 2.8, 8, off))
+                        enemyProjs.push(createEnemyProj(openWorld.entityLayer, this.x, this.y, px, py, this.type, sideDmg, 2.8, 8, off))
                     );
                 }
             }
 
             this.groundAttackCircleTimer += fs;
-            if (isChasing && this.groundAttackCircleTimer >= (enraged ? GROUND_CIRCLE_INTERVAL_ENRAGED : GROUND_CIRCLE_INTERVAL)) {
+            const circleInterval = (enraged ? GROUND_CIRCLE_INTERVAL_ENRAGED : GROUND_CIRCLE_INTERVAL) / atkMul;
+            if (isChasing && this.groundAttackCircleTimer >= circleInterval) {
                 this.groundAttackCircleTimer = 0;
                 patternPlayerCircle(this, px, py, groundFx, enraged);
             }
 
             this.groundAttackTimer += fs;
-            if (isChasing && this.groundAttackTimer >= (enraged ? GROUND_PATTERN_INTERVAL_ENRAGED : GROUND_PATTERN_INTERVAL)) {
+            const patternInterval = (enraged ? GROUND_PATTERN_INTERVAL_ENRAGED : GROUND_PATTERN_INTERVAL) / atkMul;
+            if (isChasing && this.groundAttackTimer >= patternInterval) {
                 this.groundAttackTimer = 0;
                 runBossGroundPattern(this, px, py, groundFx, enraged);
             }

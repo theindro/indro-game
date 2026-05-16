@@ -1,4 +1,5 @@
-import {DIFFICULTY, frameScale, GS, MOB_BASE_SPEED_SCALE, MOB_HP, MOB_RADIUS} from "../constants.js";
+import {frameScale, GS, MOB_RADIUS} from "../constants.js";
+import { applyMobDifficulty } from '../difficultyScaling.js';
 import {useGameStore} from "../../stores/gameStore.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
 import {resolveVsColliders} from "../world/collision.js";
@@ -224,20 +225,16 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
 
     world.addChild(c);
 
-    // Base stats
-    const baseHp = MOB_HP * stats.hpMultiplier * difficulty;
-    const baseSpeed = MOB_BASE_SPEED_SCALE * stats.speedMultiplier * (1 + Math.min(difficulty * 0.05, 0.5));
-    const baseAtkSpeed = DIFFICULTY.attackCooldown * (1 + difficulty * 0.1);
-    const damageScale = 1 + Math.log2(difficulty + 1) * 0.35;
+    const scaled = applyMobDifficulty(stats, difficulty);
 
     const mob = {
         c, body, gl, hpBar,
         x, y,
-        hp: baseHp,
-        maxHp: baseHp,
-        speed: baseSpeed,
-        damage: Math.round(stats.damage * damageScale),
-        attackSpeed: baseAtkSpeed,
+        hp: scaled.hp,
+        maxHp: scaled.hp,
+        speed: scaled.speed,
+        damage: scaled.damage,
+        attackSpeed: scaled.attackSpeed,
         attackCooldown: 0,
         exp: stats.exp,
         animOffset: mobSeededUnit(rng ^ 0xdeadbeef) * 1000,

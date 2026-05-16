@@ -11,6 +11,7 @@ import { pickChunkProfile, computeLayoutAnchors } from './chunkProfile.js';
 import { sampleMobPackCenter } from './chunkPlacement.js';
 import {editorBridge} from "../../components/devtools/editorBridge.js";
 import { loadBossChunkContent } from './bossChunkContent.js';
+import { getChunkDifficulty } from '../difficultyScaling.js';
 
 const weatherConfig = {
     forest: { type: '🌲 Dynamic (day/sunset/night/rain)', color: '#5a9a6a' },
@@ -196,8 +197,7 @@ export class OpenWorldManager {
             type = landscapeProfile.forceChunkType;
         }
 
-        const chunkLevel = Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
-        const difficulty = Math.pow(1.08, chunkLevel);
+        const difficulty = getChunkDifficulty(chunkX, chunkZ);
 
         const data = {
             biome,
@@ -502,8 +502,7 @@ export class OpenWorldManager {
 
     async spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData) {
         const key = `${chunkX},${chunkZ}`;
-        const chunkLevel = Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
-        const difficulty = Math.pow(1.08, chunkLevel);
+        const difficulty = chunkData.difficulty ?? getChunkDifficulty(chunkX, chunkZ);
 
         if (this.spawnedEntities.has(key)) return;
 

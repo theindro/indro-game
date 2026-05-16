@@ -17,7 +17,7 @@ import { shadowManager } from '../controllers/createShadowController.js';
 import { VFX } from '../GlobalEffects.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { scaleInteractableIntensity } from './chunkProfile.js';
-import { sampleInteractablePosition } from './chunkPlacement.js';
+import { sampleInteractablePosition, RESOURCE_YARD_LAYOUTS } from './chunkPlacement.js';
 import { INTERACTABLE_HOVER_FILTER } from '../utils/highlightFilters.js';
 
 // ── Visual constants ─────────────────────────────────────────────────────────
@@ -171,7 +171,7 @@ export class InteractablePropManager {
 
             const maxMul = profile?.interactableMaxMul?.[category] ?? 1;
             const max = Math.ceil(categoryConfig.maxPerChunk * maxMul);
-            const yardLayout = anchors?.type === 'lumberyard' || anchors?.type === 'forest_mine';
+            const yardLayout = RESOURCE_YARD_LAYOUTS.has(anchors?.type);
             const minDist = yardLayout
                 ? Math.min(categoryConfig.minDistance || 100, 72)
                 : categoryConfig.minDistance || 100;

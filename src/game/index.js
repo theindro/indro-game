@@ -156,16 +156,7 @@ export async function createGame() {
                 return;
             }
 
-            // Instant loot (chest / container opened)
-            if (result.loot && result.loot.length > 0) {
-                console.log(`[Loot] Opened ${result.prop.def.label}:`, result.loot);
-
-                for (const drop of result.loot) {
-                    // Hook into your inventory / store here, e.g.:
-                    // useGameStore.getState().addItem(drop.id, drop.amount);
-                    console.log(`  +${drop.amount}x ${drop.id}`);
-                }
-            }
+            // Loot granted via onLoot (chest/container instant open)
         }
     });
 
@@ -176,19 +167,8 @@ export async function createGame() {
     });
 
     openWorld.interactablePropManager.onLoot = (loot, propDef, x, y) => {
-        console.log(`[Harvest Complete] ${propDef.label}:`, loot);
-
-        for (const drop of loot) {
-            console.log(drop);
-
-            audioManager.playSFX('/sounds/popsound.wav', 0.15);
-
-            useGameStore.getState().addItem(drop.id, drop.amount);
-            console.log(`  +${drop.amount}x ${drop.id}`);
-        }
-
-        // Optionally spawn floating text / particles at (x, y)
-        // VFX.floatText(`+${loot.map(d => d.amount + 'x ' + d.id).join(', ')}`, x, y);
+        audioManager.playSFX('/sounds/popsound.wav', 0.15);
+        combat.grantLootEntries(x, y, loot);
     };
 
     // Initialize global VFX with our arrays

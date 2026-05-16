@@ -397,11 +397,112 @@ export function createDropSystem(ctx) {
     }
 
     // ─────────────────────────────
+    // Chest / interactable loot (inventory overflow → ground)
+    // ─────────────────────────────
+
+    function overflowDropPosition(x, y, index) {
+        const angle = index * 2.399963 + 0.7;
+        const r = 18 + (index % 4) * 10;
+        return { x: x + Math.cos(angle) * r, y: y + Math.sin(angle) * r };
+    }
+
+    function spawnOverflowLoot(x, y, itemId, quantity, indexOffset = 0) {
+        if (!quantity || quantity < 1) return;
+
+        if (itemId === 'gold') {
+            for (let i = 0; i < quantity; i++) {
+                const p = overflowDropPosition(x, y, indexOffset + i);
+                drops.push(createDrop(p.x, p.y, {
+                    type: 'gold',
+                    amount: 1,
+                    requiresReenter: true,
+                }));
+            }
+            return;
+        }
+
+        if (itemId === 'void_essence') {
+            for (let i = 0; i < quantity; i++) {
+                const p = overflowDropPosition(x, y, indexOffset + i);
+                drops.push(createDrop(p.x, p.y, {
+                    type: 'void_essence',
+                    amount: 1,
+                    requiresReenter: true,
+                }));
+            }
+            return;
+        }
+
+        const dbItem = ItemDatabase[itemId];
+        if (!dbItem) return;
+
+        for (let i = 0; i < quantity; i++) {
+            const p = overflowDropPosition(x, y, indexOffset + i);
+            drops.push(createDrop(p.x, p.y, {
+                type: 'item',
+                item: {...dbItem},
+                requiresReenter: true,
+                slotItem: {id: itemId, quantity: 1, enchantLevel: 0},
+            }));
+        }
+    }
+
+    /**
+     * Grant rolled chest/harvest loot; items that do not fit spawn as world drops.
+     * @param {number} x
+     * @param {number} y
+     * @param {{ id: string, amount: number }[]} entries
+     */
+    function grantLootEntries(x, y, entries) {
+        if (!entries?.length) return;
+
+        const store = useGameStore.getState();
+        let statsChanged = false;
+        let dropIndex = 0;
+
+        for (const entry of entries) {
+            const {id, amount} = entry;
+            if (!id || !amount) continue;
+
+            if (id === 'gold') {
+                store.addGold(amount);
+                continue;
+            }
+            if (id === 'void_essence') {
+                store.addVoidEssence(amount);
+                continue;
+            }
+
+            const dbItem = ItemDatabase[id];
+            if (!dbItem) continue;
+
+            let remaining = amount;
+            while (remaining > 0) {
+                const chunk = dbItem.stackable ? remaining : 1;
+                if (store.canFitItem(id, chunk) && store.addItem(id, chunk)) {
+                    remaining -= chunk;
+                    statsChanged = true;
+                } else if (store.canFitItem(id, 1) && store.addItem(id, 1)) {
+                    remaining -= 1;
+                    statsChanged = true;
+                } else {
+                    spawnOverflowLoot(x, y, id, remaining, dropIndex);
+                    dropIndex += remaining;
+                    remaining = 0;
+                }
+            }
+        }
+
+        if (statsChanged) store.recalculateStats();
+    }
+
+    // ─────────────────────────────
     // Public API
     // ─────────────────────────────
     return {
         spawnDrops,
         spawnPlayerDrop,
+        grantLootEntries,
         updateDrops,
         rollDrop,
         createDrop,

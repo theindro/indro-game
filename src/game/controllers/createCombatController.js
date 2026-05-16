@@ -104,6 +104,7 @@ export function createCombatController(ctx) {
         updateDrops: dropSystem.updateDrops,
         spawnDrops: dropSystem.spawnDrops,
         spawnPlayerDrop: dropSystem.spawnPlayerDrop,
+        grantLootEntries: dropSystem.grantLootEntries,
         useArrowBarrage: useArrowBarrageWrapper,
         useRapidFire: useRapidFireWrapper,
         useFrostArrow: useFrostArrowWrapper,

@@ -3,8 +3,8 @@
  * @typedef {{ assetId: string, nx: number, nz: number, scale?: number, collision?: boolean }} ArenaPlacement
  */
 
-/** Tree ring + stone corners + inner bushes — open center for the grove boss. */
-export const TREE_GROVE_BOSS_ARENA = /** @type {ArenaPlacement[]} */ ([
+/** Tree ring + stone corners + inner bushes — open center for boss fights (all biomes). */
+export const BOSS_ARENA_PLACEMENT = /** @type {ArenaPlacement[]} */ ([
     // ── Outer tree wall (N) ──
     { assetId: 'tree2', nx: 0.22, nz: 0.12, scale: 1.05, collision: false },
     { assetId: 'tree3', nx: 0.38, nz: 0.1, scale: 1.1, collision: false },
@@ -43,3 +43,6 @@ export const TREE_GROVE_BOSS_ARENA = /** @type {ArenaPlacement[]} */ ([
     { assetId: 'tree3', nx: 0.42, nz: 0.68, scale: 1.22, collision: false },
     { assetId: 'tree2', nx: 0.58, nz: 0.68, scale: 1.18, collision: false },
 ]);
+
+/** @deprecated Use BOSS_ARENA_PLACEMENT */
+export const TREE_GROVE_BOSS_ARENA = BOSS_ARENA_PLACEMENT;

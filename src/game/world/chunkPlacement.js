@@ -2,6 +2,18 @@
  * Seeded prop / interactable position sampling per chunk layout.
  */
 
+/** Center loot + perimeter props + guarded mob packs (all biomes). */
+export const RESOURCE_YARD_LAYOUTS = new Set([
+    'lumberyard',
+    'forest_mine',
+    'desert_quarry',
+    'desert_scrap_yard',
+    'ice_crystal_mine',
+    'ice_frozen_depot',
+    'lava_magma_quarry',
+    'lava_ash_depot',
+]);
+
 /**
  * @param {number} seed
  */
@@ -86,7 +98,7 @@ export function computeLayoutAnchors(profile, chunkX, chunkZ, worldSeed, chunkSi
         anchors.clearRadius = chunkSizeWorld * 0.22;
     }
 
-    const yardLayouts = new Set(['lumberyard', 'forest_mine']);
+    const yardLayouts = RESOURCE_YARD_LAYOUTS;
     if (yardLayouts.has(layout)) {
         anchors.centerX = startX + chunkSizeWorld * 0.5;
         anchors.centerZ = startZ + chunkSizeWorld * 0.5;
@@ -130,7 +142,7 @@ export function samplePropPosition(anchors, propTypeKey, attemptSeed) {
     const half = chunkSizeWorld * 0.5;
     const margin = chunkSizeWorld * 0.08;
 
-    if (type === 'lumberyard' || type === 'forest_mine') {
+    if (RESOURCE_YARD_LAYOUTS.has(type)) {
         const angle = seededRandom(attemptSeed + 40) * Math.PI * 2;
         const t = perimeterMin ?? half * 0.52;
         const tMax = perimeterMax ?? half * 0.9;
@@ -191,7 +203,7 @@ export function samplePropPosition(anchors, propTypeKey, attemptSeed) {
 export function sampleInteractablePosition(anchors, attemptSeed) {
     const layout = anchors.type;
 
-    if (layout === 'lumberyard' || layout === 'forest_mine') {
+    if (RESOURCE_YARD_LAYOUTS.has(layout)) {
         const cx = anchors.centerX ?? anchors.startX + anchors.chunkSizeWorld * 0.5;
         const cz = anchors.centerZ ?? anchors.startZ + anchors.chunkSizeWorld * 0.5;
         const inner = anchors.innerRadius ?? anchors.chunkSizeWorld * 0.17;
@@ -217,7 +229,7 @@ export function sampleInteractablePosition(anchors, attemptSeed) {
  * @param {number} seed
  */
 export function sampleMobPackCenter(anchors, packIndex, seed) {
-    if (anchors.type === 'lumberyard' || anchors.type === 'forest_mine') {
+    if (RESOURCE_YARD_LAYOUTS.has(anchors.type)) {
         const cx = anchors.centerX ?? anchors.startX + anchors.chunkSizeWorld * 0.5;
         const cz = anchors.centerZ ?? anchors.startZ + anchors.chunkSizeWorld * 0.5;
         const jitter = 35 + seededRandom(seed + packIndex * 91) * 95;
