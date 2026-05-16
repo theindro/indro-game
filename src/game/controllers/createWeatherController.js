@@ -40,11 +40,14 @@ export class CreateWeatherController {
         this.currentShadowConfig = { x: -25, y: 0, skew: -0.3, alpha: 0.15 };
         this.targetShadowConfig = { x: -25, y: 0, skew: -0.3, alpha: 0.15 };
 
+        // Screen-space overlay on stage between world (0) and vfxLayer (1200).
         this.ambientOverlay = new Graphics();
+        this.ambientOverlay.label = 'ambientOverlay';
         this.ambientOverlay.blendMode = 'multiply';
-        this.ambientOverlay.zIndex = 1100; // above vfxLayer at 1200? set just below it
-        this.world.sortableChildren = true;
-        this.world.addChild(this.ambientOverlay);
+        this.ambientOverlay.eventMode = 'none';
+        this.ambientOverlay.zIndex = 1100; // keep below vfxLayer on stage (see index.js)
+        this.app.stage.sortableChildren = true;
+        this.app.stage.addChild(this.ambientOverlay);
         this.currentAmbient = { color: 0x000000, alpha: 0 };
         this.targetAmbient = { color: 0x000000, alpha: 0 };
     }
@@ -247,20 +250,19 @@ export class CreateWeatherController {
     updateAmbientOverlay(intensity = 1) {
         this.ambientOverlay.clear();
 
-        if (this.currentAmbient.alpha > 0) {
-            // Offset by world position to keep it screen-filling
-            const x = -this.world.x / this.world.scale.x;
-            const y = -this.world.y / this.world.scale.y;
-            const w = this.app.screen.width / this.world.scale.x;
-            const h = this.app.screen.height / this.world.scale.y;
+        if (this.currentAmbient.alpha <= 0) return;
 
-            const fillColor = normalizeAmbientColor(this.currentAmbient.color);
+        const renderer = this.app.renderer;
+        const w = renderer.width;
+        const h = renderer.height;
+        // Slight bleed past edges avoids 1px gaps during zoom / DPR rounding.
+        const pad = 4;
 
-            this.ambientOverlay
-                .rect(x, y, w, h)
-                .fill({ color: fillColor, alpha: this.currentAmbient.alpha * intensity });
+        const fillColor = normalizeAmbientColor(this.currentAmbient.color);
 
-        }
+        this.ambientOverlay
+            .rect(-pad, -pad, w + pad * 2, h + pad * 2)
+            .fill({ color: fillColor, alpha: this.currentAmbient.alpha * intensity });
     }
 
     easeInOutCubic(x) {
@@ -282,6 +284,7 @@ export class CreateWeatherController {
 
     destroy() {
         this.clear();
+        this.ambientOverlay?.destroy();
         this.app.stage.removeChild(this.container);
         this.container.destroy();
     }

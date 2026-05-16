@@ -31,7 +31,7 @@ export async function createGame() {
     // ==================== INITIALIZATION ====================
     const app = await initApp();
     const world = createWorldContainer(app);
-    const vfxLayer = new Container();
+    const vfxLayer = createVfxStageLayer(app);
 
     // Global lighting just testing
     //const lighting = new createLightingController(app, app.screen.width, app.screen.height);
@@ -191,8 +191,6 @@ export async function createGame() {
         // VFX.floatText(`+${loot.map(d => d.amount + 'x ' + d.id).join(', ')}`, x, y);
     };
 
-    world.addChild(vfxLayer);
-
     // Initialize global VFX with our arrays
     VFX.init(world, particles, openWorld.entityLayer, vfxLayer);
 
@@ -216,8 +214,7 @@ export async function createGame() {
         // Weather
         updateWeather(weatherSystem, dt, camX, camY, openWorld);
 
-        if (store.showStartScreen || gameState.paused || gameState.dead) return;
-
+        if (!store.showStartScreen && !gameState.paused && !gameState.dead) {
         perfMonitor.update(entities.mobs.length);
 
         // Auto-save player position
@@ -304,6 +301,10 @@ export async function createGame() {
 
         // Death check
         checkDeath(playerState, gameState, killsRef);
+        }
+
+        // VFX layer is on stage (above ambient) but uses world coordinates.
+        syncWorldLinkedStageLayer(vfxLayer, world);
     });
 
     return () => {
@@ -330,12 +331,31 @@ async function initApp() {
 
 function createWorldContainer(app) {
     const world = new Container();
-
+    world.label = 'world';
+    world.zIndex = 0;
+    world.sortableChildren = true;
     world.scale.set(1.1);
 
+    app.stage.sortableChildren = true;
     app.stage.addChild(world);
     app.stage.roundPixels = true;
     return world;
+}
+
+/** Stage layer above ambient tint (1100); transform mirrors `world` each frame. */
+function createVfxStageLayer(app) {
+    const vfxLayer = new Container();
+    vfxLayer.label = 'vfxLayer';
+    vfxLayer.zIndex = 1200;
+    vfxLayer.sortableChildren = true;
+    vfxLayer.eventMode = 'none';
+    app.stage.addChild(vfxLayer);
+    return vfxLayer;
+}
+
+function syncWorldLinkedStageLayer(layer, world) {
+    layer.position.copyFrom(world.position);
+    layer.scale.copyFrom(world.scale);
 }
 
 function initWeatherSystem(app, world) {
