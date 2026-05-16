@@ -14,13 +14,173 @@ import { createEnemyProj } from './createProjectileController.js';
 import { resolveVsColliders } from '../world/collision.js';
 import {useGameStore} from "../../stores/gameStore.js";
 import {createBossEntity} from "../entities/createBossEntity.js";
-import {GroundAttackController} from "./createGroundAttackController.js";
+import {GroundAttackController, resolveGroundAttackPalette} from "./createGroundAttackController.js";
 import {updateStatusEffects} from "../statusEffects.js";
 import { applyEntityOutlineFilter } from '../utils/highlightFilters.js';
 
 const BOSS_AGGRO_RADIUS = 520;
 const BOSS_LEASH_RADIUS = 720;
 const BOSS_HOME_RADIUS = 36;
+
+const GROUND_PATTERN_INTERVAL = 360;
+const GROUND_PATTERN_INTERVAL_ENRAGED = 260;
+const GROUND_CIRCLE_INTERVAL = 1100;
+const GROUND_CIRCLE_INTERVAL_ENRAGED = 750;
+
+/** @typedef {(boss: object, px: number, py: number, groundFx: object, enraged: boolean) => void} BossGroundPattern */
+
+/** @type {BossGroundPattern[]} */
+const BOSS_GROUND_PATTERNS = [
+    patternRadialSlices,
+    patternTrackingCone,
+    patternLineBeam,
+    patternCrossSlam,
+    patternOrbitCircles,
+    patternRectSlam,
+];
+
+function scheduleGroundAttack(boss, delayMs, fn) {
+    const id = setTimeout(() => {
+        if (boss.dead || !boss.groundAttacks?.active) return;
+        fn(boss);
+    }, delayMs);
+    (boss._groundTimeouts ??= []).push(id);
+}
+
+/** @type {BossGroundPattern} */
+function patternRadialSlices(boss, _px, _py, groundFx, enraged) {
+    const count = enraged ? 6 : 4;
+    const stagger = enraged ? 320 : 480;
+    const radius = enraged ? 620 : 520;
+
+    for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        scheduleGroundAttack(boss, i * stagger, (b) => {
+            b.groundAttacks.addAttack(b.x, b.y, {
+                shape: 'pizza',
+                radius,
+                angle,
+                arcAngle: Math.PI / 2,
+                warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_SLOW,
+                damage: enraged ? 45 : 35,
+                ...groundFx,
+            });
+        });
+    }
+}
+
+/** @type {BossGroundPattern} */
+function patternTrackingCone(boss, px, py, groundFx, enraged) {
+    const angle = Math.atan2(py - boss.y, px - boss.x);
+    boss.groundAttacks.addAttack(boss.x, boss.y, {
+        shape: 'pizza',
+        radius: enraged ? 500 : 420,
+        angle,
+        arcAngle: Math.PI / 3,
+        warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_NORMAL,
+        damage: enraged ? 40 : 30,
+        anchor: boss,
+        trackPlayer: true,
+        ...groundFx,
+    });
+}
+
+/** @type {BossGroundPattern} */
+function patternLineBeam(boss, px, py, groundFx, enraged) {
+    const angle = Math.atan2(py - boss.y, px - boss.x);
+    boss.groundAttacks.addAttack(boss.x, boss.y, {
+        shape: 'line',
+        width: enraged ? 1100 : 900,
+        angle,
+        warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_NORMAL,
+        damage: enraged ? 35 : 25,
+        hitboxRadius: 22,
+        ...groundFx,
+    });
+
+    if (enraged) {
+        scheduleGroundAttack(boss, 400, (b) => {
+            const a = angle + Math.PI / 2;
+            b.groundAttacks.addAttack(b.x, b.y, {
+                shape: 'line',
+                width: 900,
+                angle: a,
+                warningDuration: GROUND_WARN_FAST,
+                damage: 28,
+                hitboxRadius: 20,
+                ...groundFx,
+            });
+        });
+    }
+}
+
+/** @type {BossGroundPattern} */
+function patternCrossSlam(boss, px, py, groundFx, enraged) {
+    const size = enraged ? 480 : 380;
+    boss.groundAttacks.addAttack(px, py, {
+        shape: 'cross',
+        width: size,
+        height: size,
+        warningDuration: enraged ? GROUND_WARN_NORMAL : GROUND_WARN_SLOW,
+        damage: enraged ? 38 : 28,
+        ...groundFx,
+    });
+}
+
+/** @type {BossGroundPattern} */
+function patternOrbitCircles(boss, _px, _py, groundFx, enraged) {
+    const count = enraged ? 8 : 6;
+    const dist = enraged ? 300 : 240;
+    const hitR = enraged ? 130 : 105;
+
+    for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        scheduleGroundAttack(boss, i * 130, (b) => {
+            b.groundAttacks.addAttack(
+                b.x + Math.cos(angle) * dist,
+                b.y + Math.sin(angle) * dist,
+                {
+                    shape: 'circle',
+                    radius: hitR,
+                    warningDuration: GROUND_WARN_FAST,
+                    damage: enraged ? 22 : 16,
+                    ...groundFx,
+                }
+            );
+        });
+    }
+}
+
+/** @type {BossGroundPattern} */
+function patternRectSlam(boss, px, py, groundFx, enraged) {
+    boss.groundAttacks.addAttack(px, py, {
+        shape: 'rectangle',
+        width: enraged ? 440 : 360,
+        height: enraged ? 440 : 360,
+        warningDuration: enraged ? GROUND_WARN_NORMAL : GROUND_WARN_SLOW,
+        damage: enraged ? 32 : 24,
+        ...groundFx,
+    });
+}
+
+/** @type {BossGroundPattern} */
+function patternPlayerCircle(boss, px, py, groundFx, enraged) {
+    scheduleGroundAttack(boss, 380, (b) => {
+        b.groundAttacks.addAttack(px, py, {
+            shape: 'circle',
+            radius: enraged ? 220 : 185,
+            warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_NORMAL,
+            damage: enraged ? 28 : 20,
+            ...groundFx,
+        });
+    });
+}
+
+function runBossGroundPattern(boss, px, py, groundFx, enraged) {
+    const pattern = BOSS_GROUND_PATTERNS[boss.groundPatternIndex % BOSS_GROUND_PATTERNS.length];
+    boss.groundPatternIndex += 1;
+    pattern(boss, px, py, groundFx, enraged);
+}
 
 /* ── MAIN SPAWN ── */
 export function spawnBoss(world, type, x, y, scale = 1) {
@@ -32,6 +192,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
 
     const biome   = BIOME_COLORS[type] ?? {};
     const glowCol = biome.glow ?? biome.accent ?? 0x00ccff;
+    const groundFx = resolveGroundAttackPalette(glowCol);
     const maxHp   = BOSS_HP * scale;
     const speed   = BOSS_SPEED * (1 / scale);
 
@@ -58,9 +219,10 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         laserTimer: 0,
         laserInterval: 180,
         lasers: [],
-        groundAttackTimer: 0,     // Timer for ground attacks
-        groundAttackCircleTimer: 0,     // Timer for ground attacks
-        groundAttackInterval: 360, // How often to do ground attack (3 seconds at 60fps)
+        groundAttackTimer: 0,
+        groundAttackCircleTimer: 0,
+        groundPatternIndex: 0,
+        _groundTimeouts: [],
         wobble: 0,
         dead: false,
         lastPlayerX: x,
@@ -171,96 +333,16 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                 }
             }
 
-            // NEW: GROUND ATTACK - Simple circle explosion at player's position
-            let groundCircleInterval = 1000;
             this.groundAttackCircleTimer += fs;
-
-            if (isChasing && this.groundAttackCircleTimer >= groundCircleInterval) {
+            if (isChasing && this.groundAttackCircleTimer >= (enraged ? GROUND_CIRCLE_INTERVAL_ENRAGED : GROUND_CIRCLE_INTERVAL)) {
                 this.groundAttackCircleTimer = 0;
-                // EXAMPLE 3: Stationary circle at player position (doesn't follow boss)
-                setTimeout(() => {
-                    this.groundAttacks.addAttack(px, py, {
-                        shape: 'circle',
-                        radius: 200,
-                        warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_NORMAL,
-                        damage: 20,
-                        color: glowCol
-                        // No anchor - stays at position where player was
-                    });
-
-                }, 500)
+                patternPlayerCircle(this, px, py, groundFx, enraged);
             }
 
             this.groundAttackTimer += fs;
-            let groundInterval = this.groundAttackInterval;
-
-            if (isChasing && this.groundAttackTimer >= groundInterval) {
+            if (isChasing && this.groundAttackTimer >= (enraged ? GROUND_PATTERN_INTERVAL_ENRAGED : GROUND_PATTERN_INTERVAL)) {
                 this.groundAttackTimer = 0;
-
-                // TEST 1: Simple ground attack at player's position
-                /*
-                this.groundAttacks.addAttack(this.x, this.y, {
-                    shape: 'pizza',
-                    radius: 500,
-                    angle: Math.atan2(py - this.y, px - this.x), // Initial angle
-                    arcAngle: Math.PI / 3, // 60 degree cone
-                    warningDuration: 300,
-                    damage: 25,
-                    color: glowCol,
-                    anchor: this,  // Attach to boss
-                    trackPlayer: true, // Continuously track player position
-                    anchorOffsetX: 0,
-                    anchorOffsetY: 0
-                });
-
-                // EXAMPLE 2: Line beam that follows boss
-                this.groundAttacks.addAttack(this.x, this.y, {
-                    shape: 'line',
-                    width: 1000,
-                    angle: Math.atan2(py - this.y, px - this.x),
-                    warningDuration: 350,
-                    damage: 30,
-                    color: glowCol,
-                    anchor: this,
-                    trackPlayer: false
-                });
-
-                / EXAMPLE 4: 360 degree pizza slices around boss (fixed to boss)
-                for (let i = 0; i < 4; i++) {
-                    const angle = (i / 4) * Math.PI * 2;
-                    this.groundAttacks.addAttack(this.x, this.y, {
-                        shape: 'pizza',
-                        radius: 500,
-                        angle: angle,
-                        arcAngle: Math.PI / 2,
-                        warningDuration: 450,
-                        damage: 18,
-                        color: glowCol,
-                        anchor: false,  // All slices follow boss
-                        trackPlayer: false // Fixed directions, don't track player
-                    });
-                }
-                 */
-                // Stagger each slice with increasing delay
-                for (let i = 0; i < 4; i++) {
-                    const angle = (i / 4) * Math.PI * 2;
-                    const delay = i * 500; // 0ms, 500ms, 1000ms, 1500ms
-
-                    setTimeout(() => {
-                        console.log('boss attack', angle, 'delay:', delay)
-                        this.groundAttacks.addAttack(this.x, this.y, {
-                            shape: 'pizza',
-                            radius: 700,
-                            angle: angle,
-                            arcAngle: Math.PI / 2,
-                            warningDuration: enraged ? GROUND_WARN_FAST : GROUND_WARN_SLOW,
-                            damage: 50,
-                            color: glowCol,
-                            anchor: false,
-                            trackPlayer: false
-                        });
-                    }, delay);
-                }
+                runBossGroundPattern(this, px, py, groundFx, enraged);
             }
 
             // Update all ground attacks
@@ -278,6 +360,10 @@ export function spawnBoss(world, type, x, y, scale = 1) {
         isAggro: () => state === 'CHASE',
 
         destroy() {
+            for (const id of this._groundTimeouts ?? []) {
+                clearTimeout(id);
+            }
+            this._groundTimeouts = [];
             if (this.groundAttacks) {
                 this.groundAttacks.clear();
             }

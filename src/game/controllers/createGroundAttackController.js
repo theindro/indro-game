@@ -2,6 +2,69 @@ import {Container, Graphics} from 'pixi.js';
 import {VFX} from "../GlobalEffects.js";
 import {frameScale, GROUND_IMPACT_TICKS, GROUND_WARN_NORMAL} from "../constants.js";
 
+/** Vertical squash on ground-attack containers (isometric ground plane). */
+export const GROUND_ATTACK_Y_SQUASH = 0.6;
+
+function unskewGroundDy(dy) {
+    return dy / GROUND_ATTACK_Y_SQUASH;
+}
+
+function worldHalfYFromLocal(localHalf) {
+    return localHalf * GROUND_ATTACK_Y_SQUASH;
+}
+
+function distToSegment(px, py, x1, y1, x2, y2) {
+    const abx = x2 - x1;
+    const aby = y2 - y1;
+    const apx = px - x1;
+    const apy = py - y1;
+    const ab2 = abx * abx + aby * aby;
+    const t = ab2 > 0 ? Math.max(0, Math.min(1, (apx * abx + apy * aby) / ab2)) : 0;
+    const closestX = x1 + t * abx;
+    const closestY = y1 + t * aby;
+    return Math.hypot(px - closestX, py - closestY);
+}
+
+function clampByte(v) {
+    return Math.max(0, Math.min(255, Math.floor(v)));
+}
+
+/** @param {number|string|undefined} color */
+export function normalizeGroundAttackColor(color) {
+    if (typeof color === 'number' && Number.isFinite(color)) {
+        return color >>> 0;
+    }
+    if (typeof color === 'string') {
+        const hex = color.trim().replace(/^#/, '');
+        if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+            return parseInt(hex, 16);
+        }
+    }
+    return 0xff4444;
+}
+
+function mixChannel(from, to, t) {
+    return clampByte(from + (to - from) * t);
+}
+
+/** Derive warning / inner colors from the primary attack tint when omitted. */
+export function resolveGroundAttackPalette(color) {
+    const base = normalizeGroundAttackColor(color);
+    const r = (base >> 16) & 0xff;
+    const g = (base >> 8) & 0xff;
+    const b = base & 0xff;
+
+    const warning = (mixChannel(r, 0, 0.45) << 16)
+        | (mixChannel(g, 0, 0.45) << 8)
+        | mixChannel(b, 0, 0.45);
+
+    const inner = (mixChannel(r, 255, 0.42) << 16)
+        | (mixChannel(g, 255, 0.42) << 8)
+        | mixChannel(b, 255, 0.42);
+
+    return { color: base, warningColor: warning, innerColor: inner };
+}
+
 // In GroundAttack.js - Updated GroundAttackManager
 export class GroundAttackController {
     constructor(world, owner = null) {
@@ -73,8 +136,7 @@ export class GroundAttack {
         this.container.addChild(this.g);
         this.world.addChild(this.container);
 
-        // ✅ CHANGE 2: Apply squash effect (add this line)
-        this.container.scale.set(1, 0.6);  // squash vertically
+        this.container.scale.set(1, GROUND_ATTACK_Y_SQUASH);
 
         this.container.sortableChildren = true;
 
@@ -87,12 +149,10 @@ export class GroundAttack {
         this.anchorOffsetX = config.anchorOffsetX ?? 0;
         this.anchorOffsetY = config.anchorOffsetY ?? 0;
 
-        // Attack configuration
+        const palette = resolveGroundAttackPalette(config.color ?? 0xff4444);
+
         this.config = {
             shape: config.shape ?? 'circle',
-            color: config.color ?? 0xff4444,
-            warningColor: config.warningColor ?? 0xff0000,
-            innerColor: config.innerColor ?? 0xff8888,
             radius: config.radius ?? 50,
             width: config.width ?? 100,
             height: config.height ?? 100,
@@ -103,7 +163,15 @@ export class GroundAttack {
             damage: config.damage ?? 25,
             onHit: config.onHit ?? null,
             onComplete: config.onComplete ?? null,
-            hitboxRadius: config.hitboxRadius ?? 15 // For line attacks
+            hitboxRadius: config.hitboxRadius ?? 15,
+            ...config,
+            color: normalizeGroundAttackColor(config.color ?? palette.color),
+            warningColor: config.warningColor != null
+                ? normalizeGroundAttackColor(config.warningColor)
+                : palette.warningColor,
+            innerColor: config.innerColor != null
+                ? normalizeGroundAttackColor(config.innerColor)
+                : palette.innerColor,
         };
 
         this.timer = 0;
@@ -190,11 +258,7 @@ export class GroundAttack {
 
             if (!this.impactGlowAdded) {
                 this.impactGlowAdded = true;
-
-                VFX.addGlow(0, 0, {
-                    color: this.config.color,
-                    scale: 1.25,
-                }, this.container);
+                this._triggerImpactGlow();
             }
 
             // damage happens EXACTLY here
@@ -223,56 +287,101 @@ export class GroundAttack {
         }
     }
 
+    _getAttackSize() {
+        switch (this.config.shape) {
+            case 'circle':
+            case 'pizza':
+                return this.config.radius;
+            case 'rectangle':
+            case 'cross':
+                return Math.max(this.config.width, this.config.height) * 0.5;
+            case 'line':
+                return this.config.width * 0.5;
+            default:
+                return 50;
+        }
+    }
+
+    _applyImpactSquash() {
+        const impactProgress = this.impactTimer / this.impactDuration;
+        const impactScale = 1 + (1 - impactProgress) * 0.12;
+        this.container.scale.set(impactScale, GROUND_ATTACK_Y_SQUASH * impactScale);
+        return 0.55 * (1 - impactProgress);
+    }
+
+    _resetWarningSquash() {
+        this.container.scale.set(1, GROUND_ATTACK_Y_SQUASH);
+    }
+
+    /** Cross arm metrics: local draw sizes + world-space hit extents. */
+    _crossMetrics() {
+        const w = this.config.width;
+        const h = this.config.height;
+        const armThickWorld = Math.max(26, Math.min(w, h) * 0.13);
+        const armThickLocalY = armThickWorld / GROUND_ATTACK_Y_SQUASH;
+
+        return {
+            halfW: w / 2,
+            halfHWorld: worldHalfYFromLocal(h / 2),
+            armThickX: armThickWorld,
+            armThickLocalY,
+            halfArmWorldX: armThickWorld / 2,
+            halfArmWorldY: worldHalfYFromLocal(armThickLocalY / 2),
+        };
+    }
+
+    _triggerImpactGlow() {
+        const glowScale = Math.max(1.4, this._getAttackSize() / 95);
+
+        VFX.addGlow(0, 0, {
+            color: this.config.color,
+            alpha: 0.38,
+            scale: glowScale,
+        }, this.container);
+
+        VFX.addGlow(0, 0, {
+            color: this.config.innerColor,
+            alpha: 0.22,
+            scale: glowScale * 0.62,
+        }, this.container);
+    }
+
+    _pizzaAngles() {
+        const angle = this.config.angle;
+        const arcAngle = this.config.arcAngle;
+        return {
+            startAngle: angle - arcAngle / 2,
+            endAngle: angle + arcAngle / 2,
+        };
+    }
+
+    _fillPizzaSector(radius, fillColor, alpha) {
+        const { startAngle, endAngle } = this._pizzaAngles();
+        this.g.moveTo(0, 0);
+        for (let a = startAngle; a <= endAngle; a += 0.05) {
+            this.g.lineTo(Math.cos(a) * radius, Math.sin(a) * radius);
+        }
+        this.g.closePath();
+        this.g.fill({ color: fillColor, alpha });
+    }
+
     _drawCircle(progress) {
 
         const R = this.config.radius;
 
-        const isImpact = this.phase === 'impact';
+        if (this.phase === 'impact') {
+            const alpha = this._applyImpactSquash();
 
-        // =========================================
-        // IMPACT PHASE
-        // =========================================
-
-        if (isImpact) {
-
-            const impactProgress = this.impactTimer / this.impactDuration;
-
-            const alpha =
-                0.55 * (1 - impactProgress);
-
-            const impactScale =
-                1 + (1 - impactProgress) * 0.12;
-
-            this.container.scale.set(
-                impactScale,
-                0.6 * impactScale
-            );
-
-            // BIG SOLID FLASH
             this.g.circle(0, 0, R)
-                .fill({
-                    color: this.config.color,
-                    alpha
-                });
+                .fill({ color: this.config.color, alpha });
 
-            // bright center
             this.g.circle(0, 0, R * 0.7)
-                .fill({
-                    color: this.config.innerColor,
-                    alpha: alpha * 0.7
-                });
-
-
-           //this.g.blendMode = 'add';
+                .fill({ color: this.config.innerColor, alpha: alpha * 0.7 });
 
             return;
         }
 
-        // =========================================
-        // WARNING PHASE
-        // =========================================
-
-        this.container.scale.set(1, 0.6);
+        this._resetWarningSquash();
 
         const waveRadius = R * progress;
 
@@ -326,6 +435,18 @@ export class GroundAttack {
     _drawRectangle(progress) {
         const w = this.config.width;
         const h = this.config.height;
+
+        if (this.phase === 'impact') {
+            const alpha = this._applyImpactSquash();
+            this.g.rect(-w / 2, -h / 2, w, h)
+                .fill({ color: this.config.color, alpha });
+            this.g.rect(-w * 0.35, -h * 0.35, w * 0.7, h * 0.7)
+                .fill({ color: this.config.innerColor, alpha: alpha * 0.72 });
+            return;
+        }
+
+        this._resetWarningSquash();
+
         const waveProgress = progress;
         const borderOffset = Math.min(w/2, h/2) * waveProgress;
 
@@ -357,10 +478,17 @@ export class GroundAttack {
 
     _drawPizza(progress) {
         const R = this.config.radius;
-        const angle = this.config.angle;
-        const arcAngle = this.config.arcAngle;
-        const startAngle = angle - arcAngle/2;
-        const endAngle = angle + arcAngle/2;
+        const { startAngle, endAngle } = this._pizzaAngles();
+
+        if (this.phase === 'impact') {
+            const alpha = this._applyImpactSquash();
+            this._fillPizzaSector(R, this.config.color, alpha);
+            this._fillPizzaSector(R * 0.72, this.config.innerColor, alpha * 0.75);
+            return;
+        }
+
+        this._resetWarningSquash();
+
         const waveRadius = R * progress;
 
         // ✅ CHANGE 6: Use 0,0 as center
@@ -397,6 +525,23 @@ export class GroundAttack {
         const w = this.config.width;
         const angle = this.config.angle;
         const halfLength = w / 2;
+
+        if (this.phase === 'impact') {
+            const alpha = this._applyImpactSquash();
+            const startX = -Math.cos(angle) * halfLength;
+            const startY = -Math.sin(angle) * halfLength;
+            const endX = Math.cos(angle) * halfLength;
+            const endY = Math.sin(angle) * halfLength;
+
+            this.g.moveTo(startX, startY).lineTo(endX, endY)
+                .stroke({ color: this.config.color, alpha, width: 16 });
+            this.g.moveTo(startX, startY).lineTo(endX, endY)
+                .stroke({ color: this.config.innerColor, alpha: alpha * 0.72, width: 9 });
+            return;
+        }
+
+        this._resetWarningSquash();
+
         const waveOffset = halfLength * progress;
 
         // ✅ CHANGE 7: Use 0,0 as center
@@ -419,30 +564,90 @@ export class GroundAttack {
             .stroke({ color: this.config.innerColor, alpha: 0.7, width: 2 });
     }
 
+    _drawCrossArms(m, opts) {
+        const { w, h, armThickX, armThickLocalY } = m;
+        const {
+            mode = 'stroke',
+            color = this.config.warningColor,
+            innerColor = this.config.innerColor,
+            alpha = 0.6,
+            innerAlpha = 0.7,
+            width = 3,
+            innerWidth = 2,
+            fillAlpha = 0.55,
+        } = opts;
+
+        const hY = armThickLocalY / 2;
+        const hX = armThickX / 2;
+
+        const drawBar = (x, y, bw, bh, col, a, lw) => {
+            if (mode === 'fill') {
+                this.g.rect(x, y, bw, bh).fill({ color: col, alpha: a });
+            } else {
+                this.g.rect(x, y, bw, bh).stroke({ color: col, alpha: a, width: lw });
+            }
+        };
+
+        drawBar(-w / 2, -hY, w, armThickLocalY, color, alpha, width);
+        drawBar(-hX, -h / 2, armThickX, h, color, alpha, width);
+
+        if (mode === 'fill' && innerColor != null) {
+            drawBar(-w * 0.3, -hY * 0.65, w * 0.6, armThickLocalY * 0.65, innerColor, innerAlpha, innerWidth);
+            drawBar(-hX * 0.65, -h * 0.3, armThickX * 0.65, h * 0.6, innerColor, innerAlpha, innerWidth);
+        }
+    }
+
     _drawCross(progress) {
         const w = this.config.width;
         const h = this.config.height;
-        const borderOffset = Math.min(w/2, h/2) * progress;
+        const m = this._crossMetrics();
 
-        // ✅ CHANGE 8: Use 0,0 as center
-        this.g.rect(-w/2, -15, w, 30)
-            .stroke({ color: this.config.warningColor, alpha: 0.6, width: 3 });
-        this.g.rect(-15, -h/2, 30, h)
-            .stroke({ color: this.config.warningColor, alpha: 0.6, width: 3 });
+        if (this.phase === 'impact') {
+            const alpha = this._applyImpactSquash();
+            this._drawCrossArms(m, {
+                mode: 'fill',
+                color: this.config.color,
+                innerColor: this.config.innerColor,
+                alpha,
+                innerAlpha: alpha * 0.72,
+            });
+            return;
+        }
 
-        this.g.rect(
-            -w/2 + borderOffset,
-            -15 + borderOffset * 0.3,
-            w - borderOffset * 2,
-            30 - borderOffset * 0.6
-        ).stroke({ color: this.config.color, alpha: 0.9, width: 4 });
+        this._resetWarningSquash();
 
-        this.g.rect(
-            -15 + borderOffset * 0.3,
-            -h/2 + borderOffset,
-            30 - borderOffset * 0.6,
-            h - borderOffset * 2
-        ).stroke({ color: this.config.color, alpha: 0.9, width: 4 });
+        const borderOffset = Math.min(w / 2, h / 2) * progress;
+        const shrink = borderOffset;
+
+        this._drawCrossArms(
+            {
+                ...m,
+                w: w - shrink * 2,
+                h: h - shrink * 2,
+                armThickLocalY: Math.max(8, m.armThickLocalY - shrink * 0.6),
+                armThickX: Math.max(8, m.armThickX - shrink * 0.3),
+            },
+            { mode: 'stroke', alpha: 0.6 + Math.sin(this.timer * 0.2) * 0.3, width: 3 }
+        );
+
+        this._drawCrossArms(
+            {
+                ...m,
+                w: Math.max(0, w - shrink * 4),
+                h: Math.max(0, h - shrink * 4),
+                armThickLocalY: Math.max(6, m.armThickLocalY - shrink * 0.9),
+                armThickX: Math.max(6, m.armThickX - shrink * 0.5),
+            },
+            {
+                mode: 'stroke',
+                color: this.config.color,
+                innerColor: this.config.innerColor,
+                alpha: 0.9,
+                innerAlpha: 0.7,
+                width: 4,
+                innerWidth: 2,
+            }
+        );
     }
 
     _checkHit(px, py) {
@@ -450,20 +655,18 @@ export class GroundAttack {
         switch(this.config.shape) {
             case 'circle': {
                 const dx = px - this.x;
-                const dy = py - this.y;
-                // Compensate for the 0.6 vertical squash
-                const adjustedDy = dy / 0.6;
-                const dist = Math.hypot(dx, adjustedDy);
+                const dy = unskewGroundDy(py - this.y);
+                const dist = Math.hypot(dx, dy);
                 return dist <= this.config.radius;
             }
             case 'rectangle': {
                 const halfW = this.config.width / 2;
-                const halfH = (this.config.height / 2) * 0.6; // match visual squash
+                const halfH = worldHalfYFromLocal(this.config.height / 2);
                 return Math.abs(px - this.x) <= halfW && Math.abs(py - this.y) <= halfH;
             }
             case 'pizza': {
                 const dx = px - this.x;
-                const dy = py - this.y;
+                const dy = unskewGroundDy(py - this.y);
                 const dist = Math.hypot(dx, dy);
                 if (dist > this.config.radius) return false;
 
@@ -479,28 +682,25 @@ export class GroundAttack {
                 const w = this.config.width;
                 const angle = this.config.angle;
                 const halfLength = w / 2;
+                const dx = px - this.x;
+                const dy = unskewGroundDy(py - this.y);
 
-                const startX = this.x - Math.cos(angle) * halfLength;
-                const startY = this.y - Math.sin(angle) * halfLength;
-                const endX = this.x + Math.cos(angle) * halfLength;
-                const endY = this.y + Math.sin(angle) * halfLength;
+                const x1 = -Math.cos(angle) * halfLength;
+                const y1 = -Math.sin(angle) * halfLength;
+                const x2 = Math.cos(angle) * halfLength;
+                const y2 = Math.sin(angle) * halfLength;
 
-                const abx = endX - startX;
-                const aby = endY - startY;
-                const apx = px - startX;
-                const apy = py - startY;
-                const ab2 = abx * abx + aby * aby;
-                const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / ab2));
-                const closestX = startX + t * abx;
-                const closestY = startY + t * aby;
-                const dist = Math.hypot(px - closestX, py - closestY);
+                const dist = distToSegment(dx, dy, x1, y1, x2, y2);
                 return dist <= (this.config.hitboxRadius || 15);
             }
             case 'cross': {
-                const halfW = this.config.width / 2;
-                const halfH = this.config.height / 2;
-                const inHorizontal = Math.abs(px - this.x) <= halfW && Math.abs(py - this.y) <= 15;
-                const inVertical = Math.abs(px - this.x) <= 15 && Math.abs(py - this.y) <= halfH;
+                const m = this._crossMetrics();
+                const inHorizontal =
+                    Math.abs(px - this.x) <= m.halfW &&
+                    Math.abs(py - this.y) <= m.halfArmWorldY;
+                const inVertical =
+                    Math.abs(px - this.x) <= m.halfArmWorldX &&
+                    Math.abs(py - this.y) <= m.halfHWorld;
                 return inHorizontal || inVertical;
             }
             default:
