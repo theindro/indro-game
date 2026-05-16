@@ -44,6 +44,7 @@ export function computeLayoutAnchors(profile, chunkX, chunkZ, worldSeed, chunkSi
     const baseSeed = chunkSeed(chunkX, chunkZ, worldSeed);
     const margin = chunkSizeWorld * 0.1;
     const inner = chunkSizeWorld - margin * 2;
+    const half = chunkSizeWorld * 0.5;
     const layout = profile.layout ?? 'sparse';
 
     /** @type {{ type: string, centers?: {x:number,z:number}[], corner?: number, inset?: number }} */
@@ -85,6 +86,15 @@ export function computeLayoutAnchors(profile, chunkX, chunkZ, worldSeed, chunkSi
         anchors.clearRadius = chunkSizeWorld * 0.22;
     }
 
+    const yardLayouts = new Set(['lumberyard', 'forest_mine']);
+    if (yardLayouts.has(layout)) {
+        anchors.centerX = startX + chunkSizeWorld * 0.5;
+        anchors.centerZ = startZ + chunkSizeWorld * 0.5;
+        anchors.innerRadius = half * 0.34;
+        anchors.perimeterMin = half * 0.52;
+        anchors.perimeterMax = half * 0.9;
+    }
+
     anchors.startX = startX;
     anchors.startZ = startZ;
     anchors.chunkSizeWorld = chunkSizeWorld;
@@ -108,12 +118,25 @@ export function samplePropPosition(anchors, propTypeKey, attemptSeed) {
         clusterRadius,
         corner,
         clearingRadius,
+        centerX,
+        centerZ,
+        innerRadius,
+        perimeterMin,
+        perimeterMax,
     } = anchors;
 
-    const cx = startX + chunkSizeWorld * 0.5;
-    const cz = startZ + chunkSizeWorld * 0.5;
+    const cx = centerX ?? startX + chunkSizeWorld * 0.5;
+    const cz = centerZ ?? startZ + chunkSizeWorld * 0.5;
     const half = chunkSizeWorld * 0.5;
     const margin = chunkSizeWorld * 0.08;
+
+    if (type === 'lumberyard' || type === 'forest_mine') {
+        const angle = seededRandom(attemptSeed + 40) * Math.PI * 2;
+        const t = perimeterMin ?? half * 0.52;
+        const tMax = perimeterMax ?? half * 0.9;
+        const r = t + seededRandom(attemptSeed + 41) * (tMax - t);
+        return { x: cx + Math.cos(angle) * r, z: cz + Math.sin(angle) * r };
+    }
 
     if (type === 'stone_field' && propTypeKey === 'STONE' && centers?.length) {
         const c = centers[Math.floor(seededRandom(attemptSeed) * centers.length)];
@@ -167,6 +190,16 @@ export function samplePropPosition(anchors, propTypeKey, attemptSeed) {
  */
 export function sampleInteractablePosition(anchors, attemptSeed) {
     const layout = anchors.type;
+
+    if (layout === 'lumberyard' || layout === 'forest_mine') {
+        const cx = anchors.centerX ?? anchors.startX + anchors.chunkSizeWorld * 0.5;
+        const cz = anchors.centerZ ?? anchors.startZ + anchors.chunkSizeWorld * 0.5;
+        const inner = anchors.innerRadius ?? anchors.chunkSizeWorld * 0.17;
+        const angle = seededRandom(attemptSeed + 50) * Math.PI * 2;
+        const dist = seededRandom(attemptSeed + 51) * inner * 0.92;
+        return { x: cx + Math.cos(angle) * dist, z: cz + Math.sin(angle) * dist };
+    }
+
     if (layout === 'perimeter_ring' || layout === 'clearing') {
         return samplePropPosition(anchors, 'BUSH', attemptSeed + 4000);
     }
@@ -184,6 +217,17 @@ export function sampleInteractablePosition(anchors, attemptSeed) {
  * @param {number} seed
  */
 export function sampleMobPackCenter(anchors, packIndex, seed) {
+    if (anchors.type === 'lumberyard' || anchors.type === 'forest_mine') {
+        const cx = anchors.centerX ?? anchors.startX + anchors.chunkSizeWorld * 0.5;
+        const cz = anchors.centerZ ?? anchors.startZ + anchors.chunkSizeWorld * 0.5;
+        const jitter = 35 + seededRandom(seed + packIndex * 91) * 95;
+        const angle = seededRandom(seed + packIndex * 103) * Math.PI * 2;
+        return {
+            x: cx + Math.cos(angle) * jitter,
+            z: cz + Math.sin(angle) * jitter,
+        };
+    }
+
     if (anchors.centers?.length && seededRandom(seed + packIndex * 91) > 0.25) {
         const c = anchors.centers[packIndex % anchors.centers.length];
         const jitter = 40 + seededRandom(seed + packIndex * 97) * 80;

@@ -169,8 +169,12 @@ export class InteractablePropManager {
             }
             if (pool.length === 0) continue;
 
-            const max     = categoryConfig.maxPerChunk;
-            const minDist = categoryConfig.minDistance || 100;
+            const maxMul = profile?.interactableMaxMul?.[category] ?? 1;
+            const max = Math.ceil(categoryConfig.maxPerChunk * maxMul);
+            const yardLayout = anchors?.type === 'lumberyard' || anchors?.type === 'forest_mine';
+            const minDist = yardLayout
+                ? Math.min(categoryConfig.minDistance || 100, 72)
+                : categoryConfig.minDistance || 100;
 
             let placed = 0;
             for (let attempt = 0; attempt < max * 8 && placed < max; attempt++) {

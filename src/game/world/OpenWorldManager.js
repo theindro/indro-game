@@ -192,6 +192,10 @@ export class OpenWorldManager {
             type = 'boss_arena';
         }
 
+        if (landscapeProfile.forceChunkType && !landscapeProfile.spawnBoss) {
+            type = landscapeProfile.forceChunkType;
+        }
+
         const chunkLevel = Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
         const difficulty = Math.pow(1.08, chunkLevel);
 

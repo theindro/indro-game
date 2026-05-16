@@ -6,7 +6,7 @@ import { TREE_GROVE_BOSS_ARENA } from './chunkArenaLayouts.js';
  * interactables, and mob packs (Minecraft-style regional identity).
  */
 
-/** @typedef {'clusters'|'sparse'|'clearing'|'perimeter_ring'|'wet_corner'|'stone_field'|'ancient_grove'|'boss_arena'} ChunkLayout */
+/** @typedef {'clusters'|'sparse'|'clearing'|'perimeter_ring'|'wet_corner'|'stone_field'|'ancient_grove'|'boss_arena'|'lumberyard'|'forest_mine'} ChunkLayout */
 
 /**
  * @typedef {object} ChunkLandscapeProfile
@@ -30,15 +30,55 @@ import { TREE_GROVE_BOSS_ARENA } from './chunkArenaLayouts.js';
  * @property {import('./chunkArenaLayouts.js').ArenaPlacement[]} [arenaPlacements]
  * @property {boolean} [skipMobPacks]
  * @property {boolean} [skipInteractables]
+ * @property {'mob_pack'|'dense_pack'} [forceChunkType]
+ * @property {Record<string, number>} [interactableMaxMul]
  */
 
 /** @type {Record<string, ChunkLandscapeProfile[]>} */
 export const BIOME_CHUNK_PROFILES = {
     forest: [
         {
+            id: 'lumberyard',
+            label: 'Lumberyard',
+            weight: 12,
+            density: 1.15,
+            basePropCount: 52,
+            layout: 'lumberyard',
+            forceChunkType: 'dense_pack',
+            props: [
+                { type: 'TREE', weight: 58 },
+                { type: 'BUSH', weight: 27 },
+                { type: 'STONE', weight: 15 },
+            ],
+            spacingScale: { TREE: 0.48, BUSH: 0.52, STONE: 0.7 },
+            interactableScale: { wood: 1, container: 1, herb: 0.05, metal: 0.05, chest: 0.25 },
+            interactableMaxMul: { wood: 3, container: 2.5 },
+            mobPackBonus: 0.5,
+            mobPackCountMul: 1,
+        },
+        {
+            id: 'forest_mine',
+            label: 'Forest Mine',
+            weight: 12,
+            density: 1.05,
+            basePropCount: 48,
+            layout: 'forest_mine',
+            forceChunkType: 'dense_pack',
+            props: [
+                { type: 'STONE', weight: 62 },
+                { type: 'TREE', weight: 23 },
+                { type: 'BUSH', weight: 15 },
+            ],
+            spacingScale: { STONE: 0.34, TREE: 0.72, BUSH: 0.68 },
+            interactableScale: { metal: 1, wood: 0.05, herb: 0.05, container: 0.2, chest: 0.2 },
+            interactableMaxMul: { metal: 3.5 },
+            mobPackBonus: 0.5,
+            mobPackCountMul: 1,
+        },
+        {
             id: 'dense_forest',
             label: 'Dense Forest',
-            weight: 22,
+            weight: 18,
             density: 1.45,
             basePropCount: 134,
             layout: 'clusters',
@@ -57,7 +97,7 @@ export const BIOME_CHUNK_PROFILES = {
         {
             id: 'light_forest',
             label: 'Light Forest',
-            weight: 20,
+            weight: 17,
             density: 0.55,
             basePropCount: 12,
             layout: 'sparse',
@@ -73,7 +113,7 @@ export const BIOME_CHUNK_PROFILES = {
         {
             id: 'ancient_grove',
             label: 'Ancient Grove',
-            weight: 14,
+            weight: 12,
             density: 1.05,
             basePropCount: 22,
             layout: 'ancient_grove',
@@ -142,7 +182,7 @@ export const BIOME_CHUNK_PROFILES = {
         {
             id: 'mushroom_glade',
             label: 'Mushroom Glade',
-            weight: 14,
+            weight: 12,
             density: 0.9,
             basePropCount: 24,
             layout: 'perimeter_ring',
