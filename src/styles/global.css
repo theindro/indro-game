@@ -68,19 +68,24 @@ body {
 }
 
 .item-card.magic {
-    border-color: rgba(0, 178, 255, 0.4);
+    border-color: rgba(46, 204, 113, 0.45);
 }
 
-.item-card.magic:after, .loot-card.Magic {
-    background: radial-gradient(ellipse at 50% 110%, rgba(0, 140, 255, 0.2) 0%, transparent 70%);
+.item-card.magic::after,
+.loot-card.Magic {
+    background: radial-gradient(
+            ellipse at 50% 110%,
+            rgba(46, 204, 113, 0.22) 0%,
+            transparent 70%
+    );
 }
 
 .item-card.rare {
-    border-color: rgba(208, 0, 255, 0.25);
+    border-color: rgba(0, 178, 255, 0.4);
 }
 
 .item-card.rare:after, .loot-card.Rare {
-    background: radial-gradient(ellipse at 50% 110%, rgba(208, 0, 255, 0.25) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 110%, rgba(0, 140, 255, 0.2) 0%, transparent 70%);
 }
 
 .item-card.epic {

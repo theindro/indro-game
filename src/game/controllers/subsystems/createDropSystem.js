@@ -6,6 +6,32 @@ import {assetManager} from '../../utils/assetManager.js';
 import {VFX} from "../../GlobalEffects.js";
 import {audioManager} from "../../utils/audioManager.js";
 import {frameScale} from "../../constants.js";
+import {createLootBeam, createLootBeamGlows, updateLootBeam} from "../../vfx/lootBeam.js";
+
+const PICKUP_RADIUS = 120;
+const MAGNET_RADIUS = 120;
+
+
+/** Soft additive glows synced to the loot beam (ground pool + mid-pillar). */
+
+function disposeDropGlows(drop) {
+    if (!drop?.lootGlows?.length) return;
+    for (const glow of drop.lootGlows) {
+        if (glow) VFX.removeAttached(glow);
+    }
+    drop.lootGlows = [];
+}
+
+function disposeDropContainer(drop) {
+    disposeDropGlows(drop);
+    if (drop?.container && !drop.container.destroyed) {
+        if (drop.container.parent) {
+            drop.container.parent.removeChild(drop.container);
+        }
+        drop.container.destroy({ children: true });
+    }
+    drop.container = null;
+}
 
 export function createDropSystem(ctx) {
     const {world, entityLayer, drops} = ctx;
@@ -54,7 +80,7 @@ export function createDropSystem(ctx) {
     // ─────────────────────────────
     function createShadow() {
         const shadow = new Graphics();
-        shadow.ellipse(5, 30, 13, 5).fill({color: 0, alpha: 0.28});
+        shadow.ellipse(0, 5, 13, 5).fill({color: 0, alpha: 0.28});
         return shadow;
     }
 
@@ -62,6 +88,8 @@ export function createDropSystem(ctx) {
         const container = new Container();
         container.x = x;
         container.y = y;
+        let lootBeam = null;
+        let lootGlows = [];
 
         if (drop.type === 'gold') {
             // Gold drop visual
@@ -88,84 +116,111 @@ export function createDropSystem(ctx) {
             container.addChild(graphics);
 
         } else if ((drop.type === 'item') && drop.item) {
-            // Add shadow under the drop
+            const rarityName = drop.item.rarity?.name;
+            const beam = createLootBeam(rarityName);
+
+            if (beam) {
+                lootBeam = beam;
+                container.addChild(beam.graphic);
+                lootGlows = createLootBeamGlows(container, beam.cfg);
+            }
+
             const shadow = createShadow();
+
             container.addChild(shadow);
 
-            // Item drop visual - use textureId directly
             const texture = assetManager.getTexture(drop.item.textureId);
 
             if (texture) {
                 const sprite = new Sprite(texture);
-                sprite.anchor.set(0.1);
-                sprite.scale.set(0.1);
+                sprite.anchor.set(0.5, 0.85);
+                sprite.scale.set(0.12);
                 container.addChild(sprite);
             } else {
-                // Fallback
                 const graphics = new Graphics();
                 const rarityColor = drop.item.rarity?.color || '#ffaa44';
-                graphics.rect(-8, -8, 16, 16).fill({color: rarityColor});
-                graphics.rect(-6, -6, 12, 12).fill({color: rarityColor});
+                graphics.circle(0, 0, 10).fill({color: rarityColor});
                 container.addChild(graphics);
             }
         }
 
         entityLayer.addChild(container);
-        return container;
+        return { container, lootBeam, lootGlows };
     }
 
     // ─────────────────────────────
     // Drop Instance Creation
     // ─────────────────────────────
     function createDrop(x, y, drop) {
-        const container = createDropVisual(x, y, drop);
+        const visual = createDropVisual(x, y, drop);
+        const container = visual.container;
+        const lootBeam = visual.lootBeam;
+        const lootGlows = visual.lootGlows ?? [];
 
-        // Physics properties
         const angle = Math.random() * Math.PI * 2;
         const speed = 1.5 + Math.random() * 2.5;
         let vx = Math.cos(angle) * speed;
         let vy = Math.sin(angle) * speed;
         let bob = Math.random() * Math.PI * 2;
         let floatOffset = 0;
+        let beamPhase = Math.random() * Math.PI * 2;
 
         const update = (dt = 1 / 60) => {
             const fs = frameScale(dt);
-            // Apply gravity and friction
             vx *= Math.pow(0.95, fs);
             vy *= Math.pow(0.95, fs);
             container.x += vx * fs;
             container.y += vy * fs;
 
-            // Bobbing animation
-            //bob += 0.08;
-            //floatOffset += 0.05;
-            //container.y += Math.sin(bob) * 0.28;
-
-            // Rotation for items
-            if (drop.type === 'item') {
-                floatOffset += 0.05 * fs;
-                container.rotation = Math.sin(floatOffset) * 0.1;
+            if (lootBeam) {
+                beamPhase += 0.06 * fs;
+                updateLootBeam(lootBeam, beamPhase, fs);
             }
         };
 
         const destroy = () => {
-            if (container.parent) {
-                container.parent.removeChild(container);
-            }
-            container.destroy();
+            disposeDropContainer({ container, lootGlows });
         };
+
+        const requiresReenter = !!drop.requiresReenter;
 
         return {
             container,
             type: drop.type,
             amount: drop.amount,
             item: drop.item,
+            slotItem: drop.slotItem ?? null,
+            lootGlows,
+            requiresReenter,
+            /** False until player leaves pickup radius once (prevents instant re-pickup after drop). */
+            hasLeftPickupRadius: !requiresReenter,
             vx,
             vy,
             bob,
             update,
             destroy,
         };
+    }
+
+    function spawnPlayerDrop(x, y, slotItem) {
+        if (!slotItem?.id) return null;
+
+        const dbItem = ItemDatabase[slotItem.id];
+        if (!dbItem) return null;
+
+        const dropObj = createDrop(x, y, {
+            type: 'item',
+            item: {...dbItem},
+            requiresReenter: true,
+            slotItem: {
+                id: slotItem.id,
+                quantity: slotItem.quantity ?? 1,
+                enchantLevel: slotItem.enchantLevel ?? 0,
+            },
+        });
+
+        drops.push(dropObj);
+        return dropObj;
     }
 
     // ─────────────────────────────
@@ -213,6 +268,7 @@ export function createDropSystem(ctx) {
 
         const fs = frameScale(dt);
         const magnetPull = 1 - Math.pow(0.93, fs);
+        let lastInventoryFullMsg = 0;
 
         // Batch accumulators
         let goldBatch = 0;
@@ -235,30 +291,45 @@ export function createDropSystem(ctx) {
             d.container.zIndex = d.container.y;
 
             if (dist > 1000) {
-                if (d.container.parent) d.container.parent.removeChild(d.container);
-                d.container.destroy();
+                disposeDropContainer(d);
                 drops.splice(di, 1);
                 continue;
             }
 
             if (d.update) d.update(dt);
 
-            if (dist < 120) {
+            if (d.requiresReenter && !d.hasLeftPickupRadius && dist >= PICKUP_RADIUS) {
+                d.hasLeftPickupRadius = true;
+            }
+
+            const canPickup = !d.requiresReenter || d.hasLeftPickupRadius;
+
+            if (canPickup && dist < MAGNET_RADIUS) {
                 d.container.x += dx * magnetPull;
                 d.container.y += dy * magnetPull;
             }
 
-            if (dist < 22) {
+            if (canPickup && dist < PICKUP_RADIUS) {
+                if (d.type === 'item' && d.item) {
+                    const slotItem = d.slotItem ?? {id: d.item.id, quantity: 1, enchantLevel: 0};
+                    if (!useGameStore.getState().canFitItem(slotItem.id, slotItem.quantity ?? 1)) {
+                        const now = performance.now();
+                        if (dist < 18 && now - lastInventoryFullMsg > 900) {
+                            lastInventoryFullMsg = now;
+                            VFX.addFloat('Inventory Full', d.container.x, d.container.y - 24, '#ff6666');
+                        }
+                        continue;
+                    }
+                }
+
                 audioManager.playSFX('/sounds/pickup.mp3', 0.15);
 
-                // Accumulate instead of calling store immediately
                 if (d.type === 'gold')         goldBatch += d.amount || 1;
                 else if (d.type === 'void_essence') voidBatch += d.amount || 1;
                 else if (d.type === 'hp')       hpBatch += d.amount || 20;
-                else // Change itemBatch to store just the id string
-                if (d.type === 'item' && d.item) {
-                    const itemId = d.item.id; // ← cache before any cleanup
-                    itemBatch.push(itemId);
+                else if (d.type === 'item' && d.item) {
+                    const slotItem = d.slotItem ?? {id: d.item.id, quantity: 1, enchantLevel: 0};
+                    itemBatch.push(slotItem);
                 }
 
                 // VFX still per-drop (pixi only, no react)
@@ -277,9 +348,7 @@ export function createDropSystem(ctx) {
                                 d.item?.rarity?.color || '#ffaa44'
                 );
 
-                if (d.container.parent) d.container.parent.removeChild(d.container);
-                if (!d.container.destroyed) d.container.destroy({ children: true });
-                d.container = null;
+                disposeDropContainer(d);
                 d.item = null;
                 drops.splice(di, 1);
             }
@@ -289,43 +358,31 @@ export function createDropSystem(ctx) {
         if (goldBatch || voidBatch || hpBatch || itemBatch.length) {
             const store = useGameStore.getState();
 
-            useGameStore.setState(state => {
-                const inv = state.inventory;
-                const newSlots = [...inv.slots];
-                let addedItems = true;
-
-                console.log(itemBatch);
-
-                for (const itemId of itemBatch) {
-                    if (!itemId) continue; // safety guard
-                    const idx = newSlots.findIndex(
-                        s => s && s.id === itemId && ItemDatabase[itemId]?.stackable
-                    );
-                    if (idx !== -1) {
-                        newSlots[idx] = { ...newSlots[idx], quantity: newSlots[idx].quantity + 1 };
-                    } else {
-                        const empty = newSlots.findIndex(s => s === null);
-                        if (empty !== -1) newSlots[empty] = { id: itemId, quantity: 1 };
-                        else addedItems = false;
-                    }
-                }
-
-                return {
+            if (goldBatch || voidBatch || hpBatch) {
+                useGameStore.setState((state) => ({
                     player: hpBatch ? {
                         ...state.player,
-                        hp: Math.min(state.player.maxHp, state.player.hp + hpBatch)
+                        hp: Math.min(state.player.maxHp, state.player.hp + hpBatch),
                     } : state.player,
                     inventory: {
-                        ...inv,
-                        gold: inv.gold + goldBatch,
-                        void_essence: inv.void_essence + voidBatch,
-                        slots: newSlots,
-                    }
-                };
-            });
+                        ...state.inventory,
+                        gold: state.inventory.gold + goldBatch,
+                        void_essence: state.inventory.void_essence + voidBatch,
+                    },
+                }));
+            }
 
-            // Recalc only if items were picked up
-            if (itemBatch.length) store.recalculateStats();
+            let pickedAny = false;
+            for (const slotItem of itemBatch) {
+                if (!slotItem?.id) continue;
+                if (store.addItem(slotItem.id, slotItem.quantity ?? 1, {
+                    enchantLevel: slotItem.enchantLevel ?? 0,
+                })) {
+                    pickedAny = true;
+                }
+            }
+
+            if (pickedAny) store.recalculateStats();
         }
     }
 
@@ -333,9 +390,10 @@ export function createDropSystem(ctx) {
     // Public API
     // ─────────────────────────────
     return {
-        spawnDrops,        // Spawn drops from a mob/boss
-        updateDrops,       // Update all drops (call every frame)
-        rollDrop,          // Expose for testing/debugging
-        createDrop         // Expose for manual drop creation
+        spawnDrops,
+        spawnPlayerDrop,
+        updateDrops,
+        rollDrop,
+        createDrop,
     };
 }

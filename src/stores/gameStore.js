@@ -104,6 +104,15 @@ function createGameStoreSlice(set, get) {
         /** React boss HP bar while player is in an active boss arena (`{ name, hp, maxHp }`). */
         bossEncounter: null,
 
+        /** UI routing (crafting/enchant panel focus). */
+        ui: {
+            craftingOpenTab: null,
+            enchantFocusSlotIndex: null,
+        },
+
+        /** World drops queued from inventory (processed in game loop). */
+        pendingWorldDrops: [],
+
         // ===== GAME STATE =====
         gameState: {
             paused: false,
@@ -306,11 +315,31 @@ function createGameStoreSlice(set, get) {
         },
 
         // ===== INVENTORY =====
-        addItem: (itemId, quantity = 1) => {
+        canFitItem: (itemId, quantity = 1) => {
+            const dbItem = ItemDatabase[itemId];
+            if (!dbItem) return false;
+
+            const slots = get().inventory.slots;
+            if (dbItem.stackable && slots.some((s) => s?.id === itemId)) {
+                return true;
+            }
+
+            const emptySlots = slots.filter((s) => s === null).length;
+            if (dbItem.stackable) {
+                return emptySlots >= 1;
+            }
+
+            return emptySlots >= quantity;
+        },
+
+        addItem: (itemId, quantity = 1, options = {}) => {
             const state = get();
             const dbItem = ItemDatabase[itemId];
             if (!dbItem) return false;
 
+            if (!get().canFitItem(itemId, quantity)) return false;
+
+            const enchantLevel = options.enchantLevel ?? 0;
             const newSlots = [...state.inventory.slots];
 
             const existingSlot = newSlots.findIndex((s) => s && s.id === itemId && dbItem.stackable);
@@ -327,10 +356,61 @@ function createGameStoreSlice(set, get) {
             const emptySlot = newSlots.findIndex((slot) => slot === null);
             if (emptySlot === -1) return false;
 
-            newSlots[emptySlot] = {id: itemId, quantity};
+            const entry = {id: itemId, quantity};
+            if (enchantLevel > 0) entry.enchantLevel = enchantLevel;
+            newSlots[emptySlot] = entry;
             set({inventory: {...state.inventory, slots: newSlots}});
             return true;
         },
+
+        /** Remove one item from a slot and queue a world drop at player position. */
+        dropItemFromSlot: (slotIndex, worldX, worldY) => {
+            const state = get();
+            const item = state.inventory.slots[slotIndex];
+            if (!item) return null;
+
+            const slotItem = {
+                id: item.id,
+                quantity: 1,
+                enchantLevel: item.enchantLevel ?? 0,
+            };
+
+            get().removeItem(slotIndex, 1);
+
+            set((s) => ({
+                pendingWorldDrops: [
+                    ...(s.pendingWorldDrops ?? []),
+                    {x: worldX, y: worldY, slotItem},
+                ],
+            }));
+
+            return slotItem;
+        },
+
+        consumePendingWorldDrops: () => {
+            const pending = get().pendingWorldDrops ?? [];
+            if (!pending.length) return [];
+            set({pendingWorldDrops: []});
+            return pending;
+        },
+
+        openEnchantmentUI: (slotIndex) =>
+            set((state) => ({
+                ui: {
+                    ...state.ui,
+                    craftingOpenTab: 'enchantment',
+                    enchantFocusSlotIndex: slotIndex,
+                },
+            })),
+
+        clearEnchantmentUI: () =>
+            set((state) => ({
+                ui: {
+                    ...state.ui,
+                    craftingOpenTab: null,
+                    enchantFocusSlotIndex: null,
+                },
+            })),
 
         removeItem: (slotIndex, quantity = 1) => {
             const state = get();
@@ -662,8 +742,8 @@ function getDefaultProgressPayload() {
                 boots: null,
                 ring: null,
             },
-            gold: 100000,
-            void_essence: 100000,
+            gold: 0,
+            void_essence: 0,
         },
         abilities: cloneDefaultAbilities(),
         worldSeed: generateWorldSeed(),

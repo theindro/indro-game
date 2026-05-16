@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, Row, Col, Typography, Tabs, Button, Progress, message } from 'antd';
 import { useGameStore } from '../../stores/gameStore.js';
 import { ItemDatabase, ItemRarity } from '../../game/items.js';
@@ -402,10 +402,16 @@ function CraftingTab() {
 
 // ─── Enchantment Tab ──────────────────────────────────────────────────────────
 
-function EnchantmentTab() {
+function EnchantmentTab({ initialSlotIndex = null }) {
     const [messageApi, contextHolder] = message.useMessage();
-    const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
+    const [selectedSlotIndex, setSelectedSlotIndex] = useState(initialSlotIndex);
     const [enchanting, setEnchanting] = useState(false);
+
+    useEffect(() => {
+        if (initialSlotIndex !== null && initialSlotIndex !== undefined) {
+            setSelectedSlotIndex(initialSlotIndex);
+        }
+    }, [initialSlotIndex]);
 
     const inventory = useGameStore((s) => s.inventory);
     const removeGold = useGameStore((s) => s.removeGold);
@@ -885,7 +891,23 @@ function EnchantmentTab() {
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export default function CraftingPanel({ isOpen }) {
+    const craftingOpenTab = useGameStore((s) => s.ui?.craftingOpenTab);
+    const enchantFocusSlotIndex = useGameStore((s) => s.ui?.enchantFocusSlotIndex);
+    const clearEnchantmentUI = useGameStore((s) => s.clearEnchantmentUI);
+
     const [activeTab, setActiveTab] = useState('crafting');
+
+    useEffect(() => {
+        if (isOpen && craftingOpenTab) {
+            setActiveTab(craftingOpenTab);
+        }
+    }, [isOpen, craftingOpenTab]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            clearEnchantmentUI();
+        }
+    }, [isOpen, clearEnchantmentUI]);
 
     if (!isOpen) return null;
 
@@ -938,7 +960,11 @@ export default function CraftingPanel({ isOpen }) {
 
             {/* Body */}
             <div style={{ padding: 16, minHeight: 340 }}>
-                {activeTab === 'crafting' ? <CraftingTab /> : <EnchantmentTab />}
+                {activeTab === 'crafting' ? (
+                    <CraftingTab />
+                ) : (
+                    <EnchantmentTab initialSlotIndex={enchantFocusSlotIndex} />
+                )}
             </div>
         </Card>
     );

@@ -96,7 +96,8 @@ export function createCombatController(ctx) {
         updateArrows: arrowSystem.updateArrows,
         updateEnemyProjs: projectileSystem.updateEnemyProjs,
         updateDrops: dropSystem.updateDrops,
-        spawnDrops: dropSystem.spawnDrops,  // Used when mobs die
+        spawnDrops: dropSystem.spawnDrops,
+        spawnPlayerDrop: dropSystem.spawnPlayerDrop,
         useArrowBarrage: useArrowBarrageWrapper,
         useRapidFire: useRapidFireWrapper,
         useFrostArrow: useFrostArrowWrapper

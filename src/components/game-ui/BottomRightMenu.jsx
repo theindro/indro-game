@@ -100,8 +100,15 @@ const CurrencyList = () => {
 
 const BottomRightMenu = () => {
     const [openPanel, setOpenPanel] = useState(null);
+    const enchantFocusSlotIndex = useGameStore((s) => s.ui?.enchantFocusSlotIndex);
 
     const isPaused = useGameStore.getState().gameState.paused;
+
+    useEffect(() => {
+        if (enchantFocusSlotIndex !== null && enchantFocusSlotIndex !== undefined) {
+            setOpenPanel('crafting');
+        }
+    }, [enchantFocusSlotIndex]);
 
     const togglePanel = (key) => {
         if (key === 'settings') {

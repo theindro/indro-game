@@ -274,6 +274,11 @@ export async function createGame() {
         combat.updateEnemyProjs(px, py, dt);
         combat.updateDrops(px, py, dt);
 
+        const worldDrops = useGameStore.getState().consumePendingWorldDrops();
+        for (const drop of worldDrops) {
+            combat.spawnPlayerDrop(drop.x, drop.y, drop.slotItem);
+        }
+
         // Camera
         const camera = updateCamera(camX, camY, px, py, world, app, openWorld, dt);
         camX = camera.x;

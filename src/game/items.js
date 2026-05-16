@@ -13,11 +13,40 @@ export const ItemTypes = {
 };
 
 export const ItemRarity = {
-    COMMON: {name: 'Common', color: 'rgba(255,255,255,0.4)', multiplier: 1, dropChance: 60},
-    MAGIC: {name: 'Magic', color: '#44aaff', multiplier: 1.5, dropChance: 25},
-    RARE: {name: 'Rare', color: '#aa44ff', multiplier: 2, dropChance: 10},
-    EPIC: {name: 'Epic', color: '#ff44aa', multiplier: 3, dropChance: 4},
-    LEGENDARY: {name: 'Legendary', color: '#ffaa44', multiplier: 5, dropChance: 1},
+    COMMON: {
+        name: 'Common',
+        color: '#9aa0a6',
+        multiplier: 1,
+        dropChance: 60
+    },
+
+    MAGIC: {
+        name: 'Magic',
+        color: '#2ecc71', // green (matches loot beam)
+        multiplier: 1.5,
+        dropChance: 25
+    },
+
+    RARE: {
+        name: 'Rare',
+        color: '#3498db', // blue (matches loot beam)
+        multiplier: 2,
+        dropChance: 10
+    },
+
+    EPIC: {
+        name: 'Epic',
+        color: '#9b59b6', // purple (matches loot beam)
+        multiplier: 3,
+        dropChance: 4
+    },
+
+    LEGENDARY: {
+        name: 'Legendary',
+        color: '#f39c12', // orange/yellow (matches loot beam)
+        multiplier: 5,
+        dropChance: 1
+    },
 };
 
 // Helper function to generate stat ranges based on rarity

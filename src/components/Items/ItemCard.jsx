@@ -95,8 +95,9 @@ const ACTION_STYLE = {
 
 function ContextMenu({ item, enchantLevel, onAction, onClose }) {
     const actions = [
-        { key: 'equip',  label: 'Equip',   icon: '', show: !!item.equipSlot },
-        { key: 'drop',   label: 'Delete',  icon: '', show: true, danger: true },
+        { key: 'equip',   label: 'Equip',      icon: '', show: !!item.equipSlot },
+        { key: 'enchant', label: 'Enchant',    icon: '', show: !!item.equipSlot && !!item.stats },
+        { key: 'drop',    label: 'Drop',       icon: '', show: true, danger: true },
     ].filter(a => a.show);
 
     return (

@@ -23,8 +23,10 @@ export default function Inventory({isOpen, setIsOpen}) {
     const inventory = useGameStore((s) => s.inventory);
 
     const equipItem = useGameStore((s) => s.equipItem);
-    const removeItem = useGameStore((s) => s.removeItem);
     const sellItem = useGameStore((s) => s.sellItem);
+    const dropItemFromSlot = useGameStore((s) => s.dropItemFromSlot);
+    const openEnchantmentUI = useGameStore((s) => s.openEnchantmentUI);
+    const playerLocation = useGameStore((s) => s.player.location);
     const [lootPopup, setLootPopup] = useState(null);
     const prevSlotsRef = useRef([]);
 
@@ -94,13 +96,28 @@ export default function Inventory({isOpen, setIsOpen}) {
     const slots = inventory?.slots || [];
 
     const handleAction = useCallback((actionKey, slotPayload, slotIndex) => {
-        if (actionKey === 'equip') equipItem(slotPayload, slotIndex);
-        if (actionKey === 'sell') sellItem(slotIndex);
-        if (actionKey === 'drop') removeItem(slotIndex);
-        if (actionKey === 'craft') console.log('craft', slotPayload);
-    }, [equipItem, sellItem, removeItem]);
-
-    console.log('rerendering inventory');
+        if (actionKey === 'equip') {
+            equipItem(slotPayload, slotIndex);
+            return;
+        }
+        if (actionKey === 'sell') {
+            sellItem(slotIndex);
+            return;
+        }
+        if (actionKey === 'enchant') {
+            openEnchantmentUI(slotIndex);
+            messageApi.info('Opened Enchantment tab', 1.2);
+            return;
+        }
+        if (actionKey === 'drop') {
+            const loc = playerLocation ?? { x: 0, y: 0 };
+            const dropped = dropItemFromSlot(slotIndex, loc.x, loc.y);
+            if (dropped) {
+                const name = ItemDatabase[dropped.id]?.name ?? 'Item';
+                messageApi.success(`Dropped ${name}`, 1.2);
+            }
+        }
+    }, [equipItem, sellItem, dropItemFromSlot, openEnchantmentUI, playerLocation, messageApi]);
 
     return (
         <>
