@@ -21,10 +21,7 @@ const EMBER_COLORS_RAW = [
 
 // Returns a color for enchant level badge
 function enchantLevelColor(lvl) {
-    if (lvl <= 3) return '#7dcfee';
-    if (lvl <= 6) return '#aa44ff';
-    if (lvl <= 9) return '#ff44aa';
-    return '#ffaa44';
+    return '#7dcfee';
 }
 
 function initEmberCanvas(canvas) {

@@ -1,36 +1,12 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, Row, Col, Typography, Tabs, Button, Progress, message } from 'antd';
 import { useGameStore } from '../../stores/gameStore.js';
-import { ItemDatabase, ItemRarity } from '../../game/items.js';
+import { ItemDatabase, ItemRarity, GearCraftingRecipes } from '../../game/items.js';
 import ItemCard from '../Items/ItemCard.jsx';
 
 const { Text } = Typography;
 
-// ─── Crafting Recipes ────────────────────────────────────────────────────────
-// ingredients: array of { id, quantity }
-// result: itemId to produce
-export const CraftingRecipes = [
-    {
-        id: 'craft_long_bow',
-        result: 'short_bow',
-        goldCost: 140,
-        ingredients: [
-            { id: 'wood_plank', quantity: 6 },
-            { id: 'iron_ingot', quantity: 2 },
-            { id: 'herb', quantity: 3 },
-        ],
-    },
-    {
-        id: 'craft_crossbow',
-        result: 'crossbow',
-        goldCost: 300,
-        ingredients: [
-            { id: 'wood_plank', quantity: 8 },
-            { id: 'iron_ingot', quantity: 6 },
-            { id: 'crystal_shard', quantity: 2 },
-        ],
-    },
-];
+export const CraftingRecipes = GearCraftingRecipes;
 
 // ─── Enchantment Config ───────────────────────────────────────────────────────
 const ENCHANT_LEVELS = 10;
@@ -50,15 +26,21 @@ const enchantSuccessChance = (level) => Math.max(20, 100 - level * 8);
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const rarityColor = (rarity) => rarity?.color || 'rgba(255,255,255,0.4)';
 
-const RESOURCE_ICONS = {
-    wood_plank: '🪵',
-    iron_ingot: '⛏️',
-    gold_ingot: '🟡',
-    crystal_shard: '💎',
-    lava_stone: '🔥',
-    herb: '🌿',
-    frostbloom: '❄️',
-};
+function MaterialIcon({ itemId, size = 24 }) {
+    const db = ItemDatabase[itemId];
+    if (db?.texture) {
+        return (
+            <img
+                src={db.texture}
+                width={size}
+                height={size}
+                alt=""
+                style={{ objectFit: 'contain', flexShrink: 0 }}
+            />
+        );
+    }
+    return <span style={{ fontSize: size - 6, width: size, textAlign: 'center' }}>📦</span>;
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -185,7 +167,14 @@ function CraftingTab() {
                     }}
                 >
                     <SectionLabel>Recipes</SectionLabel>
-                    {CraftingRecipes.map((r) => {
+                    {[...CraftingRecipes]
+                        .sort((a, b) => {
+                            const tierOrder = { common: 0, magic: 1, rare: 2, epic: 3, legendary: 4 };
+                            const td = (tierOrder[a.tier] ?? 0) - (tierOrder[b.tier] ?? 0);
+                            if (td !== 0) return td;
+                            return (a.category ?? '').localeCompare(b.category ?? '');
+                        })
+                        .map((r) => {
                         const db = ItemDatabase[r.result];
                         const ok = canCraft(r);
                         const isSelected = selectedRecipe === r.id;
@@ -324,9 +313,7 @@ function CraftingTab() {
                                                     border: `1px solid ${enough ? 'rgba(59,158,117,0.2)' : 'rgba(224,107,107,0.2)'}`,
                                                 }}
                                             >
-                                                <span style={{ fontSize: 16 }}>
-                                                    {RESOURCE_ICONS[ing.id] || '📦'}
-                                                </span>
+                                                <MaterialIcon itemId={ing.id} size={22} />
                                                 <span style={{ flex: 1, fontSize: 12 }}>{db?.name || ing.id}</span>
                                                 <span
                                                     style={{
@@ -533,10 +520,7 @@ function EnchantmentTab({ initialSlotIndex = null }) {
     }, [selectedDb, nextLevel, maxed]);
 
     const enchantLevelColor = (lvl) => {
-        if (lvl <= 3) return '#7dcfee';
-        if (lvl <= 6) return '#aa44ff';
-        if (lvl <= 9) return '#ff44aa';
-        return '#ffaa44';
+        return '#7dcfee';
     };
 
     return (

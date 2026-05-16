@@ -1,14 +1,19 @@
 // controllers/subsystems/createDropSystem.js
 import {Container, Sprite, Graphics} from 'pixi.js';
 import {useGameStore} from "../../../stores/gameStore.js";
-import {ItemDatabase, DropTables, getDropTableForMob} from '../../items.js';
+import {
+    ItemDatabase,
+    getDropTableForMob,
+    rollMobGearDropIds,
+    rollBossGearDropIds,
+} from '../../items.js';
 import {assetManager} from '../../utils/assetManager.js';
 import {VFX} from "../../GlobalEffects.js";
 import {audioManager} from "../../utils/audioManager.js";
 import {frameScale} from "../../constants.js";
 import {createLootBeam, createLootBeamGlows, updateLootBeam} from "../../vfx/lootBeam.js";
 
-const PICKUP_RADIUS = 120;
+const PICKUP_RADIUS = 60;
 const MAGNET_RADIUS = 120;
 
 
@@ -41,33 +46,43 @@ export function createDropSystem(ctx) {
     // ─────────────────────────────
     function rollDrop(mobType = 'default', isBoss = false) {
         const drops = [];
-        const table = getDropTableForMob(mobType);
+        const table = getDropTableForMob(isBoss || mobType === 'boss' ? 'boss' : mobType);
 
-        // Roll gold
         if (Math.random() * 100 < table.gold.chance) {
             const amount = table.gold.min + Math.floor(Math.random() * (table.gold.max - table.gold.min + 1));
-            drops.push({type: 'gold', amount});
+            drops.push({ type: 'gold', amount });
         }
 
-        // Roll gold
-        if (Math.random() * 100 < table.void_essence.chance) {
-            const amount = table.void_essence.min + Math.floor(Math.random() * (table.void_essence.max - table.void_essence.min + 1));
-
-            drops.push({type: 'void_essence', amount});
+        if (table.void_essence && Math.random() * 100 < table.void_essence.chance) {
+            const amount = table.void_essence.min + Math.floor(
+                Math.random() * (table.void_essence.max - table.void_essence.min + 1)
+            );
+            drops.push({ type: 'void_essence', amount });
         }
 
-        // Roll heart (healing)
-        if (Math.random() < 0.1) { // 10% chance
-            drops.push({type: 'hp', amount: 20});
+        if (Math.random() < 0.1) {
+            drops.push({ type: 'hp', amount: 20 });
         }
 
-        // Roll items
-        for (const itemDrop of table.items) {
+        const gearIds = isBoss || mobType === 'boss'
+            ? rollBossGearDropIds()
+            : rollMobGearDropIds();
+
+        for (const gearId of gearIds) {
+            const item = ItemDatabase[gearId];
+            if (item) {
+                drops.push({ type: 'item', item: { ...item }, quantity: 1 });
+            }
+        }
+
+        for (const itemDrop of table.items ?? []) {
             if (Math.random() * 100 < itemDrop.chance) {
-                const quantity = itemDrop.minQty + Math.floor(Math.random() * (itemDrop.maxQty - itemDrop.minQty + 1));
-                const item = {...ItemDatabase[itemDrop.id]};
-                if (item) {
-                    drops.push({type: 'item', item, quantity});
+                const quantity = itemDrop.minQty + Math.floor(
+                    Math.random() * (itemDrop.maxQty - itemDrop.minQty + 1)
+                );
+                const item = { ...ItemDatabase[itemDrop.id] };
+                if (item?.id) {
+                    drops.push({ type: 'item', item, quantity });
                 }
             }
         }
@@ -276,6 +291,7 @@ export function createDropSystem(ctx) {
         let voidBatch = 0;
         let hpBatch = 0;
         const itemBatch = [];
+        const maxHp = useGameStore.getState().player.maxHp;
 
         for (let di = drops.length - 1; di >= 0; di--) {
             const d = drops[di];
@@ -309,8 +325,8 @@ export function createDropSystem(ctx) {
             const canPickup = !d.requiresReenter || d.hasLeftPickupRadius;
 
             if (canPickup && dist < MAGNET_RADIUS) {
-                d.container.x += dx * magnetPull;
-                d.container.y += dy * magnetPull;
+                //d.container.x += dx * magnetPull;
+                //d.container.y += dy * magnetPull;
             }
 
             if (canPickup && dist < PICKUP_RADIUS) {
@@ -319,7 +335,7 @@ export function createDropSystem(ctx) {
                     if (!useGameStore.getState().canFitItem(slotItem.id, slotItem.quantity ?? 1)) {
                         if (!d.pickupAttempted) {
                             d.pickupAttempted = true;
-                            VFX.addFloat('Inventory Full', d.container.x, d.container.y - 24, '#ff6666');
+                            VFX.addFloat('Inventory Full', d.container.x, d.container.y - 24, '#ffffff');
                         }
                         continue;
                     }
@@ -331,29 +347,18 @@ export function createDropSystem(ctx) {
 
                 if (d.type === 'gold')         goldBatch += d.amount || 1;
                 else if (d.type === 'void_essence') voidBatch += d.amount || 1;
-                else if (d.type === 'hp')       hpBatch += d.amount || 20;
+                else if (d.type === 'hp') {
+                    hpBatch += maxHp * 0.3;
+                }
                 else if (d.type === 'item' && d.item) {
                     const slotItem = d.slotItem ?? {id: d.item.id, quantity: 1, enchantLevel: 0};
                     itemBatch.push(slotItem);
                 }
 
                 // VFX still per-drop (pixi only, no react)
-                if (d.type === 'hp')
-                    VFX.burst(d.container.x, d.container.y, 0xff2255, 6, 2);
-
-                VFX.addFloat(
-                    d.type === 'gold' ? `+${d.amount}` :
-                        d.type === 'hp'   ? `+${d.amount} HP` :
-                            d.type === 'void_essence' ? `+${d.amount}` :
-                                d.item?.name,
-                    d.container.x, d.container.y,
-                    d.type === 'gold' ? '#ffd700' :
-                        d.type === 'hp'   ? '#ff2255' :
-                            d.type === 'void_essence' ? '#262626' :
-                                d.item?.rarity?.color || '#ffaa44'
-                );
 
                 disposeDropContainer(d);
+
                 d.item = null;
                 drops.splice(di, 1);
             }
