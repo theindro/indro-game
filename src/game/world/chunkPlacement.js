@@ -79,6 +79,12 @@ export function computeLayoutAnchors(profile, chunkX, chunkZ, worldSeed, chunkSi
         anchors.clearingRadius = chunkSizeWorld * 0.28;
     }
 
+    if (layout === 'boss_arena') {
+        anchors.arenaCenterX = startX + chunkSizeWorld * 0.5;
+        anchors.arenaCenterZ = startZ + chunkSizeWorld * 0.5;
+        anchors.clearRadius = chunkSizeWorld * 0.22;
+    }
+
     anchors.startX = startX;
     anchors.startZ = startZ;
     anchors.chunkSizeWorld = chunkSizeWorld;

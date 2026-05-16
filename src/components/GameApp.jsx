@@ -9,6 +9,7 @@ import DeathScreen from "./screens/DeathScreen.jsx";
 import StartGameScreen from "./screens/StartGameScreen.jsx";
 import AbilityBar from "./game-ui/PlayerAbilityBar.jsx";
 import LevelUpEffect from "./game-ui/LevelUpEffect.jsx";
+import BossHealthBar from "./game-ui/BossHealthBar.jsx";
 import BottomRightMenu from "./game-ui/BottomRightMenu.jsx";
 import BottomDevMenu from "./devtools/BottomDevMenu.jsx";
 
@@ -40,6 +41,8 @@ export default function GameApp() {
             <StartGameScreen />
 
             {!showStartScreen && <AbilityBar />}
+
+            <BossHealthBar />
 
             <LevelUpEffect />
         </ConfigProvider>

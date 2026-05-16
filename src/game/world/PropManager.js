@@ -9,6 +9,7 @@ import {
     getSpacingDistance,
     getTargetPropCount,
     computeLayoutAnchors,
+    usesArenaLayout,
 } from './chunkProfile.js';
 import { samplePropPosition } from './chunkPlacement.js';
 
@@ -295,6 +296,37 @@ export class PropManager {
         this.activeChunks.delete(key);
     }
 
+    /**
+     * Place fixed arena props from chunk profile (boss grove, etc.).
+     */
+    generateArenaProps(chunkX, chunkZ, biome, chunkSizeWorld, placements, chunkKey) {
+        const propsList = [];
+        const startX = chunkX * chunkSizeWorld;
+        const startZ = chunkZ * chunkSizeWorld;
+
+        for (const slot of placements) {
+            const x = startX + slot.nx * chunkSizeWorld;
+            const z = startZ + slot.nz * chunkSizeWorld;
+            const spr = this.placeLoadedProp(
+                {
+                    id: slot.assetId,
+                    x,
+                    y: z,
+                    scale: slot.scale ?? 1,
+                    rotation: 0,
+                    collision: slot.collision !== false,
+                },
+                chunkKey,
+                biome
+            );
+            if (spr) propsList.push(spr);
+        }
+
+        const result = { propsList, shadowsList: [], profileId: 'arena' };
+        this.activeChunks.set(chunkKey, result);
+        return result;
+    }
+
     async generateChunkProps(chunkX, chunkZ, biome, chunkSize, tileSize, landscapeContext = null) {
         const key = `${chunkX},${chunkZ}`;
 
@@ -315,11 +347,21 @@ export class PropManager {
             landscapeContext?.anchors ??
             computeLayoutAnchors(profile, chunkX, chunkZ, this.worldSeed, chunkSizeWorld);
 
+        if (usesArenaLayout(profile)) {
+            return this.generateArenaProps(
+                chunkX,
+                chunkZ,
+                biome,
+                chunkSizeWorld,
+                profile.arenaPlacements,
+                key
+            );
+        }
+
         const propTypes = getPropTypes();
         const propPool = buildPropPool(profile, propTypes);
 
         if (propPool.length === 0) {
-            console.warn(`[PropManager] Empty prop pool for chunk ${key} (${profile.id})`);
             return { propsList };
         }
 

@@ -6,14 +6,6 @@ import {
 
 import {BIOME_COLORS} from "../constants.js";
 import {VOID_SHAPE_7} from "../monsters.js";
-import {OutlineFilter} from "pixi-filters";
-
-const HOVER_FILTER = new OutlineFilter({
-    thickness: 2,
-    color: 'red',
-    alpha: 0.65,
-    quality: 0.4,
-});
 
 /**
  * Per-renderer caches so textures are never reused across Pixi apps (new game / HMR).
@@ -146,15 +138,6 @@ export function createMobEntity(
     body.anchor.set(0.5);
 
     body.eventMode = 'static';
-    body.cursor = 'pointer';
-
-    body.on('pointerover', () => {
-        body.filters = [HOVER_FILTER];
-    });
-
-    body.on('pointerout', () => {
-        body.filters = null;
-    });
 
     c.addChild(body);
 

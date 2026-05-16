@@ -10,6 +10,7 @@ import { WorldEditorController } from '../devtools/WorldEditorController.js';
 import { pickChunkProfile, computeLayoutAnchors } from './chunkProfile.js';
 import { sampleMobPackCenter } from './chunkPlacement.js';
 import {editorBridge} from "../../components/devtools/editorBridge.js";
+import { loadBossChunkContent } from './bossChunkContent.js';
 
 const weatherConfig = {
     forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
@@ -77,6 +78,8 @@ export class OpenWorldManager {
         this.processingChunks = false;
         this.pendingChunks = new Set();
         this.persistedMobs = new Set();
+        /** @type {Set<string>} */
+        this._bossRewardChestKeys = new Set();
         this.onChunkChangeCallback = null; // ADD THIS LINE
 
         // World editor
@@ -181,8 +184,12 @@ export class OpenWorldManager {
         }
 
         const mobBonus = landscapeProfile.mobPackBonus ?? 0;
-        if (mobBonus > 0 && type === 'empty' && this.seededRandom(seed + 55555) < mobBonus) {
+        if (!landscapeProfile.spawnBoss && mobBonus > 0 && type === 'empty' && this.seededRandom(seed + 55555) < mobBonus) {
             type = 'mob_pack';
+        }
+
+        if (landscapeProfile.spawnBoss) {
+            type = 'boss_arena';
         }
 
         const chunkLevel = Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
@@ -304,7 +311,15 @@ export class OpenWorldManager {
         // Keep the same array reference — combat/abilities hold a closure to entities.mobs from init.
         this.entitiesList.mobs.length = 0;
 
+        for (const boss of [...(this.entitiesList?.bosses || [])]) {
+            boss.destroy?.();
+            boss.c?.destroy?.({ children: true });
+        }
+        if (this.entitiesList?.bosses) this.entitiesList.bosses.length = 0;
+
         this.worldObjects.clearColliders();
+        this._bossRewardChestKeys?.clear();
+        useGameStore.getState().clearBossEncounter?.();
 
         // 6. Reset chunks tracking
         this.worldData.chunks.clear();
@@ -713,8 +728,16 @@ export class OpenWorldManager {
         // Unload interactable props
         this.interactablePropManager.unloadChunkProps(key);
 
-        // Remove mobs
         const entities = this.spawnedEntities.get(key);
+        if (entities?.boss && !entities.boss.dead) {
+            const bi = this.entitiesList.bosses.indexOf(entities.boss);
+            if (bi !== -1) this.entitiesList.bosses.splice(bi, 1);
+            entities.boss.destroy?.();
+            this.worldObjects.removeFromParent(entities.boss.c);
+            entities.boss.c?.destroy?.({ children: true });
+        }
+
+        // Remove mobs
         if (entities) {
             for (const mob of entities.mobs) {
                 const index = this.entitiesList?.mobs?.indexOf(mob);
@@ -838,16 +861,22 @@ export class OpenWorldManager {
             landscapeContext
         );
 
-        await this.interactablePropManager.generateChunkProps(
-            chunkX,
-            chunkZ,
-            chunkData.biome,
-            this.chunkSize,
-            this.tileSize,
-            landscapeContext
-        );
+        if (!landscapeContext.profile?.skipInteractables) {
+            await this.interactablePropManager.generateChunkProps(
+                chunkX,
+                chunkZ,
+                chunkData.biome,
+                this.chunkSize,
+                this.tileSize,
+                landscapeContext
+            );
+        }
 
-        await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData);
+        if (landscapeContext.profile?.spawnBoss) {
+            loadBossChunkContent(this, chunkX, chunkZ, chunkData);
+        } else {
+            await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData);
+        }
 
         this.loadedChunks.set(`${chunkX},${chunkZ}`, chunk);
     }

@@ -1,10 +1,12 @@
+import { TREE_GROVE_BOSS_ARENA } from './chunkArenaLayouts.js';
+
 /**
  * Chunk landscape profiles — seeded “micro-biomes” inside each world biome.
  * Each chunk rolls one profile (weighted) and uses its layout + pools for props,
  * interactables, and mob packs (Minecraft-style regional identity).
  */
 
-/** @typedef {'clusters'|'sparse'|'clearing'|'perimeter_ring'|'wet_corner'|'stone_field'|'ancient_grove'} ChunkLayout */
+/** @typedef {'clusters'|'sparse'|'clearing'|'perimeter_ring'|'wet_corner'|'stone_field'|'ancient_grove'|'boss_arena'} ChunkLayout */
 
 /**
  * @typedef {object} ChunkLandscapeProfile
@@ -22,6 +24,12 @@
  * @property {Record<string, number>} [interactableScale]
  * @property {number} [mobPackBonus]
  * @property {number} [mobPackCountMul]
+ * @property {boolean} [spawnBoss]
+ * @property {string} [bossType]
+ * @property {number} [bossScale]
+ * @property {import('./chunkArenaLayouts.js').ArenaPlacement[]} [arenaPlacements]
+ * @property {boolean} [skipMobPacks]
+ * @property {boolean} [skipInteractables]
  */
 
 /** @type {Record<string, ChunkLandscapeProfile[]>} */
@@ -115,6 +123,21 @@ export const BIOME_CHUNK_PROFILES = {
             interactableScale: { herb: 1.5, wood: 1.25, container: 1.2, metal: 0.4 },
             mobPackBonus: 0.14,
             mobPackCountMul: 1.1,
+        },
+        {
+            id: 'tree_grove_boss',
+            label: 'Tree Grove Boss',
+            weight: 7,
+            density: 0,
+            basePropCount: 0,
+            layout: 'boss_arena',
+            spawnBoss: true,
+            bossType: 'forest',
+            bossScale: 1.2,
+            arenaPlacements: TREE_GROVE_BOSS_ARENA,
+            skipMobPacks: true,
+            skipInteractables: true,
+            props: [],
         },
         {
             id: 'mushroom_glade',

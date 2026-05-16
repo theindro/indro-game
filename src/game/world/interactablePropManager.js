@@ -16,16 +16,9 @@ import { assetManager } from '../utils/assetManager.js';
 import { shadowManager } from '../controllers/createShadowController.js';
 import { VFX } from '../GlobalEffects.js';
 import { useGameStore } from '../../stores/gameStore.js';
-import { OutlineFilter } from 'pixi-filters';
 import { scaleInteractableIntensity } from './chunkProfile.js';
 import { sampleInteractablePosition } from './chunkPlacement.js';
-
-const HOVER_FILTER = new OutlineFilter({
-    thickness: 2,
-    color: 'white',
-    alpha: 0.75,
-    quality: 0.4,
-});
+import { INTERACTABLE_HOVER_FILTER } from '../utils/highlightFilters.js';
 
 // ── Visual constants ─────────────────────────────────────────────────────────
 const GLOW_PULSE_SPEED   = 25;
@@ -242,8 +235,12 @@ export class InteractablePropManager {
             this._highlighted = active;
         }
 
-        if (this._highlighted) {
+        if (this._highlighted && this._highlighted !== this._hovered) {
             this._showIndicator(this._highlighted);
+        }
+
+        if (this._hovered?.indicator) {
+            this._hovered.indicator.visible = false;
         }
     }
 
@@ -336,9 +333,6 @@ export class InteractablePropManager {
 
         visual.eventMode = 'static';
         visual.cursor    = 'pointer';
-        visual.on('pointerover', () => { visual.filters = [HOVER_FILTER]; });
-        visual.on('pointerout',  () => { visual.filters = null; });
-
         container.addChild(visual);
 
         const heightFactor = visual instanceof Sprite ? Math.min(1.5, visual.height / 120) : 1;
@@ -468,7 +462,7 @@ export class InteractablePropManager {
 
         visual.on('pointerover', () => {
             this._hovered = prop;
-            visual.filters = [HOVER_FILTER];
+            visual.filters = [INTERACTABLE_HOVER_FILTER];
         });
 
         visual.on('pointerout', () => {

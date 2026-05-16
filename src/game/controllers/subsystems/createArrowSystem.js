@@ -173,7 +173,14 @@ export function createArrowSystem(ctx) {
     function handleBossDeath(boss, x, y) {
         const biomeCol = BIOME_COLORS[boss.type]?.glow ?? 0x00ccff;
 
-        // 🔥 CALL DESTROY FIRST - This clears ground attacks
+        if (typeof boss.onDefeat === 'function') {
+            try {
+                boss.onDefeat(boss);
+            } catch (err) {
+                console.warn('[boss] onDefeat failed:', err);
+            }
+        }
+
         if (boss.destroy) {
             boss.destroy();
         }

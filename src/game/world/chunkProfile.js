@@ -94,8 +94,14 @@ export function getSpacingDistance(profile, typeKey, propType) {
  * @param {import('./chunkProfiles.data.js').ChunkLandscapeProfile} profile
  */
 export function getTargetPropCount(profile) {
+    if (profile.arenaPlacements?.length) return 0;
     const base = profile.basePropCount ?? 22;
     return Math.max(4, Math.floor(base * (profile.density ?? 0.75)));
+}
+
+/** @param {import('./chunkProfiles.data.js').ChunkLandscapeProfile} profile */
+export function usesArenaLayout(profile) {
+    return !!(profile.arenaPlacements?.length);
 }
 
 /**

@@ -1,6 +1,7 @@
 // Single ownership point for world entity display nodes (entityLayer) and
 // gameplay colliders for props / interactables. Other systems request work here.
 import { spawnMob as spawnMobEntity } from '../controllers/createMobController.js';
+import { bindMobHighlightPointer } from '../utils/highlightFilters.js';
 
 export class WorldObjectManager {
     constructor(colliders, entityLayer, renderer) {
@@ -57,6 +58,7 @@ export class WorldObjectManager {
             spawnSeed
         );
         mob.worldEntityId = this._nextMobId++;
+        bindMobHighlightPointer(mob);
         return mob;
     }
 

@@ -16,6 +16,11 @@ import {useGameStore} from "../../stores/gameStore.js";
 import {createBossEntity} from "../entities/createBossEntity.js";
 import {GroundAttackController} from "./createGroundAttackController.js";
 import {updateStatusEffects} from "../statusEffects.js";
+import { applyEntityOutlineFilter } from '../utils/highlightFilters.js';
+
+const BOSS_AGGRO_RADIUS = 520;
+const BOSS_LEASH_RADIUS = 720;
+const BOSS_HOME_RADIUS = 36;
 
 /* ── MAIN SPAWN ── */
 export function spawnBoss(world, type, x, y, scale = 1) {
@@ -33,9 +38,15 @@ export function spawnBoss(world, type, x, y, scale = 1) {
     // Create ground attack manager for this boss
     const groundAttacks = new GroundAttackController(world);
 
+    const spawnCenterX = x;
+    const spawnCenterY = y;
+    let state = 'GUARD';
+
     const boss = {
         c, gl, body, hpBar,
         x, y, type,
+        spawnCenterX,
+        spawnCenterY,
         hp: maxHp, maxHp,
         speed,
         radius: BOSS_RADIUS * scale,
@@ -93,15 +104,51 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             this.wobble += 0.04 * fs;
             this.c.scale.set(scale + Math.sin(this.wobble) * 0.03);
 
-            // Movement towards player
-            const dx = px - this.x, dy = py - this.y;
-            const dist = Math.hypot(dx, dy);
-            let nx = this.x, ny = this.y;
-            if (dist > 0.01) {
-                nx += (dx / dist) * this.speed * fs;
-                ny += (dy / dist) * this.speed * fs;
+            const dxPlayer = px - this.x;
+            const dyPlayer = py - this.y;
+            const distToPlayer = Math.hypot(dxPlayer, dyPlayer);
+
+            const dxHome = spawnCenterX - this.x;
+            const dyHome = spawnCenterY - this.y;
+            const distHome = Math.hypot(dxHome, dyHome);
+
+            if (state === 'GUARD' && distToPlayer < BOSS_AGGRO_RADIUS) {
+                state = 'CHASE';
             }
-            const clamped  = openWorld.clampToWorld(nx, ny, this.radius);
+            if (state === 'CHASE' && distToPlayer > BOSS_LEASH_RADIUS) {
+                state = 'RETURN';
+            }
+            if (state === 'RETURN' && distHome < BOSS_HOME_RADIUS) {
+                state = 'GUARD';
+            }
+            if (state === 'RETURN' && distToPlayer < BOSS_AGGRO_RADIUS * 0.9) {
+                state = 'CHASE';
+            }
+
+            let moveX = 0;
+            let moveY = 0;
+
+            if (state === 'CHASE') {
+                const len = distToPlayer || 1;
+                moveX = (dxPlayer / len) * this.speed;
+                moveY = (dyPlayer / len) * this.speed;
+            } else if (state === 'RETURN' || state === 'GUARD') {
+                if (distHome > BOSS_HOME_RADIUS) {
+                    const len = distHome || 1;
+                    const homeSpeed = state === 'RETURN' ? this.speed * 0.85 : this.speed * 0.35;
+                    moveX = (dxHome / len) * homeSpeed;
+                    moveY = (dyHome / len) * homeSpeed;
+                }
+            }
+
+            let nx = this.x;
+            let ny = this.y;
+            if (moveX !== 0 || moveY !== 0) {
+                nx += moveX * fs;
+                ny += moveY * fs;
+            }
+
+            const clamped = openWorld.clampToWorld(nx, ny, this.radius);
             const resolved = resolveVsColliders(clamped.x, clamped.y, this.radius, colliders);
             this.x = resolved.x;
             this.y = resolved.y;
@@ -109,11 +156,12 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             this.c.y = this.y;
 
             const enraged = this.hp < this.maxHp * 0.4;
+            const isChasing = state === 'CHASE';
 
-            // Projectile shoot (existing); intervals are in "60fps frames"
+            // Projectile shoot — only while chasing the player
             this.shootTimer += fs;
             const shootInterval = enraged ? this.shootInterval * 0.6 : this.shootInterval;
-            if (this.shootTimer >= shootInterval) {
+            if (isChasing && this.shootTimer >= shootInterval) {
                 this.shootTimer = 0;
                 enemyProjs.push(createEnemyProj(openWorld.entityLayer, this.x, this.y, px, py, this.type, enraged ? 40 : 14, 4.2, 20));
                 if (enraged) {
@@ -127,7 +175,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             let groundCircleInterval = 1000;
             this.groundAttackCircleTimer += fs;
 
-            if (this.groundAttackCircleTimer >= groundCircleInterval) {
+            if (isChasing && this.groundAttackCircleTimer >= groundCircleInterval) {
                 this.groundAttackCircleTimer = 0;
                 // EXAMPLE 3: Stationary circle at player position (doesn't follow boss)
                 setTimeout(() => {
@@ -146,7 +194,7 @@ export function spawnBoss(world, type, x, y, scale = 1) {
             this.groundAttackTimer += fs;
             let groundInterval = this.groundAttackInterval;
 
-            if (this.groundAttackTimer >= groundInterval) {
+            if (isChasing && this.groundAttackTimer >= groundInterval) {
                 this.groundAttackTimer = 0;
 
                 // TEST 1: Simple ground attack at player's position
@@ -222,16 +270,18 @@ export function spawnBoss(world, type, x, y, scale = 1) {
                 }
             }, dt);
 
+            applyEntityOutlineFilter(this.body, this, state === 'CHASE');
             updateBossBar(this);
         },
 
-        // Add cleanup method for when boss dies
+        getState: () => state,
+        isAggro: () => state === 'CHASE',
+
         destroy() {
             if (this.groundAttacks) {
-                console.log('clearing boss attacks');
                 this.groundAttacks.clear();
             }
-        }
+        },
     };
 
     groundAttacks.owner = boss;

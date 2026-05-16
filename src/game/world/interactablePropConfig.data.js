@@ -76,6 +76,23 @@ export const INTERACTABLE_PROP_TYPES = {
         rare: true,
     },
 
+    grove_boss_chest: {
+        id: 'grove_boss_chest',
+        label: 'Grove Tyrant Cache',
+        category: 'chest',
+        radius: 38,
+        interactRange: 110,
+        respawnTime: null,
+        lootTable: 'grove_boss_chest',
+        texture: 'chest_ancient',
+        fallbackColor: 0x9b59b6,
+        scaleRange: { min: 0.7, max: 0.9 },
+        glowColor: 0xffaa44,
+        vfxGlowAlpha: 0.35,
+        vfxGlowScale: 1.6,
+        rare: true,
+    },
+
     // ── Wood / Timber ────────────────────────────────────────────────────────
     log_pile: {
         id: 'log_pile',
@@ -474,6 +491,20 @@ export const LOOT_TABLES = {
         { id: 'gold',         chance: 1.0, min: 100, max: 500 },
         { id: 'ore_crystal',  chance: 0.9, min: 3,   max: 8   },
         { id: 'void_essence', chance: 0.8, min: 2,   max: 5   },
+    ],
+
+    grove_boss_chest: [
+        { id: 'gold',            chance: 1.0, min: 200, max: 600 },
+        { id: 'void_essence',    chance: 1.0, min: 5,   max: 12  },
+        { id: 'dragon_boots',    chance: 0.55, min: 1, max: 1 },
+        { id: 'dragon_gloves',   chance: 0.55, min: 1, max: 1 },
+        { id: 'dragon_armor',    chance: 0.5, min: 1, max: 1 },
+        { id: 'dragon_helmet',   chance: 0.5, min: 1, max: 1 },
+        { id: 'windbow',         chance: 0.45, min: 1, max: 1 },
+        { id: 'ring_of_life',    chance: 0.4, min: 1, max: 1 },
+        { id: 'ring_of_power',   chance: 0.4, min: 1, max: 1 },
+        { id: 'amulet_of_gods',  chance: 0.35, min: 1, max: 1 },
+        { id: 'amulet_of_swiftness', chance: 0.35, min: 1, max: 1 },
     ],
 
     wood: [

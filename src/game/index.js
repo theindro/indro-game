@@ -13,6 +13,7 @@ import {useGameStore} from '../stores/gameStore.js';
 import {createDevTool} from "./devtool.js";
 import {CreateWeatherController} from "./controllers/createWeatherController.js";
 import {OpenWorldManager} from "./world/OpenWorldManager.js";
+import {syncBossEncounterUi} from './world/syncBossEncounterUi.js';
 import {PerformanceMonitor} from './world/PerformanceMonitor.js';
 import {MinimapManager} from "./world/MinimapManager.js";
 import {VFX} from './GlobalEffects.js';
@@ -269,6 +270,7 @@ export async function createGame() {
 
         // boss updates
         updateBosses(entities.bosses, px, py, colliders, openWorld, entities.enemyProjs, playerState, dt);
+        syncBossEncounterUi(openWorld, px, py);
 
         // Combat updates
         combat.updateArrows(px, py, dt);

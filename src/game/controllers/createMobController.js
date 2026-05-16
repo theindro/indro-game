@@ -5,6 +5,7 @@ import {resolveVsColliders} from "../world/collision.js";
 import { ARCHETYPES, archetypeMap, ARCHETYPE_STATS, applyArchetypeVisuals } from './mobArchetypes/index.js';
 import {updateStatusEffects} from "../statusEffects.js";
 import {VFX} from '../GlobalEffects.js';
+import { applyEntityOutlineFilter } from '../utils/highlightFilters.js';
 
 /** Deterministic [0,1) from integer seed (matches world `seededRandom` style). */
 export function mobSeededUnit(seed) {
@@ -179,6 +180,7 @@ export function createMobController(mob, entityLayer) {
             }
 
             updateMobHealthBar(m);
+            applyEntityOutlineFilter(m.body, m, state === 'CHASE');
             applyBreathing(mob, performance.now() * 0.003);
             setFacingDirection(mob, moveX || (px - m.x));
         },

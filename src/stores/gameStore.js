@@ -98,6 +98,12 @@ function createGameStoreSlice(set, get) {
          */
         openedInteractableIds: [],
 
+        /** Boss arena chunks cleared (`chunkX,chunkZ`) — boss stays dead, reward chest persists. */
+        defeatedBossChunkKeys: [],
+
+        /** React boss HP bar while player is in an active boss arena (`{ name, hp, maxHp }`). */
+        bossEncounter: null,
+
         // ===== GAME STATE =====
         gameState: {
             paused: false,
@@ -586,6 +592,20 @@ function createGameStoreSlice(set, get) {
             });
         },
 
+        markBossChunkDefeated: (chunkKey) => {
+            if (!chunkKey || typeof chunkKey !== 'string') return;
+            set((state) => {
+                if (state.defeatedBossChunkKeys.includes(chunkKey)) return state;
+                return {defeatedBossChunkKeys: [...state.defeatedBossChunkKeys, chunkKey]};
+            });
+        },
+
+        isBossChunkDefeated: (chunkKey) => get().defeatedBossChunkKeys.includes(chunkKey),
+
+        setBossEncounter: (encounter) => set({ bossEncounter: encounter }),
+
+        clearBossEncounter: () => set({ bossEncounter: null }),
+
         openShop: () => set((state) => ({shop: {...state.shop, isOpen: true}})),
         closeShop: () => set((state) => ({shop: {...state.shop, isOpen: false}})),
 
@@ -648,6 +668,7 @@ function getDefaultProgressPayload() {
         abilities: cloneDefaultAbilities(),
         worldSeed: generateWorldSeed(),
         openedInteractableIds: [],
+        defeatedBossChunkKeys: [],
         boss: {
             instance: null,
             hp: 500,
@@ -700,6 +721,9 @@ function mergePersistedState(persisted, current) {
         openedInteractableIds: Array.isArray(p.openedInteractableIds)
             ? p.openedInteractableIds.filter((x) => typeof x === 'string')
             : current.openedInteractableIds,
+        defeatedBossChunkKeys: Array.isArray(p.defeatedBossChunkKeys)
+            ? p.defeatedBossChunkKeys.filter((x) => typeof x === 'string')
+            : current.defeatedBossChunkKeys,
         audio: {...current.audio, ...(p.audio || {})},
         gameState: {
             ...current.gameState,
@@ -738,6 +762,7 @@ export const useGameStore = create(
             kills: state.kills,
             worldSeed: state.worldSeed,
             openedInteractableIds: state.openedInteractableIds,
+            defeatedBossChunkKeys: state.defeatedBossChunkKeys,
             audio: state.audio,
             currentRoomIndex: state.gameState.currentRoomIndex,
         }),

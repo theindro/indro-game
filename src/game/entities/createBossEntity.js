@@ -234,6 +234,9 @@ export function createBossEntity(type) {
         }
     }
 
+    body.eventMode = 'static';
+    body.cursor = 'pointer';
+
     c.addChild(body);
 
     // ── HP Bar
