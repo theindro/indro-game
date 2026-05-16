@@ -134,15 +134,7 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
     }
 
     // weapon glow
-    c.filters = [
-        new GlowFilter({
-            distance: 12,
-            outerStrength: 1.5,
-            innerStrength: 2,
-            color: 'white',
-            quality: 1,
-        })
-    ];
+
 
 
     c.rotation = angle;

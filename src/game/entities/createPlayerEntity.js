@@ -2,7 +2,33 @@ import {Container, Graphics, Sprite} from "pixi.js";
 import {GlowFilter} from "pixi-filters";
 import {assetManager} from "../utils/assetManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
-import {VFX} from "../GlobalEffects.js";
+import {ItemDatabase} from "../items.js";
+
+function hexToGlowColor(hex) {
+    if (!hex) return 0xffffff;
+    return parseInt(String(hex).replace("#", ""), 16) || 0xffffff;
+}
+
+/** Glow filter tinted to item rarity (no glow for Common). */
+function createWeaponRarityGlow(rarity) {
+    if (!rarity || rarity.name === "Common") return null;
+
+    const strengthByName = {
+        Magic: 1.15,
+        Rare: 1.3,
+        Epic: 1.5,
+        Legendary: 1.75,
+    };
+    const scale = strengthByName[rarity.name] ?? 1.1;
+
+    return new GlowFilter({
+        distance: 14,
+        outerStrength: 1.25 * scale,
+        innerStrength: 0.85 * scale,
+        color: hexToGlowColor(rarity.color),
+        quality: 0.45,
+    });
+}
 
 export function createPlayerEntity(world) {
     const pCont = new Container();
@@ -49,44 +75,37 @@ export function createPlayerEntity(world) {
     pCont.addChild(weaponContainer);
 
     let weaponSprite = null;
-    let currentWeaponId = null;
+    let currentWeaponKey = null;
 
     function updateWeaponSprite() {
         const equipment = useGameStore.getState().inventory.equipment;
         const weapon = equipment?.weapon;
+        const weaponKey = weapon?.id ?? null;
 
-        // No change needed
-        if (weapon?.id === currentWeaponId) return;
-        currentWeaponId = weapon?.id ?? null;
+        if (weaponKey === currentWeaponKey) return;
+        currentWeaponKey = weaponKey;
 
-        // Clear old sprite
         if (weaponSprite) {
             weaponContainer.removeChild(weaponSprite);
             weaponSprite.destroy();
             weaponSprite = null;
         }
+        if (!weapon?.id) return;
 
-        if (!weapon) return;
-
-        console.log(weapon);
-
-        const texture = assetManager.getTexture(weapon.id);
-        if (!texture) return;
+        const dbItem = ItemDatabase[weapon.id];
+        const textureId = dbItem?.textureId ?? weapon.id;
+        const texture = assetManager.resolveTexture(textureId);
+        if (!texture) {
+            console.warn(`[player] Missing weapon texture: ${textureId} (${weapon.id})`);
+            return;
+        }
 
         weaponSprite = new Sprite(texture);
         weaponSprite.anchor.set(0.5, 0.5);
-        weaponSprite.scale.set(0.08);
+        weaponSprite.scale.set(0.1);
 
-        // weapon glow
-        weaponSprite.filters = [
-            new GlowFilter({
-                distance: 12,
-                outerStrength: 1.5,
-                innerStrength: 2,
-                color: 'white',
-                quality: 1,
-            })
-        ];
+        const rarityGlow = createWeaponRarityGlow(dbItem?.rarity);
+        weaponSprite.filters = rarityGlow ? [rarityGlow] : null;
 
         weaponContainer.addChild(weaponSprite);
     }

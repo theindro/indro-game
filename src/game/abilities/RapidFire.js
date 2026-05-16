@@ -73,9 +73,9 @@ export function useRapidFire(ctx, targetX, targetY) {
             speedScale: (stats.projectileSpeed ?? 1) * 0.98,
         };
 
-        const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, ARROW_TYPES.POISON, trajectory);
+        const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, ARROW_TYPES.NORMAL, trajectory);
 
-        arrow.vfxGlow = VFX.addGlow(0, 0, skillGlowOpts, arrow.c);
+        //arrow.vfxGlow = VFX.addGlow(0, 0, skillGlowOpts, arrow.c);
 
         arrows.push(arrow);
 

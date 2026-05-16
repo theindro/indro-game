@@ -123,6 +123,22 @@ class AssetManager {
         return texture;
     }
 
+    /** Resolve a gameplay texture id (basename, alias, or registry id). */
+    resolveTexture(textureId) {
+        if (!textureId) return null;
+        const direct = this.getTexture(textureId);
+        if (direct) return direct;
+
+        const entry = this.findEntryForTexture(textureId);
+        if (!entry) return null;
+
+        const resolved =
+            (typeof entry.meta?.alias === 'string' && entry.meta.alias) ||
+            (entry.sourcePath ? basenameFromPath(entry.sourcePath) : entry.id);
+
+        return this.getTexture(resolved) ?? null;
+    }
+
     getAssetMeta(id) {
         return assetRegistry.getMeta(id);
     }
