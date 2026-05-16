@@ -13,10 +13,10 @@ import {editorBridge} from "../../components/devtools/editorBridge.js";
 import { loadBossChunkContent } from './bossChunkContent.js';
 
 const weatherConfig = {
-    forest: {type: '🌧️ Rain', intensity: 5, color: '#44aaff'},
-    desert: {type: '🌪️ Sandstorm', intensity: 0.7, color: '#ffaa44'},
-    ice: {type: '❄️ Snow', intensity: 0.6, color: '#88ccff'},
-    lava: {type: '🔥 Embers', intensity: 0.8, color: '#ff4400'}
+    forest: { type: '🌲 Dynamic (day/sunset/night/rain)', color: '#5a9a6a' },
+    desert: { type: '🏜️ Dynamic (heat/sandstorm)', color: '#ffaa44' },
+    ice: { type: '❄️ Dynamic (snow/blizzard)', color: '#88ccff' },
+    lava: { type: '🔥 Dynamic (smoke/embers)', color: '#ff4400' },
 };
 
 export class OpenWorldManager {

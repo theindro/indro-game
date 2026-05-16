@@ -403,26 +403,11 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, ope
 
 function setupChunkChangeHandler(openWorld, weatherSystem) {
     let lastWeatherBiome = null;
-    let transitionTimer = 0;
-    let isTransitioning = false;
 
     openWorld.onChunkChangeCallback = (info) => {
-        if (info.biome === lastWeatherBiome && !isTransitioning) return;
-
-        const weatherConfig = {
-            desert: {type: 'sandstorm', intensity: 0.7, speed: 1.0},
-            forest: {type: 'rain', intensity: 0.7, speed: 1.0},
-            ice: {type: 'snow', intensity: 0.6, speed: 0.8},
-            lava: {type: 'embers', intensity: 0.8, speed: 0.8}
-        };
-
-        const weather = weatherConfig[info.biome];
-
-        if (weather) {
-            // Smooth transition over 3 seconds
-            weatherSystem.setWeather(weather.type, weather.intensity, weather.speed);
-            lastWeatherBiome = info.biome;
-        }
+        if (!info.biome || info.biome === lastWeatherBiome) return;
+        weatherSystem.setActiveBiome(info.biome);
+        lastWeatherBiome = info.biome;
     };
 }
 
@@ -542,10 +527,10 @@ function updateCamera(camX, camY, px, py, world, app, openWorld, dt) { // Remove
     };
 }
 
-function updateWeather(weatherSystem, dt, camX, camY, openWorld) {
-    const bounds = openWorld.getCurrentBounds();
-
-    weatherSystem.update(dt, camX, camY, bounds);
+function updateWeather(weatherSystem, dt, _camX, _camY, openWorld) {
+    const biome = openWorld.lastPlayerChunk?.biome ?? null;
+    weatherSystem.update(dt);
+    weatherSystem.updateBiomeWeather(biome, dt);
 }
 
 function updateMinimap(minimap, px, py, input, world, mouseWorld) {
