@@ -91,7 +91,6 @@ body {
     color: #fff;
     font-weight: 600;
     white-space: nowrap;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     animation:
         lootToastIn 0.28s ease-out forwards,
         lootToastOut 0.45s ease-in 2.75s forwards;

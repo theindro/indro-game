@@ -12,6 +12,10 @@ import {
     usesArenaLayout,
 } from './chunkProfile.js';
 import { samplePropPosition } from './chunkPlacement.js';
+import { PLAYER_RADIUS } from '../constants.js';
+
+/** Alpha for non-colliding props when the player walks behind them. */
+const OCCLUSION_FADE_ALPHA = 0.5;
 
 export class PropManager {
     constructor(worldObjects, worldSeed = 1) {
@@ -43,6 +47,66 @@ export class PropManager {
             for (let i = list.length - 1; i >= 0; i--) out.push(list[i]);
         }
         return out;
+    }
+
+    /** @param {import('pixi.js').Sprite | import('pixi.js').Graphics} visual */
+    _enableOcclusionFade(visual) {
+        if (!visual) return;
+        visual.occlusionFade = true;
+        if (visual._occlusionFullAlpha == null) {
+            visual._occlusionFullAlpha = visual.alpha ?? 1;
+        }
+    }
+
+    /**
+     * Fade non-colliding props (trees, bushes) when they draw in front of the player.
+     * @param {number} playerX
+     * @param {number} playerY World Y used for overlap (bobbed position matches zIndex).
+     * @param {number} playerSortZ Player zIndex / sort depth.
+     */
+    updatePlayerOcclusion(playerX, playerY, playerSortZ) {
+        for (const [, data] of this.activeChunks) {
+            for (const visual of data?.propsList || []) {
+                if (!visual?.occlusionFade || visual.destroyed) continue;
+
+                const fade = this._shouldOccludePlayer(visual, playerX, playerY, playerSortZ);
+                const full = visual._occlusionFullAlpha ?? 1;
+                const target = fade ? OCCLUSION_FADE_ALPHA : full;
+
+                if (Math.abs(visual.alpha - target) > 0.01) {
+                    visual.alpha = target;
+                }
+            }
+        }
+    }
+
+    /**
+     * @param {import('pixi.js').Sprite | import('pixi.js').Graphics} visual
+     */
+    _shouldOccludePlayer(visual, playerX, playerY, playerSortZ) {
+        const propSortZ = visual.zIndex ?? visual.y;
+        if (propSortZ <= playerSortZ + 1) return false;
+
+        // Player is north of the prop base (behind the canopy in Y-sort space).
+        if (playerY > visual.y - 6) return false;
+
+        const w = Math.max(Math.abs(visual.width || 0), 24);
+        const h = Math.max(Math.abs(visual.height || 0), 32);
+        const ax = visual.anchor?.x ?? 0.5;
+        const ay = visual.anchor?.y ?? 1;
+
+        const left = visual.x - w * ax;
+        const right = visual.x + w * (1 - ax);
+        const top = visual.y - h * ay;
+        const bottom = visual.y + h * (1 - ay);
+        const pad = PLAYER_RADIUS * 0.85;
+
+        return (
+            playerX + pad > left &&
+            playerX - pad < right &&
+            playerY + pad > top &&
+            playerY - pad < bottom
+        );
     }
 
     /**
@@ -254,6 +318,10 @@ export class PropManager {
             p.collision !== undefined
                 ? p.collision
                 : (propType ? propType.collision : true);
+
+        if (!wantsCollision) {
+            this._enableOcclusionFade(propVisual);
+        }
 
         if (wantsCollision) {
             const baseWidth = Math.max(20, propVisual.width || 30);
@@ -469,6 +537,10 @@ export class PropManager {
                 shadow._propVisual = propVisual;
                 propVisual._worldPropShadow = shadow;
                 shadowsList.push(shadow);
+            }
+
+            if (!propType.collision) {
+                this._enableOcclusionFade(propVisual);
             }
 
             // Create collider

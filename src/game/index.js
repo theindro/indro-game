@@ -244,6 +244,7 @@ export async function createGame() {
 
         // World updates
         openWorld.update(px, py, dt);
+        openWorld.propManager.updatePlayerOcclusion(pCont.x, pCont.y, pCont.zIndex);
 
         // boss updates
         updateBosses(entities.bosses, px, py, colliders, openWorld, entities.enemyProjs, playerState, dt);

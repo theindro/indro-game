@@ -335,15 +335,10 @@ export class GroundAttack {
 
         VFX.addGlow(0, 0, {
             color: this.config.color,
-            alpha: 0.38,
+            alpha: 0.15,
             scale: glowScale,
         }, this.container);
 
-        VFX.addGlow(0, 0, {
-            color: this.config.innerColor,
-            alpha: 0.22,
-            scale: glowScale * 0.62,
-        }, this.container);
     }
 
     _pizzaAngles() {
