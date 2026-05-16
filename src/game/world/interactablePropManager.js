@@ -24,12 +24,28 @@ import { INTERACTABLE_HOVER_FILTER } from '../utils/highlightFilters.js';
 const GLOW_PULSE_SPEED   = 25;
 const GLOW_MIN_ALPHA     = 0;
 const GLOW_MAX_ALPHA     = 0;
-const INDICATOR_FONT     = { fontFamily: 'Nunito', fontSize: 12, fill: 0xffffff, align: 'center' };
 const INTERACT_KEY_LABEL = '[E]';
 const HARVEST_BAR_W      = 48;
 const HARVEST_BAR_H      = 6;
 const ACTIVE_DIST        = 500;
 const ACTIVE_DIST_SQ     = ACTIVE_DIST * ACTIVE_DIST;
+/** Cancel harvest if player moves more than this (world px) from start position. */
+const HARVEST_CANCEL_MOVE_SQ = 14 * 14;
+/** Renders above trees/props on entityLayer (Y-sorted props use z ≈ y). */
+const INTERACT_UI_Z_INDEX = 2_000_000;
+
+const INDICATOR_TEXT_STYLE = {
+    fontFamily: 'Nunito, sans-serif',
+    fontSize: 11,
+    fill: 0xffffff,
+    align: 'center',
+    dropShadow: {
+        alpha: 0.85,
+        blur: 3,
+        color: 0x000000,
+        distance: 2,
+    },
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 export class InteractablePropManager {
@@ -55,11 +71,37 @@ export class InteractablePropManager {
 
         // Elapsed time for animations
         this._elapsed = 0;
+
+        /** @type {{ x: number, z: number } | null} */
+        this._harvestAnchor = null;
+        this._lastPlayerHp = useGameStore.getState().player?.hp ?? 100;
+
+        /** @type {import('pixi.js').Container | null} */
+        this.uiLayer = null;
     }
 
     /** Point this manager to the render layer (usually entityLayer) */
     setLayer(layer) {
         this.layer = layer;
+        this._ensureUiLayer();
+    }
+
+    _ensureUiLayer() {
+        const layer = this.layer ?? this.worldObjects?.entityLayer;
+        if (!layer) return;
+
+        if (!this.uiLayer) {
+            this.uiLayer = new Container();
+            this.uiLayer.label = 'interactUiLayer';
+            this.uiLayer.zIndex = INTERACT_UI_Z_INDEX;
+            this.uiLayer.eventMode = 'none';
+            this.uiLayer.sortableChildren = true;
+        }
+
+        if (this.uiLayer.parent !== layer) {
+            layer.sortableChildren = true;
+            layer.addChild(this.uiLayer);
+        }
     }
 
     // ── Seeded random helpers ─────────────────────────────────────────────────
@@ -199,6 +241,27 @@ export class InteractablePropManager {
 
     update(playerX, playerZ, dt) {
         this._elapsed += dt;
+        this._ensureUiLayer();
+
+        if (this._harvestAnchor) {
+            const harvesting = this.allProps.find((p) => p._harvesting);
+            const hp = useGameStore.getState().player.hp;
+            const dx = playerX - this._harvestAnchor.x;
+            const dz = playerZ - this._harvestAnchor.z;
+            const moved = dx * dx + dz * dz > HARVEST_CANCEL_MOVE_SQ;
+            const damaged = hp < this._lastPlayerHp;
+
+            let outOfRange = false;
+            if (harvesting) {
+                const dist = Math.hypot(harvesting.x - playerX, harvesting.z - playerZ);
+                outOfRange = dist > harvesting.def.interactRange;
+            }
+
+            if (moved || damaged || outOfRange || !harvesting) {
+                this.cancelInteract();
+            }
+        }
+        this._lastPlayerHp = useGameStore.getState().player.hp;
 
         for (const prop of this.allProps) {
             const dx = prop.x - playerX;
@@ -242,6 +305,16 @@ export class InteractablePropManager {
         if (this._hovered?.indicator) {
             this._hovered.indicator.visible = false;
         }
+
+        for (const prop of this.allProps) {
+            if (
+                prop.indicator?.visible ||
+                prop.barBg?.visible ||
+                prop._harvesting
+            ) {
+                this._syncInteractUi(prop);
+            }
+        }
     }
 
     // ── Interaction API ───────────────────────────────────────────────────────
@@ -258,6 +331,8 @@ export class InteractablePropManager {
             if (prop._harvesting) return null;
             prop._harvesting   = true;
             prop._harvestAccum = 0;
+            this._harvestAnchor = { x: playerX, z: playerZ };
+            this._lastPlayerHp = useGameStore.getState().player.hp;
             this._showHarvestBar(prop);
             return { prop, loot: null, harvesting: true };
         }
@@ -266,6 +341,7 @@ export class InteractablePropManager {
     }
 
     cancelInteract() {
+        this._harvestAnchor = null;
         for (const prop of this.allProps) {
             if (prop._harvesting) {
                 prop._harvesting   = false;
@@ -366,30 +442,35 @@ export class InteractablePropManager {
             shadow._interactableVisual = visual;
         }
 
-        // ── [E] indicator ──
-        const indicator = new Text(INTERACT_KEY_LABEL + '\n' + def.label, {
-            ...INDICATOR_FONT,
-            fontSize: 10,
+        this._ensureUiLayer();
+
+        const labelLift = visual instanceof Sprite ? visual.height : targetSize;
+        const indicatorOffsetY = -(labelLift + 10);
+        const barOffsetY = -(labelLift + 22);
+
+        // ── [E] indicator (uiLayer — draws above Y-sorted props/trees) ──
+        const indicator = new Text({
+            text: INTERACT_KEY_LABEL + '\n' + def.label,
+            style: INDICATOR_TEXT_STYLE,
         });
         indicator.anchor.set(0.5, 1);
-        indicator.y     = -(visual.height + 8);
         indicator.visible = false;
-        container.addChild(indicator);
+        indicator.eventMode = 'none';
+        this.uiLayer.addChild(indicator);
 
-        // ── Harvest progress bar ──
+        // ── Harvest progress bar (uiLayer) ──
         const barBg = new Graphics();
         barBg.rect(-HARVEST_BAR_W / 2, 0, HARVEST_BAR_W, HARVEST_BAR_H)
-            .fill({ color: 0x222222 });
-        barBg.y       = -(visual.height + 20);
+            .fill({ color: 0x111111, alpha: 0.92 })
+            .stroke({ color: 0xffffff, width: 1, alpha: 0.55 });
         barBg.visible = false;
-        container.addChild(barBg);
+        barBg.eventMode = 'none';
+        this.uiLayer.addChild(barBg);
 
         const barFill = new Graphics();
-        barFill.rect(-HARVEST_BAR_W / 2, 0, 0, HARVEST_BAR_H)
-            .fill({ color: 0x44ee44 });
-        barFill.y       = barBg.y;
         barFill.visible = false;
-        container.addChild(barFill);
+        barFill.eventMode = 'none';
+        this.uiLayer.addChild(barFill);
 
         this.worldObjects.addToEntityLayer(container);
 
@@ -448,7 +529,10 @@ export class InteractablePropManager {
             _phase: this.seededRandom(this.worldSeed ^ this.hashString(id) ^ 945612341) * Math.PI * 2,
             _harvesting:   false,
             _harvestAccum: 0,
+            _uiOffsets: { indicatorY: indicatorOffsetY, barY: barOffsetY },
         };
+
+        this._syncInteractUi(prop);
 
         this._attachHover(prop);
         return prop;
@@ -514,6 +598,15 @@ export class InteractablePropManager {
             this.worldObjects.removeCollider(prop.collider);
             prop.collider = null;
         }
+        if (prop.indicator && !prop.indicator.destroyed) {
+            prop.indicator.destroy();
+        }
+        if (prop.barBg && !prop.barBg.destroyed) {
+            prop.barBg.destroy();
+        }
+        if (prop.barFill && !prop.barFill.destroyed) {
+            prop.barFill.destroy();
+        }
         this.worldObjects.removeAndDestroyDisplayObject(prop.container);
     }
 
@@ -572,9 +665,11 @@ export class InteractablePropManager {
             prop.barFill
                 .rect(-HARVEST_BAR_W / 2, 0, Math.max(2, HARVEST_BAR_W * pct), HARVEST_BAR_H)
                 .fill({ color: 0x44ee44 });
+            this._syncInteractUi(prop);
         }
 
         if (pct >= 1) {
+            this._harvestAnchor = null;
             prop._harvesting   = false;
             prop._harvestAccum = 0;
             this._hideHarvestBar(prop);
@@ -606,12 +701,42 @@ export class InteractablePropManager {
 
     // ── Visual helpers ────────────────────────────────────────────────────────
 
-    _showIndicator(prop) { if (prop.indicator) prop.indicator.visible = true; }
-    _hideIndicator(prop) { if (prop.indicator) prop.indicator.visible = false; }
+    _syncInteractUi(prop) {
+        if (!prop?._uiOffsets) return;
+        const x = prop.x;
+        const z = prop.z;
+        const { indicatorY, barY } = prop._uiOffsets;
+
+        if (prop.indicator && prop.indicator.visible) {
+            prop.indicator.position.set(x, z + indicatorY);
+            prop.indicator.zIndex = INTERACT_UI_Z_INDEX + 1;
+        }
+
+        if (prop.barBg?.visible) {
+            prop.barBg.position.set(x, z + barY);
+            prop.barBg.zIndex = INTERACT_UI_Z_INDEX + 2;
+        }
+        if (prop.barFill?.visible) {
+            prop.barFill.position.set(x, z + barY);
+            prop.barFill.zIndex = INTERACT_UI_Z_INDEX + 3;
+        }
+    }
+
+    _showIndicator(prop) {
+        if (prop.indicator) {
+            prop.indicator.visible = true;
+            this._syncInteractUi(prop);
+        }
+    }
+
+    _hideIndicator(prop) {
+        if (prop.indicator) prop.indicator.visible = false;
+    }
 
     _showHarvestBar(prop) {
         if (prop.barBg)   prop.barBg.visible   = true;
         if (prop.barFill) prop.barFill.visible  = true;
+        this._syncInteractUi(prop);
     }
 
     _hideHarvestBar(prop) {
@@ -718,6 +843,11 @@ export class InteractablePropManager {
         this.activeChunks.clear();
         this.shadowRegistry.clear();
         this._highlighted = null;
+        this._harvestAnchor = null;
         this._elapsed     = 0;
+
+        if (this.uiLayer && !this.uiLayer.destroyed) {
+            this.uiLayer.removeChildren();
+        }
     }
 }
