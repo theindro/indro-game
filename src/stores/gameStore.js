@@ -44,9 +44,10 @@ const INITIAL_ABILITIES = {
         name: 'Empower',
         icon: '/icons/ability3.png',
         cooldownEnd: 0,
-        maxCooldown: 10,
+        maxCooldown: 15,
         level: 1,
-        description: 'Temporarily increase damage and defense',
+        buffDuration: 6,
+        description: '6s: fire aura — your arrows ignite enemies (burn)',
     },
     ability4: {
         name: 'Frost Arrow',
@@ -208,6 +209,9 @@ function createGameStoreSlice(set, get) {
 
         abilities: cloneDefaultAbilities(),
 
+        /** Empower buff end time (`performance.now()` ms). */
+        empowerBuff: { endsAt: 0 },
+
         addXP: (amount) => {
             let levelUp = false;
 
@@ -275,6 +279,13 @@ function createGameStoreSlice(set, get) {
             }));
             return true;
         },
+
+        activateEmpower: (durationSec = 6) => {
+            const now = performance.now();
+            set({ empowerBuff: { endsAt: now + durationSec * 1000 } });
+        },
+
+        isEmpowerActive: () => performance.now() < (get().empowerBuff?.endsAt ?? 0),
 
         toggleDebug: () => set((state) => ({debug: {enabled: !state.debug.enabled}})),
         setDebug: (value) => set(() => ({debug: {enabled: value}})),
@@ -746,6 +757,9 @@ function getDefaultProgressPayload() {
             void_essence: 0,
         },
         abilities: cloneDefaultAbilities(),
+
+        /** Empower buff end time (`performance.now()` ms). */
+        empowerBuff: { endsAt: 0 },
         worldSeed: generateWorldSeed(),
         openedInteractableIds: [],
         defeatedBossChunkKeys: [],

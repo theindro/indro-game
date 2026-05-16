@@ -14,9 +14,9 @@ export const HOVER_OUTLINE_FILTER = new OutlineFilter({
 });
 
 export const AGGRO_OUTLINE_FILTER = new OutlineFilter({
-    thickness: 3,
+    thickness: 1,
     color: 0xff4422,
-    alpha: 0.9,
+    alpha: 0,
     quality: 0.4,
 });
 

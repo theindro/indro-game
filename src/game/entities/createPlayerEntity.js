@@ -51,6 +51,11 @@ export function createPlayerEntity(world) {
     const pGlow = new Graphics();
     visual.addChild(pGlow);
 
+    const empowerAura = new Graphics();
+    empowerAura.visible = false;
+    empowerAura.eventMode = 'none';
+    pCont.addChildAt(empowerAura, 0);
+
     const pBody = new Graphics();
     pBody.circle(0, -1, 14.5).fill('#67c3ff');
     visual.addChild(pBody);
@@ -139,7 +144,38 @@ export function createPlayerEntity(world) {
         rightEye.circle(6 + ox, -3.5 + oy, 1).fill('rgba(255,255,255,0.9)');
     }
 
+    function drawEmpowerAura(phase) {
+        const active = performance.now() < (useGameStore.getState().empowerBuff?.endsAt ?? 0);
+        if (!active) {
+            if (empowerAura.visible) {
+                empowerAura.visible = false;
+                empowerAura.clear();
+            }
+            return;
+        }
+
+        empowerAura.visible = true;
+        empowerAura.clear();
+
+        const pulse = 0.9 + Math.sin(phase * 10) * 0.12;
+        const r = 20 * pulse;
+
+        empowerAura.circle(0, 2, r * 1.15).fill({ color: 0xff3300, alpha: 0.07 });
+        empowerAura.circle(0, 2, r).fill({ color: 0xff5500, alpha: 0.14 });
+        empowerAura.circle(0, 2, r * 0.55).fill({ color: 0xffaa44, alpha: 0.1 });
+        empowerAura.circle(0, 2, r).stroke({ color: 0xff8800, width: 1.5, alpha: 0.35 + Math.sin(phase * 14) * 0.15 });
+
+        for (let i = 0; i < 6; i++) {
+            const a = phase * 4 + (i / 6) * Math.PI * 2;
+            const fx = Math.cos(a) * r * 0.75;
+            const fy = Math.sin(a) * r * 0.45 + 2;
+            empowerAura.circle(fx, fy, 2 + Math.sin(phase * 8 + i) * 0.6)
+                .fill({ color: 0xff6600, alpha: 0.35 + Math.sin(phase * 6 + i) * 0.2 });
+        }
+    }
+
     function tickAnimations(t, mx = 0, my = 0) {
+        drawEmpowerAura(t);
         blinkTimer++;
 
         const blinking = blinkTimer > blinkInterval;

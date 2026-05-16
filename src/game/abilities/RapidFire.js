@@ -1,5 +1,6 @@
 import {useGameStore} from "../../stores/gameStore.js";
-import {ARROW_TYPES, createArrow} from "../controllers/createProjectileController.js";
+import { createArrow } from "../controllers/createProjectileController.js";
+import { getEmpoweredArrowType } from "./empowerBuff.js";
 import {DEFAULT_ATTACK_RANGE} from "../constants.js";
 import {VFX} from "../GlobalEffects.js";
 import {STATUS_COLORS_RGBA} from "../statusEffects.js";
@@ -73,7 +74,7 @@ export function useRapidFire(ctx, targetX, targetY) {
             speedScale: (stats.projectileSpeed ?? 1) * 0.98,
         };
 
-        const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, ARROW_TYPES.NORMAL, trajectory);
+        const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, getEmpoweredArrowType(), trajectory);
 
         //arrow.vfxGlow = VFX.addGlow(0, 0, skillGlowOpts, arrow.c);
 

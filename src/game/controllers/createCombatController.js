@@ -8,6 +8,8 @@ import { createProjectileSystem } from "./subsystems/createProjectileSystem.js";
 import { useArrowBarrage } from "../abilities/ArrowBarrage.js";
 import { useRapidFire } from "../abilities/RapidFire.js";
 import { useFrostArrow } from "../abilities/FrostArrow.js";
+import { useEmpower } from "../abilities/Empower.js";
+import { getEmpoweredArrowType } from "../abilities/empowerBuff.js";
 import {audioManager} from "../utils/audioManager.js";
 
 export function createCombatController(ctx) {
@@ -63,7 +65,7 @@ export function createCombatController(ctx) {
                 maxRange: stats.attackRange ?? DEFAULT_ATTACK_RANGE,
                 speedScale: stats.projectileSpeed ?? 1,
             };
-            arrows.push(createArrow(entityLayer, px, py, tx, ty, spread, chainData, ARROW_TYPES.NORMAL, tr));
+            arrows.push(createArrow(entityLayer, px, py, tx, ty, spread, chainData, getEmpoweredArrowType(), tr));
         }
     }
 
@@ -91,6 +93,10 @@ export function createCombatController(ctx) {
         return useFrostArrow(abilityCtx, targetX, targetY);
     }
 
+    function useEmpowerWrapper() {
+        return useEmpower();
+    }
+
     return {
         tryShoot,
         updateArrows: arrowSystem.updateArrows,
@@ -100,6 +106,7 @@ export function createCombatController(ctx) {
         spawnPlayerDrop: dropSystem.spawnPlayerDrop,
         useArrowBarrage: useArrowBarrageWrapper,
         useRapidFire: useRapidFireWrapper,
-        useFrostArrow: useFrostArrowWrapper
+        useFrostArrow: useFrostArrowWrapper,
+        useEmpower: useEmpowerWrapper,
     };
 }

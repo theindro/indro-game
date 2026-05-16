@@ -386,7 +386,7 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, ope
                 break;
             case '3':
                 if (useGameStore.getState().player.pLevel >= 10)
-                    console.log('Ability 3 used!');
+                    combat.useEmpower();
                 break;
             case '4':
                 if (useGameStore.getState().player.pLevel >= 20)

@@ -1,7 +1,8 @@
 // abilities/ArrowBarrage.js
-import { createArrow, ARROW_TYPES } from '../controllers/createProjectileController.js';
+import { createArrow } from '../controllers/createProjectileController.js';
 import { DEFAULT_ATTACK_RANGE } from '../constants.js';
-import {useGameStore} from "../../stores/gameStore.js";
+import { useGameStore } from "../../stores/gameStore.js";
+import { getEmpoweredArrowType } from './empowerBuff.js';
 
 export function useArrowBarrage(ctx, targetX, targetY) {
     const { arrows, openWorld } = ctx;
@@ -46,7 +47,7 @@ export function useArrowBarrage(ctx, targetX, targetY) {
             speedScale: (stats.projectileSpeed ?? 1) * 1.05,
         };
 
-        const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, ARROW_TYPES.NORMAL, trajectory);
+        const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, getEmpoweredArrowType(), trajectory);
 
         arrows.push(arrow);
     }

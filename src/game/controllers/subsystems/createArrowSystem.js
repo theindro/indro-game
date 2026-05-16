@@ -423,6 +423,10 @@ export function createArrowSystem(ctx) {
                 // Apply hit effects
                 applyHitEffects(boss.x, boss.y, finalDamage, isCrit, true, arrow.elementalEffect);
 
+                if (arrow.elementalEffect === 'burn') {
+                    applyStatusEffect(boss, createBurnEffect(2, 4));
+                }
+
                 if (arrow.vfxGlow) {
                     VFX.removeAttached(arrow.vfxGlow);
                     arrow.vfxGlow = null;
