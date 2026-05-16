@@ -194,6 +194,8 @@ export function createDropSystem(ctx) {
             requiresReenter,
             /** False until player leaves pickup radius once (prevents instant re-pickup after drop). */
             hasLeftPickupRadius: !requiresReenter,
+            /** One pickup attempt per radius visit (avoids inventory-full spam). */
+            pickupAttempted: false,
             vx,
             vy,
             bob,
@@ -268,7 +270,6 @@ export function createDropSystem(ctx) {
 
         const fs = frameScale(dt);
         const magnetPull = 1 - Math.pow(0.93, fs);
-        let lastInventoryFullMsg = 0;
 
         // Batch accumulators
         let goldBatch = 0;
@@ -298,8 +299,11 @@ export function createDropSystem(ctx) {
 
             if (d.update) d.update(dt);
 
-            if (d.requiresReenter && !d.hasLeftPickupRadius && dist >= PICKUP_RADIUS) {
-                d.hasLeftPickupRadius = true;
+            if (dist >= PICKUP_RADIUS) {
+                d.pickupAttempted = false;
+                if (d.requiresReenter && !d.hasLeftPickupRadius) {
+                    d.hasLeftPickupRadius = true;
+                }
             }
 
             const canPickup = !d.requiresReenter || d.hasLeftPickupRadius;
@@ -313,14 +317,15 @@ export function createDropSystem(ctx) {
                 if (d.type === 'item' && d.item) {
                     const slotItem = d.slotItem ?? {id: d.item.id, quantity: 1, enchantLevel: 0};
                     if (!useGameStore.getState().canFitItem(slotItem.id, slotItem.quantity ?? 1)) {
-                        const now = performance.now();
-                        if (dist < 18 && now - lastInventoryFullMsg > 900) {
-                            lastInventoryFullMsg = now;
+                        if (!d.pickupAttempted) {
+                            d.pickupAttempted = true;
                             VFX.addFloat('Inventory Full', d.container.x, d.container.y - 24, '#ff6666');
                         }
                         continue;
                     }
                 }
+
+                if (d.pickupAttempted) continue;
 
                 audioManager.playSFX('/sounds/pickup.mp3', 0.15);
 
