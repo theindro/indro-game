@@ -47,6 +47,56 @@ body {
     }
 }
 
+@keyframes lootToastIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes lootToastOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-14px) scale(0.98);
+    }
+}
+
+.loot-toast-stack {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 99999;
+    pointer-events: none;
+}
+
+.loot-toast {
+    padding: 10px 14px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    animation:
+        lootToastIn 0.28s ease-out forwards,
+        lootToastOut 0.45s ease-in 2.75s forwards;
+}
+
 
 .item-card {
     width: 50px;

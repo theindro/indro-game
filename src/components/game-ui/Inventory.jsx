@@ -17,7 +17,39 @@ import ItemCard from "../Items/ItemCard.jsx";
 
 const { Text } = Typography;
 
-export default function Inventory({isOpen, setIsOpen}) {
+const LOOT_TOAST_DURATION_MS = 3200;
+const MAX_LOOT_TOASTS = 12;
+
+function mergeLootChanges(changes) {
+    const byId = new Map();
+    for (const c of changes) {
+        byId.set(c.id, (byId.get(c.id) ?? 0) + c.quantity);
+    }
+    return [...byId.entries()].map(([id, quantity]) => ({ id, quantity }));
+}
+
+function LootToast({ toast, onExpire }) {
+    const dbItem = ItemDatabase[toast.itemId];
+    const rarityName = dbItem?.rarity?.name ?? '';
+
+    useEffect(() => {
+        const timer = setTimeout(() => onExpire(toast.key), LOOT_TOAST_DURATION_MS);
+        return () => clearTimeout(timer);
+    }, [toast.key, onExpire]);
+
+    return (
+        <div className={`loot-card loot-toast ${rarityName}`}>
+            {dbItem?.texture ? (
+                <img src={dbItem.texture} width={28} height={28} alt="" />
+            ) : null}
+            <span>
+                +{toast.quantity} {dbItem?.name ?? toast.itemId}
+            </span>
+        </div>
+    );
+}
+
+export default function Inventory({ isOpen, setIsOpen }) {
     const [messageApi, contextHolder] = message.useMessage();
 
     const inventory = useGameStore((s) => s.inventory);
@@ -27,8 +59,13 @@ export default function Inventory({isOpen, setIsOpen}) {
     const dropItemFromSlot = useGameStore((s) => s.dropItemFromSlot);
     const openEnchantmentUI = useGameStore((s) => s.openEnchantmentUI);
     const playerLocation = useGameStore((s) => s.player.location);
-    const [lootPopup, setLootPopup] = useState(null);
+    const [lootToasts, setLootToasts] = useState([]);
     const prevSlotsRef = useRef([]);
+    const toastKeyRef = useRef(0);
+
+    const dismissLootToast = useCallback((key) => {
+        setLootToasts((prev) => prev.filter((t) => t.key !== key));
+    }, []);
 
     useEffect(() => {
         const prev = prevSlotsRef.current;
@@ -65,12 +102,13 @@ export default function Inventory({isOpen, setIsOpen}) {
         }
 
         if (changes.length > 0) {
-            const first = changes[0];
-            setLootPopup(first);
-
-            setTimeout(() => {
-                setLootPopup(null);
-            }, 1500);
+            const merged = mergeLootChanges(changes);
+            const incoming = merged.map((entry) => ({
+                key: ++toastKeyRef.current,
+                itemId: entry.id,
+                quantity: entry.quantity,
+            }));
+            setLootToasts((prev) => [...prev, ...incoming].slice(-MAX_LOOT_TOASTS));
         }
 
         prevSlotsRef.current = current;
@@ -121,34 +159,15 @@ export default function Inventory({isOpen, setIsOpen}) {
 
     return (
         <>
-            {lootPopup && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: '40%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        padding: '10px 14px',
-                        borderRadius: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        color: '#fff',
-                        fontWeight: 600,
-                        zIndex: 99999,
-                        animation: 'fadeUp 1.5s ease-out'
-                    }}
-
-                    className={"loot-card " + ItemDatabase[lootPopup.id]?.rarity?.name}
-                >
-                    <img
-                        src={ItemDatabase[lootPopup.id]?.texture}
-                        width={28}
-                        height={28}
-                    />
-                    <span>
-                        +{lootPopup.quantity} {ItemDatabase[lootPopup.id]?.name}
-                    </span>
+            {lootToasts.length > 0 && (
+                <div className="loot-toast-stack">
+                    {lootToasts.map((toast) => (
+                        <LootToast
+                            key={toast.key}
+                            toast={toast}
+                            onExpire={dismissLootToast}
+                        />
+                    ))}
                 </div>
             )}
 
