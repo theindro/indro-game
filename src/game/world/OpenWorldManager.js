@@ -12,6 +12,7 @@ import { sampleMobPackCenter } from './chunkPlacement.js';
 import {editorBridge} from "../../components/devtools/editorBridge.js";
 import { loadBossChunkContent } from './bossChunkContent.js';
 import { getChunkDifficulty } from '../difficultyScaling.js';
+import { getBiomeForChunk, getWorldContentScales } from './worldProgression.js';
 
 const weatherConfig = {
     forest: { type: '🌲 Dynamic (day/sunset/night/rain)', color: '#5a9a6a' },
@@ -170,6 +171,9 @@ export class OpenWorldManager {
             chunkSizeWorld
         );
 
+        const difficulty = getChunkDifficulty(chunkX, chunkZ);
+        const contentScales = getWorldContentScales(difficulty);
+
         const rand = this.seededRandom(seed);
 
         let cumulative = 0;
@@ -184,7 +188,7 @@ export class OpenWorldManager {
             }
         }
 
-        const mobBonus = landscapeProfile.mobPackBonus ?? 0;
+        const mobBonus = (landscapeProfile.mobPackBonus ?? 0) * contentScales.mobPackChanceMul;
         if (!landscapeProfile.spawnBoss && mobBonus > 0 && type === 'empty' && this.seededRandom(seed + 55555) < mobBonus) {
             type = 'mob_pack';
         }
@@ -197,14 +201,13 @@ export class OpenWorldManager {
             type = landscapeProfile.forceChunkType;
         }
 
-        const difficulty = getChunkDifficulty(chunkX, chunkZ);
-
         const data = {
             biome,
             type,
             seed,
             weather,
             difficulty,
+            contentScales,
             packs: [],
             poi: null,
             landscapeProfile,
@@ -214,13 +217,16 @@ export class OpenWorldManager {
         // Generate encounters
         const packMul = landscapeProfile.mobPackCountMul ?? 1;
 
+        const packSizeScale = difficulty * contentScales.mobPackSizeMul;
+        const packCountScale = contentScales.mobPackCountMul;
+
         if (type === 'mob_pack') {
-            data.packs = this.generateMobPacks(chunkX, chunkZ, 1, seed, difficulty, layoutAnchors, packMul);
+            data.packs = this.generateMobPacks(chunkX, chunkZ, 1, seed, packSizeScale, layoutAnchors, packMul * packCountScale);
         }
 
         if (type === 'dense_pack') {
-            const denseCount = Math.max(1, Math.round(3 * packMul));
-            data.packs = this.generateMobPacks(chunkX, chunkZ, denseCount, seed, difficulty, layoutAnchors, packMul);
+            const denseCount = Math.max(1, Math.round(3 * packMul * packCountScale));
+            data.packs = this.generateMobPacks(chunkX, chunkZ, denseCount, seed, packSizeScale, layoutAnchors, packMul);
         }
 
         if (type === 'elite') {
@@ -242,10 +248,10 @@ export class OpenWorldManager {
         return data;
     }
 
-    generateMobPacks(chunkX, chunkZ, packCount, seed, difficulty, layoutAnchors = null, packMul = 1) {
+    generateMobPacks(chunkX, chunkZ, packCount, seed, packSizeScale, layoutAnchors = null, packMul = 1) {
         const packs = [];
 
-        const defaultPackSize = difficulty;
+        const defaultPackSize = Math.max(1, packSizeScale);
         const chunkSizeWorld = this.chunkSize * this.tileSize;
 
         const startX = chunkX * chunkSizeWorld;
@@ -368,17 +374,10 @@ export class OpenWorldManager {
     }
 
     getBiomeAt(x, z) {
-
-        const scale = this.config.biomeScale;
-        const seed = this.worldSeed;
-        const value = Math.sin((x + seed) * scale) * Math.cos((z - seed) * scale);
-        if (value > 0.5) return 'forest';
-        if (value < -0.5) return 'desert';
-        const iceCheck = Math.sin((x + seed * 2) * scale * 1.5) * Math.cos((z - seed * 2) * scale * 1.5);
-        if (iceCheck > 0.6) return 'ice';
-        const lavaCheck = Math.sin((x - seed * 3) * scale * 0.7) * Math.cos((z + seed * 3) * scale * 0.7);
-        if (lavaCheck < -0.6) return 'lava';
-        return 'forest';
+        const chunkSizeWorld = this.chunkSize * this.tileSize;
+        const chunkX = Math.floor(x / chunkSizeWorld);
+        const chunkZ = Math.floor(z / chunkSizeWorld);
+        return getBiomeForChunk(chunkX, chunkZ, this.worldSeed);
     }
 
     async getBiomeTexture(biome) {
@@ -413,10 +412,7 @@ export class OpenWorldManager {
         const chunkWidth = this.chunkSize * this.tileSize;
         const chunkHeight = this.chunkSize * this.tileSize;
 
-        const centerX = (chunkX + 0.5) * this.chunkSize;
-        const centerZ = (chunkZ + 0.5) * this.chunkSize;
-
-        const biome = this.getBiomeAt(centerX, centerZ);
+        const biome = this.getBiomeAtChunk(chunkX, chunkZ);
 
         const biomeColor = this.getBiomeColor(biome);
         const texture = await this.getBiomeTexture(biome);
@@ -500,9 +496,7 @@ export class OpenWorldManager {
     }
 
     getBiomeAtChunk(chunkX, chunkZ) {
-        const centerX = (chunkX + 0.5) * this.chunkSize;
-        const centerZ = (chunkZ + 0.5) * this.chunkSize;
-        return this.getBiomeAt(centerX, centerZ);
+        return getBiomeForChunk(chunkX, chunkZ, this.worldSeed);
     }
 
     async spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData) {
@@ -858,6 +852,8 @@ export class OpenWorldManager {
         const landscapeContext = {
             profile: chunkData.landscapeProfile,
             anchors: chunkData.layoutAnchors,
+            difficulty: chunkData.difficulty,
+            contentScales: chunkData.contentScales,
         };
 
         await this.propManager.generateChunkProps(

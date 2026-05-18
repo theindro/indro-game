@@ -547,33 +547,33 @@ export const BIOME_INTERACTABLE_CONFIG = {
 export const LOOT_TABLES = {
 
     chest_wood: [
-        { id: 'gold',         chance: 1.0, min: 5,  max: 30  },
-        { id: 'herb_green',   chance: 0.5, min: 1,  max: 3   },
-        { id: 'ore_iron',     chance: 0.3, min: 1,  max: 2   },
+        { id: 'gold',         chance: 1.0, min: 3,  max: 14  },
+        { id: 'herb_green',   chance: 0.45, min: 1,  max: 2   },
+        { id: 'ore_iron',     chance: 0.25, min: 1,  max: 2   },
     ],
 
     chest_iron: [
-        { id: 'gold',         chance: 1.0, min: 20,  max: 80  },
-        { id: 'ore_iron',     chance: 0.7, min: 2,   max: 5   },
-        { id: 'ore_gold',     chance: 0.3, min: 1,   max: 2   },
-        { id: 'void_essence', chance: 0.1, min: 1,   max: 1   },
+        { id: 'gold',         chance: 1.0, min: 10,  max: 35  },
+        { id: 'ore_iron',     chance: 0.55, min: 1,   max: 3   },
+        { id: 'ore_gold',     chance: 0.2, min: 1,   max: 2   },
+        { id: 'void_essence', chance: 0.08, min: 1,   max: 1   },
     ],
 
     chest_gold: [
-        { id: 'gold',         chance: 1.0, min: 50,  max: 200 },
-        { id: 'ore_gold',     chance: 0.8, min: 2,   max: 6   },
-        { id: 'ore_crystal',  chance: 0.4, min: 1,   max: 2   },
-        { id: 'void_essence', chance: 0.3, min: 1,   max: 2   },
+        { id: 'gold',         chance: 1.0, min: 22,  max: 75  },
+        { id: 'ore_gold',     chance: 0.6, min: 1,   max: 3   },
+        { id: 'ore_crystal',  chance: 0.3, min: 1,   max: 2   },
+        { id: 'void_essence', chance: 0.15, min: 1,   max: 1   },
     ],
 
     chest_ancient: [
-        { id: 'gold',         chance: 1.0, min: 100, max: 500 },
-        { id: 'ore_crystal',  chance: 0.9, min: 3,   max: 8   },
-        { id: 'void_essence', chance: 0.8, min: 2,   max: 5   },
+        { id: 'gold',         chance: 1.0, min: 45, max: 140 },
+        { id: 'ore_crystal',  chance: 0.7, min: 2,   max: 4   },
+        { id: 'void_essence', chance: 0.5, min: 1,   max: 2   },
     ],
 
     grove_boss_chest: [
-        { id: 'gold',            chance: 1.0, min: 200, max: 600 },
+        { id: 'gold',            chance: 1.0, min: 80, max: 220 },
         { id: 'void_essence',    chance: 1.0, min: 5,   max: 12  },
         { id: 'void_boots',      chance: 0.55, min: 1, max: 1 },
         { id: 'void_gloves',     chance: 0.55, min: 1, max: 1 },
@@ -588,7 +588,7 @@ export const LOOT_TABLES = {
     ],
 
     desert_boss_chest: [
-        { id: 'gold',            chance: 1.0, min: 200, max: 600 },
+        { id: 'gold',            chance: 1.0, min: 80, max: 220 },
         { id: 'void_essence',    chance: 1.0, min: 5,   max: 12  },
         { id: 'void_boots',      chance: 0.55, min: 1, max: 1 },
         { id: 'void_gloves',     chance: 0.55, min: 1, max: 1 },
@@ -603,7 +603,7 @@ export const LOOT_TABLES = {
     ],
 
     ice_boss_chest: [
-        { id: 'gold',            chance: 1.0, min: 200, max: 600 },
+        { id: 'gold',            chance: 1.0, min: 80, max: 220 },
         { id: 'void_essence',    chance: 1.0, min: 5,   max: 12  },
         { id: 'void_boots',      chance: 0.55, min: 1, max: 1 },
         { id: 'void_gloves',     chance: 0.55, min: 1, max: 1 },
@@ -618,7 +618,7 @@ export const LOOT_TABLES = {
     ],
 
     lava_boss_chest: [
-        { id: 'gold',            chance: 1.0, min: 200, max: 600 },
+        { id: 'gold',            chance: 1.0, min: 80, max: 220 },
         { id: 'void_essence',    chance: 1.0, min: 5,   max: 12  },
         { id: 'void_boots',      chance: 0.55, min: 1, max: 1 },
         { id: 'void_gloves',     chance: 0.55, min: 1, max: 1 },

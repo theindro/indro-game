@@ -13,10 +13,10 @@ export const GEAR_TIERS = [
 
 /** Mob gear drop — independent rolls per kill (tune in one place). */
 export const MOB_GEAR_DROP_RATES = {
-    common: 1 / 3,
-    magic: 1 / 10,
-    rare: 1 / 50,
-    epic: 1 / 100,
+    common: 1 / 12,
+    magic: 1 / 40,
+    rare: 1 / 150,
+    epic: 1 / 400,
     legendary: 0,
 };
 
@@ -89,44 +89,44 @@ const SLOT_DEFS = [
 
 const CRAFT_MATS = {
     common: {
-        goldCost: 60,
+        goldCost: 450,
         ingredients: [
-            { id: 'wood_plank', quantity: 5 },
-            { id: 'herb', quantity: 2 },
+            { id: 'wood_plank', quantity: 18 },
+            { id: 'herb', quantity: 10 },
         ],
     },
     magic: {
-        goldCost: 140,
+        goldCost: 1200,
         ingredients: [
-            { id: 'wood_plank', quantity: 4 },
-            { id: 'iron_ingot', quantity: 4 },
-            { id: 'herb', quantity: 2 },
+            { id: 'wood_plank', quantity: 14 },
+            { id: 'iron_ingot', quantity: 14 },
+            { id: 'herb', quantity: 8 },
         ],
     },
     rare: {
-        goldCost: 320,
+        goldCost: 3200,
         ingredients: [
-            { id: 'iron_ingot', quantity: 6 },
-            { id: 'gold_ingot', quantity: 2 },
-            { id: 'crystal_shard', quantity: 1 },
+            { id: 'iron_ingot', quantity: 22 },
+            { id: 'gold_ingot', quantity: 10 },
+            { id: 'crystal_shard', quantity: 6 },
         ],
     },
     epic: {
-        goldCost: 650,
+        goldCost: 8500,
         ingredients: [
-            { id: 'iron_ingot', quantity: 8 },
-            { id: 'gold_ingot', quantity: 4 },
-            { id: 'crystal_shard', quantity: 2 },
-            { id: 'lava_stone', quantity: 1 },
+            { id: 'iron_ingot', quantity: 28 },
+            { id: 'gold_ingot', quantity: 18 },
+            { id: 'crystal_shard', quantity: 12 },
+            { id: 'lava_stone', quantity: 8 },
         ],
     },
     legendary: {
-        goldCost: 1400,
+        goldCost: 22000,
         ingredients: [
-            { id: 'gold_ingot', quantity: 6 },
-            { id: 'crystal_shard', quantity: 3 },
-            { id: 'lava_stone', quantity: 2 },
-            { id: 'wood_plank', quantity: 4 },
+            { id: 'gold_ingot', quantity: 28 },
+            { id: 'crystal_shard', quantity: 18 },
+            { id: 'lava_stone', quantity: 14 },
+            { id: 'void_essence', quantity: 10 },
         ],
     },
 };

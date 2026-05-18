@@ -48,13 +48,14 @@ export class RusherArchetype {
             }
         }
 
-        // Visual feedback when dashing
+        const bodyC = m.bodyC ?? m.c;
+
+        // Visual feedback when dashing (body only — HP bar unaffected)
         if (this.dashing) {
-            m.c.scale.set(1.2, 0.8);
+            bodyC.scale.set(1.2, 0.8);
             if (m.gl) m.gl.alpha = 0.4;
-        } else {
-            m.c.scale.set(1, 1);
-            if (m.gl) m.gl.alpha = 0.15;
+        } else if (m.gl) {
+            m.gl.alpha = 0.15;
         }
 
         return { moveX, moveY, attackOverride: this.dashing };

@@ -145,6 +145,10 @@ export class InteractablePropManager {
 
         const profile = landscapeContext?.profile;
         const anchors = landscapeContext?.anchors;
+        const contentScales = landscapeContext?.contentScales;
+        const lootMul = contentScales?.lootMultiplier ?? 1;
+        const interactableMul = contentScales?.interactableIntensityMul ?? 1;
+        const interactableCapMul = contentScales?.interactableMaxMul ?? 1;
 
         const spawned         = [];
         const placedPositions = [];
@@ -156,9 +160,10 @@ export class InteractablePropManager {
             const catSeed = baseSeed + categoryIndex * 77777;
             categoryIndex++;
 
-            const effectiveIntensity = profile
+            let effectiveIntensity = profile
                 ? scaleInteractableIntensity(profile, category, categoryConfig.intensity)
                 : categoryConfig.intensity;
+            effectiveIntensity = Math.min(1, effectiveIntensity * interactableMul);
 
             const rollIntensity = this.seededRandom(catSeed);
             if (rollIntensity > effectiveIntensity) continue;
@@ -169,7 +174,7 @@ export class InteractablePropManager {
             }
             if (pool.length === 0) continue;
 
-            const maxMul = profile?.interactableMaxMul?.[category] ?? 1;
+            const maxMul = (profile?.interactableMaxMul?.[category] ?? 1) * interactableCapMul;
             const max = Math.ceil(categoryConfig.maxPerChunk * maxMul);
             const yardLayout = RESOURCE_YARD_LAYOUTS.has(anchors?.type);
             const minDist = yardLayout
@@ -212,6 +217,7 @@ export class InteractablePropManager {
 
                 const prop = this._createProp(propDef, x, z, scale, key);
                 if (!prop) continue;
+                prop._lootMul = lootMul;
 
                 spawned.push(prop);
                 this.allProps.push(prop);
@@ -664,7 +670,8 @@ export class InteractablePropManager {
     // ── Interaction logic ─────────────────────────────────────────────────────
 
     _openProp(prop) {
-        const loot = this._rollLoot(prop.def.lootTable, prop.id);
+        const lootMul = prop._lootMul ?? 1;
+        const loot = this._rollLoot(prop.def.lootTable, prop.id, lootMul);
 
         this._playOpenAnim(prop);
 
@@ -707,7 +714,7 @@ export class InteractablePropManager {
 
     // ── Loot rolling ─────────────────────────────────────────────────────────
 
-    _rollLoot(tableId, basisId = '') {
+    _rollLoot(tableId, basisId = '', lootMul = 1) {
         const table = getLootTables()[tableId];
         if (!table) return [];
 
@@ -720,8 +727,13 @@ export class InteractablePropManager {
             if (this.seededRandom(rollSeed) <= entry.chance) {
                 const amtSeed = rollSeed + 9181;
                 const span = entry.max - entry.min + 1;
-                const amount = entry.min + Math.floor(this.seededRandom(amtSeed) * span);
-                drops.push({ id: entry.id, amount });
+                let amount = entry.min + Math.floor(this.seededRandom(amtSeed) * span);
+                if (lootMul < 1 && entry.id !== 'void_essence') {
+                    amount = Math.max(entry.min > 0 ? 1 : 0, Math.floor(amount * lootMul));
+                }
+                if (amount > 0) {
+                    drops.push({ id: entry.id, amount });
+                }
             }
         }
         return drops;

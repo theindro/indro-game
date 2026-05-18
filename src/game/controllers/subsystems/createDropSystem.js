@@ -44,20 +44,22 @@ export function createDropSystem(ctx) {
     // ─────────────────────────────
     // Drop Rolling Logic
     // ─────────────────────────────
-    function rollDrop(mobType = 'default', isBoss = false) {
+    function rollDrop(mobType = 'default', isBoss = false, lootMul = 1) {
         const drops = [];
         const table = getDropTableForMob(isBoss || mobType === 'boss' ? 'boss' : mobType);
+        const mul = Math.max(0.15, Math.min(1.25, lootMul ?? 1));
 
         if (Math.random() * 100 < table.gold.chance) {
-            const amount = table.gold.min + Math.floor(Math.random() * (table.gold.max - table.gold.min + 1));
+            let amount = table.gold.min + Math.floor(Math.random() * (table.gold.max - table.gold.min + 1));
+            amount = Math.max(1, Math.floor(amount * mul));
             drops.push({ type: 'gold', amount });
         }
 
-        if (table.void_essence && Math.random() * 100 < table.void_essence.chance) {
+        if (table.void_essence && Math.random() * 100 < table.void_essence.chance * mul) {
             const amount = table.void_essence.min + Math.floor(
                 Math.random() * (table.void_essence.max - table.void_essence.min + 1)
             );
-            drops.push({ type: 'void_essence', amount });
+            drops.push({ type: 'void_essence', amount: Math.max(1, Math.floor(amount * mul)) });
         }
 
         if (Math.random() < 0.1) {
@@ -245,8 +247,8 @@ export function createDropSystem(ctx) {
     // ─────────────────────────────
     // Spawn Drops from Entity
     // ─────────────────────────────
-    function spawnDrops(x, y, mobType = 'default', isBoss = false) {
-        const dropList = rollDrop(mobType, isBoss);
+    function spawnDrops(x, y, mobType = 'default', isBoss = false, lootMul = 1) {
+        const dropList = rollDrop(mobType, isBoss, lootMul);
         const dropObjects = [];
 
 

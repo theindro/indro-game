@@ -188,41 +188,41 @@ Object.assign(ItemDatabase, EquippableGearItems);
 
 // ============= DROP TABLES =============
 export const DropTables = {
-    gold: { min: 2, max: 8, chance: 85 },
-    void_essence: { min: 1, max: 3, chance: 100 },
+    gold: { min: 1, max: 4, chance: 70 },
+    void_essence: { min: 1, max: 2, chance: 35 },
 
     forest_mob: {
-        gold: { min: 2, max: 8, chance: 85 },
-        void_essence: { min: 1, max: 3, chance: 100 },
+        gold: { min: 1, max: 5, chance: 72 },
+        void_essence: { min: 1, max: 2, chance: 28 },
         items: [],
     },
     desert_mob: {
-        gold: { min: 3, max: 12, chance: 90 },
-        void_essence: { min: 1, max: 3, chance: 100 },
+        gold: { min: 2, max: 7, chance: 78 },
+        void_essence: { min: 1, max: 2, chance: 32 },
         items: [],
     },
     ice_mob: {
-        gold: { min: 4, max: 15, chance: 95 },
-        void_essence: { min: 1, max: 3, chance: 100 },
+        gold: { min: 2, max: 9, chance: 82 },
+        void_essence: { min: 1, max: 3, chance: 38 },
         items: [],
     },
     lava_mob: {
-        gold: { min: 5, max: 20, chance: 100 },
-        void_essence: { min: 1, max: 3, chance: 100 },
+        gold: { min: 3, max: 11, chance: 85 },
+        void_essence: { min: 1, max: 3, chance: 42 },
         items: [],
     },
     elite: {
-        gold: { min: 15, max: 40, chance: 100 },
-        void_essence: { min: 2, max: 5, chance: 100 },
+        gold: { min: 8, max: 22, chance: 100 },
+        void_essence: { min: 1, max: 3, chance: 55 },
         items: [],
     },
     boss: {
-        gold: { min: 100, max: 300, chance: 100 },
-        void_essence: { min: 25, max: 50, chance: 100 },
+        gold: { min: 40, max: 120, chance: 100 },
+        void_essence: { min: 8, max: 18, chance: 100 },
         items: [],
     },
     chest: {
-        gold: { min: 25, max: 100, chance: 95 },
+        gold: { min: 8, max: 35, chance: 88 },
         items: [],
     },
 };

@@ -42,8 +42,9 @@ export class TankArchetype {
         const m = this.mob;
         this.sparkLayer = new Container();
         this.sparkLayer.zIndex = 50;
-        m.c.sortableChildren = true;
-        m.c.addChild(this.sparkLayer);
+        const bodyRoot = m.bodyC ?? m.c;
+        bodyRoot.sortableChildren = true;
+        bodyRoot.addChild(this.sparkLayer);
 
         /** @type {{ g: Graphics, angle: number, phase: number, distMul: number }[]} */
         this.sparks = [];
@@ -98,23 +99,24 @@ export class TankArchetype {
 
     _applyCastBodyAnim() {
         const m = this.mob;
-        const c = m.c;
+        const bodyC = m.bodyC ?? m.c;
         const t = performance.now() * 0.009;
         const progress = 1 - Math.max(0, this.castTimer / CAST_DURATION_SEC);
-        const facing = c.scale.x < 0 ? -1 : 1;
+        const facing = bodyC.scale.x < 0 ? -1 : 1;
 
         const swell = 1 + Math.sin(t * 2.2) * 0.07 + progress * 0.05;
         const squash = 1 - Math.sin(t * 2.2) * 0.06 - progress * 0.04;
         const lean = Math.sin(t * 1.4) * 0.04;
 
-        c.scale.set(facing * swell, squash);
-        c.rotation = lean * facing;
+        bodyC.scale.set(facing * swell, squash);
+        bodyC.rotation = lean * facing;
         m.body.alpha = 0.92 + Math.sin(t * 3) * 0.08;
     }
 
     _resetBodyAnim() {
         const m = this.mob;
-        m.c.rotation = 0;
+        const bodyC = m.bodyC ?? m.c;
+        bodyC.rotation = 0;
         m.body.alpha = 1;
     }
 

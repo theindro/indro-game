@@ -16,6 +16,8 @@ import {createBossEntity} from "../entities/createBossEntity.js";
 import {GroundAttackController, resolveGroundAttackPalette} from "./createGroundAttackController.js";
 import {updateStatusEffects} from "../statusEffects.js";
 import { applyEntityOutlineFilter } from '../utils/highlightFilters.js';
+import { attachMonsterLevelUi, drawMonsterHpWithLevel } from '../ui/monsterLevelUi.js';
+import { getWorldContentScales } from '../world/worldProgression.js';
 
 const BOSS_AGGRO_RADIUS = 520;
 const BOSS_LEASH_RADIUS = 720;
@@ -183,10 +185,10 @@ function runBossGroundPattern(boss, px, py, groundFx, enraged) {
 
 /* ── MAIN SPAWN ── */
 export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
-    const { c, gl, body, hpBar } = createBossEntity(type);
-    c.x = x; c.y = y;
-    c.scale.set(visualScale);
-    c.sortableChildren = true;
+    const { c, bodyC, uiC, gl, body, hpBar } = createBossEntity(type);
+    c.x = x;
+    c.y = y;
+    bodyC.scale.set(visualScale);
     world.addChild(c);
 
     const biome   = BIOME_COLORS[type] ?? {};
@@ -204,7 +206,7 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
     let state = 'GUARD';
 
     const boss = {
-        c, gl, body, hpBar,
+        c, bodyC, uiC, gl, body, hpBar,
         x, y, type,
         spawnCenterX,
         spawnCenterY,
@@ -260,14 +262,12 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
                 this.c.updateAnimations(fs);
             }
 
-            // Store original Y for bobbing if not set
-            if (this.c.animation && this.c.animation.originalY === undefined) {
-                this.c.animation.originalY = this.y;
-            }
-
-            // Wobble
+            // Wobble (body only — HP bar stays stable)
             this.wobble += 0.04 * fs;
-            this.c.scale.set(visualScale + Math.sin(this.wobble) * 0.03);
+            const wobbleScale = visualScale + Math.sin(this.wobble) * 0.03;
+            if (this.bodyC) {
+                this.bodyC.scale.set(wobbleScale);
+            }
 
             const dxPlayer = px - this.x;
             const dyPlayer = py - this.y;
@@ -380,14 +380,27 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
 
     groundAttacks.owner = boss;
 
+    boss.lootMultiplier = getWorldContentScales(scaled.difficulty).lootMultiplier;
+
+    attachMonsterLevelUi(boss, scaled.difficulty, {
+        barHalfWidth: 43,
+        barY: -53,
+        barHeight: 7,
+    });
+
     return boss;
 }
 /* ── HP BAR ── */
 
 export function updateBossBar(b) {
-    b.hpBar.clear();
-
     const p = Math.max(0, b.hp / b.maxHp);
+
+    if (b.levelUi) {
+        drawMonsterHpWithLevel(b, p);
+        return;
+    }
+
+    b.hpBar.clear();
 
     if (p > 0) {
         const col =

@@ -52,7 +52,8 @@ export class ExploderArchetype {
 
             // Scale pulse
             const pulse = 1 + Math.sin(Date.now() * 0.02) * 0.15;
-            m.c.scale.set(pulse, pulse);
+            const bodyC = m.bodyC ?? m.c;
+            bodyC.scale.set(pulse, pulse);
 
             // Update ground attack warning (visual indicator)
             if (this.groundAttacks) {

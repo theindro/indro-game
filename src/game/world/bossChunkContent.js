@@ -127,7 +127,10 @@ export function spawnBossRewardChest(world, chunkX, chunkZ, chunkData, cx, cz) {
     const opened = useGameStore.getState().openedInteractableIds;
     if (opened.includes(chestId)) return;
 
-    world.interactablePropManager.spawnManualProp(meta.chestPropId, x, z, 1.15, key);
+    const chest = world.interactablePropManager.spawnManualProp(meta.chestPropId, x, z, 1.15, key);
+    if (chest && chunkData?.contentScales?.lootMultiplier) {
+        chest._lootMul = chunkData.contentScales.lootMultiplier;
+    }
 
     if (!world._bossRewardChestKeys) world._bossRewardChestKeys = new Set();
     world._bossRewardChestKeys.add(key);

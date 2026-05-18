@@ -3,6 +3,17 @@ import {BIOME_COLORS} from "../constants.js";
 
 export function createBossEntity(type) {
     const c = new Container();
+    const bodyC = new Container();
+    const uiC = new Container();
+    uiC.zIndex = 1000;
+
+    c.sortableChildren = true;
+    c.addChild(bodyC);
+    c.addChild(uiC);
+
+    c.bodyC = bodyC;
+    c.uiC = uiC;
+
     const R = 32;
     const biome = BIOME_COLORS[type] ?? {};
 
@@ -15,12 +26,12 @@ export function createBossEntity(type) {
     // ── Shadow
     const sh = new Graphics();
     sh.ellipse(0, R + 6, R, 10).fill({ color: 0, alpha: 0.35 });
-    c.addChild(sh);
+    bodyC.addChild(sh);
 
     // ── Glow
     const gl = new Graphics();
     gl.circle(0, 0, R + 14).fill({ color: glowCol, alpha: 0.22 });
-    c.addChild(gl);
+    bodyC.addChild(gl);
 
     // ── Body
     const body = new Graphics();
@@ -237,23 +248,22 @@ export function createBossEntity(type) {
     body.eventMode = 'static';
     body.cursor = 'pointer';
 
-    c.addChild(body);
+    bodyC.addChild(body);
 
-    // ── HP Bar
+    // ── HP Bar (stable overlay, not bobbed with body)
     const hpBg = new Graphics();
     hpBg.rect(-44, -54, 88, 9).fill({ color: 0x111111, alpha: 0.85 });
-    c.addChild(hpBg);
+    uiC.addChild(hpBg);
 
     const hpBar = new Graphics();
     hpBar.rect(-43, -53, 86, 7).fill(glowCol);
-    c.addChild(hpBar);
+    uiC.addChild(hpBar);
 
     // Store animation data
     c.animation = {
         type: type,
         time: 0,
         bobOffset: 0,
-        originalY: c.y,
         eyes: eyes,
         glowIntensity: 0
     };
@@ -264,9 +274,9 @@ export function createBossEntity(type) {
         const speedMultiplier = 0.15; // Increased from 0.05
         c.animation.time += deltaTime * speedMultiplier;
 
-        // Bobbing motion - faster and more noticeable
-        c.animation.bobOffset = Math.sin(c.animation.time * 2) * 5; // Increased frequency and amplitude
-        c.y = (c.animation.originalY || 0) + c.animation.bobOffset;
+        // Bobbing motion — body only, HP bar stays fixed
+        c.animation.bobOffset = Math.sin(c.animation.time * 2) * 5;
+        bodyC.y = c.animation.bobOffset;
 
         // Glow pulse - faster
         const pulse = 0.15 + Math.sin(c.animation.time * 4) * 0.08; // Increased frequency
@@ -367,5 +377,5 @@ export function createBossEntity(type) {
         }
     };
 
-    return { c, gl, body, hpBar };
+    return { c, bodyC, uiC, gl, body, hpBg, hpBar };
 }

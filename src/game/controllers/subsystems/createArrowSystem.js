@@ -153,7 +153,7 @@ export function createArrowSystem(ctx) {
         // Spawn drops
         if (spawnDrops) {
             const mobType = isElite ? 'elite' : (mob.biome || 'default');
-            const newDrops = spawnDrops(x, y, mobType, false);
+            const newDrops = spawnDrops(x, y, mobType, false, mob.lootMultiplier ?? 1);
             if (newDrops?.length) {
                 drops.push(...newDrops);
             }
@@ -191,7 +191,7 @@ export function createArrowSystem(ctx) {
 
         // Spawn boss drops
         if (spawnDrops) {
-            const bossDrops = spawnDrops(x, y, boss.type, true);
+            const bossDrops = spawnDrops(x, y, boss.type, true, boss.lootMultiplier ?? 1);
             if (bossDrops?.length) {
                 drops.push(...bossDrops);
             }

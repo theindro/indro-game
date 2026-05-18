@@ -10,17 +10,15 @@ import {
     DIFFICULTY,
 } from './constants.js';
 
-/** @param {number} chunkX */
-/** @param {number} chunkZ */
-export function getChunkLevel(chunkX, chunkZ) {
-    return Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
-}
-
-/** @param {number} chunkX */
-/** @param {number} chunkZ */
-export function getChunkDifficulty(chunkX, chunkZ) {
-    return Math.pow(1.08, getChunkLevel(chunkX, chunkZ));
-}
+export {
+    getChunkLevel,
+    getChunkDifficulty,
+    getMonsterLevel,
+    MAX_WORLD_DIFFICULTY,
+    getWorldContentScales,
+    getBiomeForChunk,
+    getBiomeForDifficulty,
+} from './world/worldProgression.js';
 
 /** @param {number} difficulty */
 export function getDamageScale(difficulty) {

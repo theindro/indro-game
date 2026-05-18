@@ -1,5 +1,7 @@
 import {frameScale, GS, MOB_RADIUS} from "../constants.js";
 import { applyMobDifficulty } from '../difficultyScaling.js';
+import { getWorldContentScales } from '../world/worldProgression.js';
+import { attachMonsterLevelUi, drawMonsterHpWithLevel } from '../ui/monsterLevelUi.js';
 import {useGameStore} from "../../stores/gameStore.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
 import {resolveVsColliders} from "../world/collision.js";
@@ -220,7 +222,7 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
     const stats = ARCHETYPE_STATS[finalArchetype];
     const size = stats.size;
 
-    const { c, body, eye, hpBar } = createMobEntity(renderer, biome, size, '', stats.type);
+    const { c, bodyC, uiC, body, eye, hpBar } = createMobEntity(renderer, biome, size, '', stats.type);
     c.x = x;
     c.y = y;
     c.sortableChildren = true;
@@ -228,10 +230,13 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
     world.addChild(c);
 
     const scaled = applyMobDifficulty(stats, difficulty);
+    const contentScales = getWorldContentScales(difficulty);
 
     const mob = {
-        c, body, eye, hpBar,
+        c, bodyC, uiC, body, eye, hpBar,
         shapeDef: stats.type,
+        worldDifficulty: difficulty,
+        lootMultiplier: contentScales.lootMultiplier,
         x, y,
         hp: scaled.hp,
         maxHp: scaled.hp,
@@ -239,7 +244,7 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
         damage: scaled.damage,
         attackSpeed: scaled.attackSpeed,
         attackCooldown: 0,
-        exp: stats.exp,
+        exp: Math.max(1, Math.round(stats.exp * (0.45 + contentScales.lootMultiplier * 0.55))),
         animOffset: mobSeededUnit(rng ^ 0xdeadbeef) * 1000,
         spawnRngSeed: rng,
         _patrolStep: 0,
@@ -252,6 +257,11 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
 
     applyArchetypeVisuals(mob, finalArchetype, biome);
 
+    attachMonsterLevelUi(mob, difficulty, {
+        barHalfWidth: size + 2,
+        barY: -(size + 14),
+    });
+
     mob.controller = createMobController(mob, world);
 
     return mob;
@@ -260,46 +270,43 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
 export function updateMobHealthBar(m) {
     if (!m?.hpBar) return;
 
-    const size = m.size || 13;
     const pct = Math.max(0, m.hp / m.maxHp);
 
+    if (m.levelUi) {
+        drawMonsterHpWithLevel(m, pct);
+        return;
+    }
+
+    const size = m.size || 13;
     m.hpBar.clear();
 
     if (pct > 0) {
         const color = pct > 0.5 ? 0x44ff88 : pct > 0.25 ? 0xffaa00 : 0xff2222;
         const barY = m.c?.userData?.barY || -size - 13;
-
         m.hpBar.rect(-size - 2, barY + 1, (size * 2 + 4) * pct, 3).fill(color);
     }
 }
 
 export function applyBreathing(mob, globalTime) {
-    const c = mob.c;
-    if (!c) return;
+    const bodyC = mob.bodyC ?? mob.c;
+    if (!bodyC) return;
 
-    // unique offset per mob
     const offset = mob.animOffset || 0;
-
-    // ONE sin calculation
     const breath = Math.sin(globalTime + offset) * 0.5;
+    const facing = bodyC.scale.x < 0 ? -1 : 1;
 
-    // preserve facing
-    const facing = c.scale.x < 0 ? -1 : 1;
-
-    // tiny squash/stretch
-    c.scale.x = facing * (1 + breath * 0.15);
-    c.scale.y = 1 - breath * 0.08;
+    bodyC.scale.x = facing * (1 + breath * 0.15);
+    bodyC.scale.y = 1 - breath * 0.08;
 }
 
 export function setFacingDirection(mob, vx) {
-    const c = mob.c;
-    if (!c) return;
+    const bodyC = mob.bodyC ?? mob.c;
+    if (!bodyC) return;
 
-    // avoid unnecessary writes
-    if (vx < -0.01 && c.scale.x > 0) {
-        c.scale.x *= -1;
+    if (vx < -0.01 && bodyC.scale.x > 0) {
+        bodyC.scale.x *= -1;
     }
-    else if (vx > 0.01 && c.scale.x < 0) {
-        c.scale.x *= -1;
+    else if (vx > 0.01 && bodyC.scale.x < 0) {
+        bodyC.scale.x *= -1;
     }
 }

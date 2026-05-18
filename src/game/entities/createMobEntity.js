@@ -95,9 +95,18 @@ export function createMobEntity(
     shape = VOID_SHAPE_7
 ) {
     const c = new Container();
+    /** Visual body only — breathing, facing, archetype lean. */
+    const bodyC = new Container();
+    /** HP / level — not affected by body animation. */
+    const uiC = new Container();
+    uiC.zIndex = 1000;
 
-    c.baseScaleX = 1;
-    c.baseScaleY = 1;
+    c.sortableChildren = true;
+    c.addChild(bodyC);
+    c.addChild(uiC);
+
+    bodyC.baseScaleX = 1;
+    bodyC.baseScaleY = 1;
 
     const biomeData = BIOME_COLORS[biome] || {};
 
@@ -119,7 +128,7 @@ export function createMobEntity(
             alpha: 0.15
         });
 
-    c.addChild(shadow);
+    bodyC.addChild(shadow);
 
     // =========================
     // BODY SPRITE
@@ -139,7 +148,7 @@ export function createMobEntity(
 
     body.eventMode = 'static';
 
-    c.addChild(body);
+    bodyC.addChild(body);
 
     // =========================
     // EYE
@@ -157,10 +166,10 @@ export function createMobEntity(
         .closePath()
         .fill(0xffffff);
 
-    c.addChild(eye);
+    bodyC.addChild(eye);
 
     // =========================
-    // HP BAR
+    // HP BAR (world-aligned overlay)
     // =========================
 
     const hpBg = new Graphics();
@@ -180,7 +189,7 @@ export function createMobEntity(
             alpha: 0.8
         });
 
-    c.addChild(hpBg);
+    uiC.addChild(hpBg);
 
     const hpBar = new Graphics();
 
@@ -193,7 +202,7 @@ export function createMobEntity(
         )
         .fill(0xff4444);
 
-    c.addChild(hpBar);
+    uiC.addChild(hpBar);
 
     c.userData = {
         size,
@@ -203,9 +212,12 @@ export function createMobEntity(
 
     return {
         c,
+        bodyC,
+        uiC,
         body,
         eye,
         shadow,
+        hpBg,
         hpBar,
         shapeDef: shape,
     };

@@ -435,7 +435,8 @@ export class PropManager {
 
         const placed = [];
         const baseSeed = this.hash(chunkX, chunkZ);
-        const targetCount = getTargetPropCount(profile);
+        const densityMul = landscapeContext?.contentScales?.landscapeDensityMul ?? 1;
+        const targetCount = Math.max(0, Math.round(getTargetPropCount(profile) * densityMul));
         let actualCount = 0;
 
         for (let i = 0; i < targetCount * 8 && actualCount < targetCount; i++) {
