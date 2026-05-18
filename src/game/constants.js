@@ -72,12 +72,12 @@ export const BIOME_COLORS = {
         texture: "/testgrass.jpg",
     },
     desert: {
-        base: '#855655',
+        base: '#eddd8c',
         accent: 0xd4a055,
         glow: 0xe8a050,
         tint: 0xddbb88,
         props: false,
-        texture: "/testgrass.jpg"
+        texture: "/testgrass2.jpg"
     },
     ice: {
         base: '#c9e2ff',
@@ -85,7 +85,7 @@ export const BIOME_COLORS = {
         glow: 0x88ccff,
         tint: 0xcceeff,
         props: false,
-        texture: "/testgrass3.jpg"
+        texture: "/snowground.jpg"
     },
     lava: {
         base: '#262626',

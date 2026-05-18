@@ -1,5 +1,14 @@
 // utils/ShadowManager.js
-import {BlurFilter, Container} from 'pixi.js';
+import { getPropShadowOverride } from '../world/propConfig.js';
+
+/** @param {import('pixi.js').Container | import('pixi.js').Sprite} propVisual */
+function resolveShadowAssetId(propVisual) {
+    return (
+        propVisual?.worldPropRecord?.id ??
+        propVisual?.shadowAssetId ??
+        null
+    );
+}
 
 export class ShadowManager {
     constructor() {
@@ -87,12 +96,17 @@ export class ShadowManager {
         // const blurFilter = new BlurFilter({ strength: 1 });
         // shadow.filters = [blurFilter];
 
+        const assetId = resolveShadowAssetId(propVisual);
+        const shadowOverride = getPropShadowOverride(assetId);
+
         const shadowData = {
             shadow,
             propVisual,
             scale,
             heightFactor,
-            originalTexture: propVisual.texture
+            assetId,
+            shadowOverride,
+            originalTexture: propVisual.texture,
         };
 
         const id = this.nextId++; // ✅ FIX: Use numeric ID instead of Symbol
@@ -116,13 +130,18 @@ export class ShadowManager {
         if (!shadow || shadow.destroyed) return;
         if (!propVisual || propVisual.destroyed) return;
 
-        shadow.x = propVisual.x + (this.currentDirection.x * scale) * (1 + heightFactor);
-        shadow.y = propVisual.y + this.currentDirection.y;
+        const override = shadowData.shadowOverride;
+        const offsetX = override?.offsetX ?? 0;
+        const offsetY = override?.offsetY ?? -5;
+        const scaleYMul = override?.scaleYMul ?? 1;
+
+        // Prop foot is propVisual.x/y (props use anchor 0.5, 1). Shadow uses the same anchor
+        // and a vertical flip — per-asset offsets in PROP_SHADOW_OVERRIDES (propConfig.data.js).
+        shadow.x = propVisual.x + offsetX;
+        shadow.y = propVisual.y + offsetY;
         shadow.skew.x = this.currentDirection.skew - (heightFactor * 0.4);
         shadow.alpha = this.currentDirection.alpha;
-
-        // Keep other properties
-        shadow.scale.set(scale * 1.0, -scale * (0.4 + heightFactor * 0.2));
+        shadow.scale.set(scale, -scale * (0.4 + heightFactor * 0.2) * scaleYMul);
     }
 
     // Update all registered shadows

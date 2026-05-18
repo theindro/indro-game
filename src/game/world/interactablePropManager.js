@@ -426,7 +426,7 @@ export class InteractablePropManager {
         let shadowId = null;
         if (visual instanceof Sprite) {
             const shadow = new Sprite(texture);
-            shadow.anchor.set(0.5, 0.5);
+            shadow.anchor.set(0.5, 1);
             shadow.tint = 0x000000;
             shadow.chunkKey = chunkKey;
             shadow.zIndex = container.zIndex - 10;

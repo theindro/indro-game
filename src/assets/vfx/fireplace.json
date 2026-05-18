@@ -1,0 +1,10 @@
+{
+  "schema": "spritesheet",
+  "id": "fireplace",
+  "animated": true,
+  "frameWidth": 333,
+  "frameHeight": 500,
+  "cols": 6,
+  "rows": 3,
+  "fps": 14
+}

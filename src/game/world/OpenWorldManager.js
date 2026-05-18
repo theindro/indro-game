@@ -465,6 +465,11 @@ export class OpenWorldManager {
                 textureAlpha = 0.25
             }
 
+            if (biome === 'desert') {
+                textureAlpha = 0.1
+            }
+
+
             overlay.alpha = textureAlpha;
 
             //

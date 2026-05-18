@@ -73,6 +73,30 @@ export const PROP_TYPES = {
     }
 };
 
+/**
+ * Per-asset shadow tweaks (world pixels, relative to prop foot at anchor 0.5, 1).
+ * @type {Record<string, { offsetX?: number, offsetY?: number, scaleYMul?: number }>}
+ *
+ * offsetY: negative moves shadow up (toward top of screen), positive moves down.
+ * Example: stone5 sits low in its texture — nudge shadow up so it reads on the ground.
+ */
+export const PROP_SHADOW_OVERRIDES = {
+    stone1: { offsetY: -50 },
+    stone2: { offsetY: -50 },
+    stone3: { offsetY: -50 },
+    stone4: { offsetY: -50 },
+    stone5: { offsetY: -50 },
+    stone6: { offsetY: -50 },
+    stone7: { offsetY: -50 },
+    stone8: { offsetY: -50 },
+};
+
+/** @param {string | null | undefined} assetId */
+export function getPropShadowOverride(assetId) {
+    if (!assetId) return null;
+    return PROP_SHADOW_OVERRIDES[assetId] ?? null;
+}
+
 /** Resolve procedural prop definition from a placed asset id (e.g. tree2, snowstone1). */
 export function getPropTypeByAssetId(assetId) {
     if (!assetId) return null;

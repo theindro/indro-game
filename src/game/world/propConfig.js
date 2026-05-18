@@ -1,5 +1,10 @@
 // Re-exports static tables + data-driven getters (populated after asset load).
-export { BIOME_PROP_CONFIG, PROP_TYPES } from './propConfig.data.js';
+export {
+    BIOME_PROP_CONFIG,
+    PROP_TYPES,
+    PROP_SHADOW_OVERRIDES,
+    getPropShadowOverride,
+} from './propConfig.data.js';
 
 import { getPropTypes, getBiomePropConfig } from '../assets/contentFromMeta.js';
 

@@ -295,7 +295,7 @@ export class PropManager {
 
         if (this.shadowLayer && propVisual instanceof Sprite) {
             const shadow = new Sprite(propVisual.texture);
-            shadow.anchor.set(0.5, 0.5);
+            shadow.anchor.set(0.5, 1);
             shadow.tint = 0x000000;
             shadow.chunkKey = chunkKey;
 
@@ -494,8 +494,6 @@ export class PropManager {
             propVisual.y = z;
 
             const heightFactor = Math.min(1.5, propVisual.height / 120);
-            const BASE_OFFSET_X = -25;
-            const BASE_OFFSET_Y = -0 * heightFactor;
 
             // CRITICAL: Set zIndex to Y position (no offset)
             propVisual.zIndex = propVisual.y - (40 * heightFactor);
@@ -512,12 +510,9 @@ export class PropManager {
             // Add shadow if needed
             if (this.shadowLayer && propVisual instanceof Sprite) {
                 const shadow = new Sprite(propVisual.texture);
-                shadow.anchor.set(0.5, 0.5);
+                shadow.anchor.set(0.5, 1);
                 shadow.tint = 0x000000;
                 shadow.chunkKey = key;
-
-                // Store height factor for shadow updates
-                const heightFactor = Math.min(1.5, propVisual.height / 120);
 
                 // Register with ShadowManager
                 const shadowId = shadowManager.registerShadow(
