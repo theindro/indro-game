@@ -78,11 +78,11 @@ export const ItemDatabase = {
 
     'iron_ingot': {
         id: 'iron_ingot',
-        name: 'Iron Ore',
+        name: 'Nature Crystal',
         type: ItemTypes.CRAFTING,
         rarity: ItemRarity.COMMON,
         icon: 'â›ï¸',
-        texture: '/rpg/resources/9.png',
+        texture: '/rpg/resources/ore_iron.png',
         textureId: 'iron_ingot',
         stackable: true,
         gatherable: true,
@@ -91,11 +91,11 @@ export const ItemDatabase = {
 
     'gold_ingot': {
         id: 'gold_ingot',
-        name: 'Gold Ore',
+        name: 'Gold Crystal',
         type: ItemTypes.CRAFTING,
         rarity: ItemRarity.COMMON,
         icon: 'ðŸŸ¡',
-        texture: '/rpg/resources/13.png',
+        texture: '/rpg/resources/ore_gold.png',
         textureId: 'gold_ingot',
         stackable: true,
         gatherable: true,
@@ -104,11 +104,11 @@ export const ItemDatabase = {
 
     'crystal_shard': {
         id: 'crystal_shard',
-        name: 'Crystal Ore',
+        name: 'Crystal Shard',
         type: ItemTypes.CRAFTING,
         rarity: ItemRarity.RARE,
         icon: 'ðŸ’Ž',
-        texture: '/rpg/resources/8.png',
+        texture: '/rpg/resources/ore_crystal.png',
         textureId: 'crystal_shard',
         stackable: true,
         gatherable: true,
@@ -117,11 +117,11 @@ export const ItemDatabase = {
 
     'lava_stone': {
         id: 'lava_stone',
-        name: 'Lava Ore',
+        name: 'Lava Crystal',
         type: ItemTypes.CRAFTING,
         rarity: ItemRarity.EPIC,
         icon: 'ðŸ”¥',
-        texture: '/rpg/resources/10.png',
+        texture: '/rpg/resources/ore_lava.png',
         textureId: 'lava_stone',
         stackable: true,
         gatherable: true,

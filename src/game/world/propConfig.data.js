@@ -3,7 +3,7 @@ export const PROP_TYPES = {
     // Stone has multiple variants
     STONE: {
         name: 'stone',
-        variants: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5', 'stone6', 'stone7', 'stone8'],
+        variants: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5', 'stone6', 'stone7', 'stone8', 'stone9', 'stone10'],
         collision: true,
         collisionType: 'auto',
         minDistance: 500,  // Stones can be closer together

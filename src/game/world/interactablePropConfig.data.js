@@ -180,7 +180,7 @@ export const INTERACTABLE_PROP_TYPES = {
     // ── Ore / Metal ──────────────────────────────────────────────────────────
     ore_iron: {
         id: 'ore_iron',
-        label: 'Iron Ore',
+        label: 'Nature crystal',
         category: 'metal',
         radius: 30,
         interactRange: 100,
@@ -188,7 +188,7 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'ore_iron',
         texture: 'ore_iron',
         fallbackColor: 0x8fa0b0,
-        scaleRange: { min: 1, max: 2},
+        scaleRange: { min: 1, max: 1.2},
         //glowColor: 'orange',
         harvestTime: 2.0,          // seconds
         harvestYield: { min: 1, max: 3 },
@@ -196,7 +196,7 @@ export const INTERACTABLE_PROP_TYPES = {
 
     ore_gold: {
         id: 'ore_gold',
-        label: 'Gold Ore',
+        label: 'Gold crystal',
         category: 'metal',
         radius: 26,
         interactRange: 100,
@@ -232,7 +232,7 @@ export const INTERACTABLE_PROP_TYPES = {
 
     ore_lava: {
         id: 'ore_lava',
-        label: 'Lava Stone',
+        label: 'Lava crystal',
         category: 'metal',
         radius: 30,
         interactRange: 100,
@@ -240,8 +240,8 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'ore_lava',
         texture: 'ore_lava',
         fallbackColor: 0xff4400,
-        scaleRange: { min: 1, max: 2.8 },
-        glowColor: 0xff6600,
+        scaleRange: { min: 1, max: 1.2 },
+        glowColor: 0xff0000,
         harvestTime: 2.2,          // seconds
         harvestYield: { min: 1, max: 3 },
     },
