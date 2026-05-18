@@ -162,6 +162,7 @@ export class GroundAttack {
             warningDuration: config.warningDuration ?? GROUND_WARN_NORMAL,
             damage: config.damage ?? 25,
             onHit: config.onHit ?? null,
+            onImpact: config.onImpact ?? null,
             onComplete: config.onComplete ?? null,
             hitboxRadius: config.hitboxRadius ?? 15,
             ...config,
@@ -181,6 +182,7 @@ export class GroundAttack {
         this.currentAngle = this.config.angle;
 
         this.impactGlowAdded = false;
+        this.impactVfxPlayed = false;
 
         // phases
         this.phase = 'warning';
@@ -261,6 +263,13 @@ export class GroundAttack {
                 this._triggerImpactGlow();
             }
 
+            if (!this.impactVfxPlayed) {
+                this.impactVfxPlayed = true;
+                if (this.config.onImpact) {
+                    this.config.onImpact(this.x, this.y);
+                }
+            }
+
             // damage happens EXACTLY here
             if (!this.hasHit) {
 
@@ -335,7 +344,7 @@ export class GroundAttack {
 
         VFX.addGlow(0, 0, {
             color: this.config.color,
-            alpha: 0.15,
+            alpha: 0.25,
             scale: glowScale,
         }, this.container);
 

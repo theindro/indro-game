@@ -1,0 +1,10 @@
+{
+  "schema": "spritesheet",
+  "id": "zap",
+  "animated": true,
+  "frameWidth": 128,
+  "frameHeight": 256,
+  "cols": 5,
+  "rows": 1,
+  "fps": 24
+}

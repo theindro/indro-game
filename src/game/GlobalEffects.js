@@ -2,6 +2,7 @@
 import {AnimatedSprite, Graphics, Sprite} from 'pixi.js';
 import { showFloat } from './utils/floatText.js';
 import { assetManager } from './utils/assetManager.js';
+import { assetRegistry } from './assets/assetRegistry.js';
 
 class VisualEffects {
     constructor() {
@@ -201,6 +202,47 @@ class VisualEffects {
     // ============ SCREEN SHAKE ============
     shake(intensity = 5) {
         this.shakeRef.value = intensity;
+    }
+
+    /**
+     * Tank slam / ground impact — zap spritesheet (src/assets/vfx/zap.png).
+     * @param {number} x
+     * @param {number} y World foot position for impact center.
+     * @param {number} [scale=0.42]
+     */
+    playZapImpact(x, y, scale = 0.42) {
+        if (!this.initialized || !this.entityLayer) return;
+
+        const meta = assetRegistry.getMeta('zap') ?? {};
+        const frameW = meta.frameWidth ?? 128;
+        const frameH = meta.frameHeight ?? 256;
+        const cols = meta.cols ?? 5;
+        const rows = meta.rows ?? 1;
+        const fps = meta.fps ?? 14;
+
+        const frames = assetManager.getAnimationFrames('zap', frameW, frameH, cols, rows);
+        if (!frames?.length) {
+            console.warn('[VFX] zap spritesheet frames missing');
+            return;
+        }
+
+        const anim = new AnimatedSprite(frames);
+        anim.anchor.set(0.5, 1);
+        anim.x = x;
+        anim.y = y;
+        anim.zIndex = y + 2;
+        anim.scale.set(scale);
+        anim.blendMode = 'add';
+        anim.loop = false;
+        anim.animationSpeed = fps / 60;
+
+        anim.onComplete = () => {
+            if (anim.parent) anim.parent.removeChild(anim);
+            anim.destroy();
+        };
+
+        this.entityLayer.addChild(anim);
+        anim.play();
     }
 
     explosion(x, y, color = null, scale = 1, size) {

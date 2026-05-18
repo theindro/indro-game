@@ -1,6 +1,6 @@
-import {useGameStore} from "../../../stores/gameStore.js";
-import {GroundAttackController} from '../createGroundAttackController.js'; // Adjust path as needed
+import {GroundAttackController} from '../createGroundAttackController.js';
 import {GROUND_WARN_NORMAL} from '../../constants.js';
+import {VFX} from '../../GlobalEffects.js';
 
 export class TankArchetype {
     constructor(mob, entityLayer) {
@@ -55,19 +55,15 @@ export class TankArchetype {
         // Create ground slam effect using GroundAttackController
         this.groundAttacks.addAttack(px, py, {
             shape: 'circle',
-            color: 'rgba(171,231,255,0.5)',
-            warningColor: '#ff5454',
-            innerColor: 'rgba(0,187,255,0.5)',
+            color: '#006dff',
+            warningColor: '#ffffff',
+            innerColor: '#089bff',
             radius: this.slamRadius,
             warningDuration: GROUND_WARN_NORMAL,
             damage: 25,
-            onHit: (hitX, hitY) => {
-                console.log('slam hit palyer');
-                // Optional: add hit effect
+            onImpact: (ix, iy) => {
+                VFX.playZapImpact(ix, iy, 0.95);
             },
-            onComplete: () => {
-                // Optional: effect when slam finishes
-            }
         });
 
         // Screen shake
