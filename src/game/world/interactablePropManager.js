@@ -323,22 +323,32 @@ export class InteractablePropManager {
 
     // ── Interaction API ───────────────────────────────────────────────────────
 
+    /** @param {import('./interactablePropConfig.data.js').INTERACTABLE_PROP_TYPES[string]} def */
+    _interactionDuration(def) {
+        if (def.harvestTime != null && def.harvestTime > 0) {
+            return def.harvestTime;
+        }
+        if (def.category === 'chest') return 2;
+        return 0;
+    }
+
+    _beginChannel(prop, playerX, playerZ) {
+        if (prop._harvesting) return null;
+        prop._harvesting = true;
+        prop._harvestAccum = 0;
+        this._harvestAnchor = { x: playerX, z: playerZ };
+        this._lastPlayerHp = useGameStore.getState().player.hp;
+        this._showHarvestBar(prop);
+        return { prop, loot: null, harvesting: true };
+    }
+
     tryInteract(playerX, playerZ) {
         const prop = this._findNearest(playerX, playerZ);
         if (!prop || !prop.alive) return null;
 
-        if (prop.def.category === 'chest' || prop.def.category === 'container') {
-            return this._openProp(prop);
-        }
-
-        if (prop.def.harvestTime) {
-            if (prop._harvesting) return null;
-            prop._harvesting   = true;
-            prop._harvestAccum = 0;
-            this._harvestAnchor = { x: playerX, z: playerZ };
-            this._lastPlayerHp = useGameStore.getState().player.hp;
-            this._showHarvestBar(prop);
-            return { prop, loot: null, harvesting: true };
+        const duration = this._interactionDuration(prop.def);
+        if (duration > 0) {
+            return this._beginChannel(prop, playerX, playerZ);
         }
 
         return this._openProp(prop);
@@ -427,7 +437,7 @@ export class InteractablePropManager {
 
         let shadowGraphic = null;
 
-        if (visual instanceof Sprite) {
+        if (def.castShadow !== false && visual instanceof Sprite) {
             const shadow = new Graphics();
 
             const shadowRadius =
@@ -490,21 +500,24 @@ export class InteractablePropManager {
 
         this.worldObjects.addToEntityLayer(container);
 
-        // ── Collider — same AABB semantics as PropManager (arrows + mob resolveVsColliders) ──
-        const colW = Math.max(20, targetSize) * 0.85;
-        const colH = colW;
-        const collider = {
-            x:                    x,
-            y:                    z - colH / 2,
-            width:                colW,
-            height:               colH,
-            collision:            true,
-            type:                 'interactable',
-            interactableChunkKey: chunkKey,
-            visual:               container,
-            sprite:               container,
-        };
-        this.worldObjects.addWorldCollider(collider);
+        // ── Collider — optional per-type (`collision: false` in interactablePropConfig) ──
+        let collider = null;
+        if (def.collision !== false) {
+            const colW = Math.max(20, targetSize) * 0.85;
+            const colH = colW;
+            collider = {
+                x:                    x,
+                y:                    z - colH / 2,
+                width:                colW,
+                height:               colH,
+                collision:            true,
+                type:                 'interactable',
+                interactableChunkKey: chunkKey,
+                visual:               container,
+                sprite:               container,
+            };
+            this.worldObjects.addWorldCollider(collider);
+        }
 
         // Optional additive sprite glow (texture `glow2`); set def.vfxGlow === false to skip
         let vfxGlowSprite = null;
@@ -659,9 +672,7 @@ export class InteractablePropManager {
         prop.deadAt = Date.now();
         if (prop.collider) prop.collider.collision = false;
 
-        // Hide shadow immediately on open
-        const shadow = prop.visual?._interactableShadow;
-        if (shadow) shadow.visible = false;
+        if (prop.shadowGraphic) prop.shadowGraphic.visible = false;
         if (prop.vfxGlowSprite) prop.vfxGlowSprite.visible = false;
 
         useGameStore.getState().addOpenedInteractableId(prop.id);
@@ -674,7 +685,8 @@ export class InteractablePropManager {
     _tickHarvest(prop, dt) {
         prop._harvestAccum += dt;
 
-        const pct = Math.min(1, prop._harvestAccum / prop.def.harvestTime);
+        const duration = this._interactionDuration(prop.def);
+        const pct = Math.min(1, prop._harvestAccum / Math.max(0.001, duration));
 
         if (prop.barFill) {
             prop.barFill.clear();

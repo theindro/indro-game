@@ -498,6 +498,24 @@ export function createDropSystem(ctx) {
         if (statsChanged) store.recalculateStats();
     }
 
+    /**
+     * Spawn all loot as world pickups (chests) — nothing goes straight to inventory.
+     * @param {number} x
+     * @param {number} y
+     * @param {{ id: string, amount: number }[]} entries
+     */
+    function spawnLootToGround(x, y, entries) {
+        if (!entries?.length) return;
+
+        let dropIndex = 0;
+        for (const entry of entries) {
+            const {id, amount} = entry;
+            if (!id || !amount) continue;
+            spawnOverflowLoot(x, y, id, amount, dropIndex);
+            dropIndex += amount;
+        }
+    }
+
     // ─────────────────────────────
     // Public API
     // ─────────────────────────────
@@ -505,6 +523,7 @@ export function createDropSystem(ctx) {
         spawnDrops,
         spawnPlayerDrop,
         grantLootEntries,
+        spawnLootToGround,
         updateDrops,
         rollDrop,
         createDrop,

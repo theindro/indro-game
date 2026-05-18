@@ -168,7 +168,11 @@ export async function createGame() {
 
     openWorld.interactablePropManager.onLoot = (loot, propDef, x, y) => {
         audioManager.playSFX('/sounds/popsound.wav', 0.15);
-        combat.grantLootEntries(x, y, loot);
+        if (propDef.lootToGround || propDef.category === 'chest') {
+            combat.spawnLootToGround(x, y, loot);
+        } else {
+            combat.grantLootEntries(x, y, loot);
+        }
     };
 
     // Initialize global VFX with our arrays

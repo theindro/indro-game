@@ -25,6 +25,17 @@ function normalizeInteractableDef(raw) {
         def.glowColor = parseInt(def.glowColor.slice(1), 16);
     }
 
+    if (def.collision === undefined) {
+        def.collision = true;
+    }
+    if (def.castShadow === undefined) {
+        def.castShadow = true;
+    }
+    if (def.category === 'chest') {
+        if (def.harvestTime === undefined) def.harvestTime = 2;
+        if (def.lootToGround === undefined) def.lootToGround = true;
+    }
+
     return def;
 }
 

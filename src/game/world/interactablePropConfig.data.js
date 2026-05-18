@@ -5,7 +5,11 @@
 // appears relative to the others.  weight controls within-category frequency.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Optional per-type VFX (see InteractablePropManager._createProp):
+// Optional per-type fields (see InteractablePropManager._createProp):
+//   collision        — true/false, blocks movement (default: true)
+//   castShadow       — true/false, bottom ellipse shadow (default: true)
+//   harvestTime      — seconds to channel before loot (chest default: 2)
+//   lootToGround     — chest loot spawns as world drops only (default: true for chest)
 //   vfxGlow          — false to disable additive glow sprite (default: on)
 //   vfxGlowScale     — number, default from radius
 //   vfxGlowAlpha     — 0–1
@@ -27,6 +31,8 @@ export const INTERACTABLE_PROP_TYPES = {
         texture: 'chest_wood',
         fallbackColor: 0x8B5E3C,
         scaleRange: { min: 1, max: 1.75 },
+        harvestTime: 2,
+        lootToGround: true,
         sound: 'chest_open',
     },
 
@@ -41,6 +47,8 @@ export const INTERACTABLE_PROP_TYPES = {
         texture: 'chest_iron',
         fallbackColor: 0x7a8fa6,
         scaleRange: { min: 1, max: 1.75 },
+        harvestTime: 2,
+        lootToGround: true,
         sound: 'chest_open',
     },
 
@@ -56,6 +64,8 @@ export const INTERACTABLE_PROP_TYPES = {
         fallbackColor: 0xffd700,
         scaleRange: { min: 0.6, max: 0.8 },
         glowColor: 0xffee88,
+        harvestTime: 2,
+        lootToGround: true,
         sound: 'chest_open',
     },
 
@@ -73,6 +83,8 @@ export const INTERACTABLE_PROP_TYPES = {
         glowColor: 0xcc44ff,
         vfxGlowAlpha: 0.3,
         vfxGlowScale: 1.5,
+        harvestTime: 2,
+        lootToGround: true,
         rare: true,
     },
 
@@ -90,6 +102,9 @@ export const INTERACTABLE_PROP_TYPES = {
         glowColor: 0xffaa44,
         vfxGlowAlpha: 0.35,
         vfxGlowScale: 1.6,
+        harvestTime: 2,
+        lootToGround: true,
+        collision: false,
         rare: true,
     },
 
@@ -107,6 +122,9 @@ export const INTERACTABLE_PROP_TYPES = {
         glowColor: 0xe8a050,
         vfxGlowAlpha: 0.35,
         vfxGlowScale: 1.6,
+        harvestTime: 2,
+        lootToGround: true,
+        collision: false,
         rare: true,
     },
 
@@ -124,6 +142,9 @@ export const INTERACTABLE_PROP_TYPES = {
         glowColor: 0x88ccff,
         vfxGlowAlpha: 0.35,
         vfxGlowScale: 1.6,
+        harvestTime: 2,
+        lootToGround: true,
+        collision: false,
         rare: true,
     },
 
@@ -141,6 +162,9 @@ export const INTERACTABLE_PROP_TYPES = {
         glowColor: 0xff6622,
         vfxGlowAlpha: 0.35,
         vfxGlowScale: 1.6,
+        harvestTime: 2,
+        lootToGround: true,
+        collision: false,
         rare: true,
     },
 
@@ -155,8 +179,9 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'wood',
         texture: 'log_pile',
         fallbackColor: 0x6b3a2a,
-        scaleRange: { min: 0.7, max: 2.0 },
+        scaleRange: { min: 0.7, max: 1 },
         //glowColor: 0xcc8833,
+        collision: false,
         harvestTime: 1.5,          // seconds
         harvestYield: { min: 2, max: 6 },
     },
@@ -171,8 +196,9 @@ export const INTERACTABLE_PROP_TYPES = {
         lootTable: 'wood_branch',
         texture: 'dead_tree',
         fallbackColor: 0x5c4033,
-        scaleRange: { min: 1, max: 1.4 },
+        scaleRange: { min: 0.7, max: 1 },
         //glowColor: 0xbb7722,
+        collision: false,
         harvestTime: 0.8,          // seconds
         harvestYield: { min: 1, max: 3 },
     },
@@ -259,6 +285,8 @@ export const INTERACTABLE_PROP_TYPES = {
         fallbackColor: 0x44bb44,
         scaleRange: { min: 2, max: 2.7 },
         harvestTime: 0.5,          // seconds
+        castShadow: false,
+        collision: false,
         harvestYield: { min: 1, max: 3 },
     },
 
