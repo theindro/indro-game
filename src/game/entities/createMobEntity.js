@@ -204,6 +204,9 @@ export function createMobEntity(
     return {
         c,
         body,
-        hpBar
+        eye,
+        shadow,
+        hpBar,
+        shapeDef: shape,
     };
 }

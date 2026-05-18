@@ -182,8 +182,10 @@ export function createMobController(mob, entityLayer) {
 
             updateMobHealthBar(m);
             applyEntityOutlineFilter(m.body, m, state === 'CHASE');
-            applyBreathing(mob, performance.now() * 0.003);
-            setFacingDirection(mob, moveX || (px - m.x));
+            if (!mob.isCasting) {
+                applyBreathing(mob, performance.now() * 0.003);
+                setFacingDirection(mob, moveX || (px - m.x));
+            }
         },
 
         handleAttack({ distToPlayer, dt }) {
@@ -218,7 +220,7 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
     const stats = ARCHETYPE_STATS[finalArchetype];
     const size = stats.size;
 
-    const { c, body, gl, hpBar } = createMobEntity(renderer,biome, size, '', stats.type);
+    const { c, body, eye, hpBar } = createMobEntity(renderer, biome, size, '', stats.type);
     c.x = x;
     c.y = y;
     c.sortableChildren = true;
@@ -228,7 +230,8 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
     const scaled = applyMobDifficulty(stats, difficulty);
 
     const mob = {
-        c, body, gl, hpBar,
+        c, body, eye, hpBar,
+        shapeDef: stats.type,
         x, y,
         hp: scaled.hp,
         maxHp: scaled.hp,
