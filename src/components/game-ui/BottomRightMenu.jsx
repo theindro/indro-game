@@ -79,7 +79,7 @@ const CurrencyList = () => {
             <Tooltip title="Gold">
                 <Tag style={{display: 'flex', alignItems: 'center', gap: 6, background: "transparent"}}>
                     <img src="/rpg/coins.png" alt="Gold" width={18} height={18}/>
-                    <span style={{fontWeight: 600, color: '#e8a825', fontSize: 15}}>
+                    <span style={{fontWeight: 600, color: 'white', fontSize: 15}}>
                                 {gold.toLocaleString()}
                             </span>
                 </Tag>
@@ -88,7 +88,7 @@ const CurrencyList = () => {
             <Tooltip title="Void essence">
                 <Tag style={{display: 'flex', alignItems: 'center', gap: 6, background: "transparent"}}>
                     <img src="/void_essence.png" alt="Essence" width={18} height={18}/>
-                    <span style={{fontWeight: 600, color: 'black', fontSize: 15}}>
+                    <span style={{fontWeight: 600, color: 'white', fontSize: 15}}>
                                 {voidEssence.toLocaleString()}
                             </span>
                 </Tag>

@@ -95,7 +95,9 @@ export function createDropSystem(ctx) {
     // ─────────────────────────────
     function createShadow() {
         const shadow = new Graphics();
+
         shadow.ellipse(0, 5, 13, 5).fill({color: 0, alpha: 0.28});
+
         return shadow;
     }
 
@@ -119,7 +121,7 @@ export function createDropSystem(ctx) {
             const sprite = new Sprite(texture);
 
             sprite.anchor.set(0.5);
-            sprite.scale.set(0.2);
+            sprite.scale.set(0.05);
 
             container.addChild(sprite);
         } else if (drop.type === 'hp') {

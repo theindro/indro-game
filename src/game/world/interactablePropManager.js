@@ -6,7 +6,7 @@
 // Shadow, scale, and collider patterns mirror PropManager exactly.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { Container, Sprite, Graphics, Texture, Text } from 'pixi.js';
+import {Container, Sprite, Graphics, Texture, Text, BlurFilter} from 'pixi.js';
 import {
     getInteractablePropTypes,
     getBiomeInteractableConfig,
@@ -423,27 +423,39 @@ export class InteractablePropManager {
         // `visual` is a child of `container` so its .x/.y are local (0,0).
         // Pass `container` instead — it sits directly on entityLayer at (x, z).
         // zIndex must sit below the prop container (same pattern as PropManager).
-        let shadowId = null;
+// ── Simple bottom circle shadow ──
+
+        let shadowGraphic = null;
+
         if (visual instanceof Sprite) {
-            const shadow = new Sprite(texture);
-            shadow.anchor.set(0.5, 1);
-            shadow.tint = 0x000000;
-            shadow.chunkKey = chunkKey;
-            shadow.zIndex = container.zIndex - 10;
+            const shadow = new Graphics();
 
-            shadowId = shadowManager.registerShadow(
-                shadow,
-                container,   // world-space reference — container.x === x, container.y === z
-                spriteScale,
-                heightFactor
-            );
+            const shadowRadius =
+                Math.max(10, (def.radius || 28) * 0.65 * scale);
 
-            this.worldObjects.addToEntityLayer(shadow);
-            this.shadowRegistry.set(visual, shadowId);
+            shadow.circle(0, 0, shadowRadius).fill({
+                color: 0x000000,
+                alpha: 0.35,
+            });
 
-            // Cross-reference for cleanup
-            visual._interactableShadow = shadow;
-            shadow._interactableVisual = visual;
+            // squash into ellipse
+            shadow.scale.set(1, 0.25);
+
+            // blur filter
+            const blur = new BlurFilter();
+            blur.strength = 6; // tweak: 3–10 usually looks good
+            shadow.filters = [blur];
+
+            shadow.alpha = 0.9; // keep higher because blur already fades it
+
+            shadow.y = -8;
+
+            shadow.zIndex = container.zIndex - 1;
+
+            container.addChildAt(shadow, 0);
+
+
+            shadowGraphic = shadow;
         }
 
         this._ensureUiLayer();
@@ -528,7 +540,7 @@ export class InteractablePropManager {
             barBg,
             barFill,
             collider,
-            shadowId,
+            shadowGraphic,
             vfxGlowSprite,
             _phase: this.seededRandom(this.worldSeed ^ this.hashString(id) ^ 945612341) * Math.PI * 2,
             _harvesting:   false,
