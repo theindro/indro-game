@@ -20,9 +20,23 @@ export {
     getBiomeForDifficulty,
 } from './world/worldProgression.js';
 
+/**
+ * Early zones: weaker mobs (HP/damage), more spawns handled in worldProgression.
+ * @param {number} difficulty
+ */
+export function getMobCombatDifficultyScale(difficulty) {
+    const d = difficulty ?? 1;
+    if (d <= 1) return 0.4;
+    if (d <= 2) return 0.52;
+    if (d <= 3) return 0.68;
+    if (d <= 4) return 0.82;
+    return 1;
+}
+
 /** @param {number} difficulty */
 export function getDamageScale(difficulty) {
-    return 1 + Math.log2(difficulty + 1) * 0.35;
+    const combatD = Math.max(0.35, (difficulty ?? 1) * getMobCombatDifficultyScale(difficulty));
+    return 1 + Math.log2(combatD + 1) * 0.35;
 }
 
 /** @param {number} difficulty */
@@ -40,12 +54,13 @@ export function getDifficultyAttackSpeedMul(difficulty) {
  * @param {number} difficulty
  */
 export function applyMobDifficulty(stats, difficulty) {
+    const combatD = Math.max(0.35, (difficulty ?? 1) * getMobCombatDifficultyScale(difficulty));
     const damageScale = getDamageScale(difficulty);
     return {
-        hp: MOB_HP * stats.hpMultiplier * difficulty,
+        hp: MOB_HP * stats.hpMultiplier * combatD,
         speed: MOB_BASE_SPEED_SCALE * stats.speedMultiplier * getDifficultySpeedMul(difficulty),
         attackSpeed: DIFFICULTY.attackCooldown * getDifficultyAttackSpeedMul(difficulty),
-        damage: Math.round(stats.damage * damageScale),
+        damage: Math.max(1, Math.round(stats.damage * damageScale)),
         damageScale,
     };
 }

@@ -76,7 +76,7 @@ export class OpenWorldManager {
                 minDistance: 3
             },
             biomeSettings: {
-                forest: {mobDensity: 0.05, poiWeight: 1.0},
+                forest: {mobDensity: 0.14, poiWeight: 1.0},
                 desert: {mobDensity: 0.5, poiWeight: 0.7},
                 ice: {mobDensity: 1, poiWeight: 0.8},
                 lava: {mobDensity: 2, poiWeight: 1.2}
@@ -144,9 +144,9 @@ export class OpenWorldManager {
             this.totemWaveEvent.tryStart(prop);
 
         this.chunkTypes = {
-            empty: 0.25,
-            mob_pack: 0.45,
-            dense_pack: 0.15,
+            empty: 0.18,
+            mob_pack: 0.5,
+            dense_pack: 0.18,
             poi: 0.10,
             elite: 0.04,
             boss: 0.01
@@ -269,8 +269,8 @@ export class OpenWorldManager {
     generateMobPacks(chunkX, chunkZ, packCount, seed, packSizeScale, layoutAnchors = null, packMul = 1) {
         const packs = [];
 
-        const defaultPackSize = Math.max(1, packSizeScale);
-        const packMulClamped = Math.min(packMul, 1.85);
+        const defaultPackSize = Math.max(2, Math.round(packSizeScale));
+        const packMulClamped = Math.min(packMul, 2.35);
         const chunkSizeWorld = this.chunkSize * this.tileSize;
 
         const startX = chunkX * chunkSizeWorld;

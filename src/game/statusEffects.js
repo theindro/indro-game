@@ -54,10 +54,18 @@ export function applyStatusEffect(target, effect) {
     });
 }
 
+/**
+ * @param {object} target Mob or boss
+ * @param {number} deltaTime Seconds
+ * @param {number} now performance.now()
+ * @param {(damage: number, type: string) => void} [onDamage]
+ * @returns {boolean} True if HP reached 0 this tick (lethal DoT / effect)
+ */
 export function updateStatusEffects(target, deltaTime, now, onDamage) {
-    if (!target.statusEffects?.length) return;
+    if (!target.statusEffects?.length) return false;
 
     let totalSlow = 0;
+    let lethal = false;
 
     const dt = deltaTime; // seconds per frame
 
@@ -79,6 +87,10 @@ export function updateStatusEffects(target, deltaTime, now, onDamage) {
             effect.lastTick = 0;
             target.hp -= effect.tickDamage;
             onDamage?.(effect.tickDamage, effect.type);
+            if (target.hp <= 0) {
+                target.hp = 0;
+                lethal = true;
+            }
         }
 
         // ✅ duration (SECONDS BASED)
@@ -93,6 +105,13 @@ export function updateStatusEffects(target, deltaTime, now, onDamage) {
     }
 
     target.statusSlow = Math.min(totalSlow, 0.9);
+
+    if (!lethal && target.hp <= 0) {
+        target.hp = 0;
+        lethal = true;
+    }
+
+    return lethal;
 }
 
 export function createFreezeEffect(duration, slow) {

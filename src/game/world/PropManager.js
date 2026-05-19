@@ -437,10 +437,17 @@ export class PropManager {
         const placed = [];
         const baseSeed = this.hash(chunkX, chunkZ);
         const densityMul = landscapeContext?.contentScales?.landscapeDensityMul ?? 1;
-        const targetCount = Math.max(0, Math.round(getTargetPropCount(profile) * densityMul));
+        const forestMul =
+            biome === 'forest'
+                ? (landscapeContext?.contentScales?.forestFoliageMul ?? 2.35)
+                : 1;
+        const rawTarget = Math.round(getTargetPropCount(profile) * densityMul * forestMul);
+        const targetCount =
+            biome === 'forest' ? Math.min(260, Math.max(0, rawTarget)) : Math.max(0, rawTarget);
         let actualCount = 0;
+        const placeAttempts = biome === 'forest' ? 16 : 8;
 
-        for (let i = 0; i < targetCount * 8 && actualCount < targetCount; i++) {
+        for (let i = 0; i < targetCount * placeAttempts && actualCount < targetCount; i++) {
             const entry = propPool[Math.floor(this.seededRandom(baseSeed + i * 13) * propPool.length)];
             const propType = entry.propType;
             const typeKey = entry.typeKey;

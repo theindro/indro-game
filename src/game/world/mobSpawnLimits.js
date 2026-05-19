@@ -31,7 +31,8 @@ const MOB_RENDER_RADIUS_SQ = MOB_RENDER_RADIUS * MOB_RENDER_RADIUS;
 export function computePackSizeScale(difficulty, contentScales) {
     const d = Math.max(1, difficulty ?? 1);
     const mul = contentScales?.mobPackSizeMul ?? 1;
-    return 1 + Math.sqrt(d - 1) * 1.75 * mul;
+    const earlyBoost = d <= 3 ? 1.2 + ((3 - d) / 2) * 0.55 : 1;
+    return (1 + Math.sqrt(d - 1) * 1.75 * mul) * earlyBoost;
 }
 
 /**

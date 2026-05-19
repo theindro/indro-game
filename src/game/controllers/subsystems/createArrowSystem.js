@@ -11,6 +11,7 @@ import {
     createPoisonEffect, STATUS_COLORS_RGBA,
 } from "../../statusEffects.js";
 import {VFX} from "../../GlobalEffects.js";
+import { killMob } from '../../combat/killMob.js';
 
 // Constants
 const COLLISION_RADIUS = 16;
@@ -107,66 +108,10 @@ export function createArrowSystem(ctx) {
         return false;
     }
 
-    /**
-     * Handles mob death: effects, stats, drops, cleanup
-     */
-    function handleMobDeath(mob, index, x, y) {
-        const isElite = mob.type === 'elite';
-        const dropColor = isElite ? 0xffaa44 : 0xffd700;
+    const deathDeps = { entities, openWorld, spawnDrops };
 
-        // 🔥 CALL DESTROY ON ARCHETYPE HERE 🔥
-        if (mob.controller && mob.controller.archetype && mob.controller.archetype.destroy) {
-            console.log('Calling destroy on archetype:', mob.archetype);
-            mob.controller.archetype.destroy();
-        }
-
-        // Visual effects
-        //VFX.burst(x, y, dropColor, 14, 4);
-        //VFX.burst(x, y, 0xff4466, 8, 3);
-        //VFX.shake(6)
-
-        const minMobSize = 12;
-        const maxMobSize = 40;
-
-        const minScale = 0.2;
-        const maxScale = 0.5;
-
-        const scale =
-            minScale +
-            ((mob.size - minMobSize) / (maxMobSize - minMobSize)) *
-            (maxScale - minScale);
-
-        VFX.explosion(x, y, '', scale,  mob.size);
-
-        // Update stats
-        useGameStore.getState().addKills(1);
-
-        VFX.addFloat(
-            `+${mob.exp} XP`,
-            mob.x,
-            mob.y - 30,
-            'orange'
-        );
-
-        useGameStore.getState().addXP(mob.exp);
-
-        // Spawn drops
-        if (spawnDrops) {
-            const mobType = isElite ? 'elite' : (mob.biome || 'default');
-            const newDrops = spawnDrops(x, y, mobType, false, mob.lootMultiplier ?? 1);
-            if (newDrops?.length) {
-                drops.push(...newDrops);
-            }
-        }
-
-        openWorld.totemWaveEvent?.onMobRemoved(mob);
-
-        // Cleanup
-        if (mob.c?.parent) {
-            mob.c.parent.removeChild(mob.c);
-            mob.c.destroy();
-        }
-        entities.mobs.splice(index, 1);
+    function handleMobDeath(mob, index) {
+        killMob(mob, index, deathDeps);
     }
 
     /**
@@ -403,7 +348,7 @@ export function createArrowSystem(ctx) {
 
                 // Handle mob death
                 if (mob.hp <= 0) {
-                    handleMobDeath(mob, mi, mob.x, mob.y);
+                    handleMobDeath(mob, mi);
                     mi--; // Adjust index after deletion
                 }
                 break;
@@ -454,5 +399,8 @@ export function createArrowSystem(ctx) {
         }
     }
 
-    return {updateArrows};
+    return {
+        updateArrows,
+        killMob: (mob, mobIndex) => killMob(mob, mobIndex, deathDeps),
+    };
 }

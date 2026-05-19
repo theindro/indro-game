@@ -5,7 +5,13 @@ import { attachMonsterLevelUi, drawMonsterHpWithLevel } from '../ui/monsterLevel
 import {useGameStore} from "../../stores/gameStore.js";
 import {createMobEntity} from "../entities/createMobEntity.js";
 import {resolveVsColliders} from "../world/collision.js";
-import { ARCHETYPES, archetypeMap, ARCHETYPE_STATS, applyArchetypeVisuals } from './mobArchetypes/index.js';
+import {
+    ARCHETYPES,
+    archetypeMap,
+    ARCHETYPE_STATS,
+    applyArchetypeVisuals,
+    pickSpawnArchetype,
+} from './mobArchetypes/index.js';
 import {updateStatusEffects} from "../statusEffects.js";
 import {VFX} from '../GlobalEffects.js';
 import { applyEntityOutlineFilter } from '../utils/highlightFilters.js';
@@ -55,14 +61,21 @@ export function createMobController(mob, entityLayer) {
             const distToPlayer = Math.hypot(px - m.x, py - m.y);
             if (distToPlayer > MOB_SIM_RADIUS) return;
 
-            // Status effects
-            updateStatusEffects(m, dt, performance.now(), (damage, type) => {
+            // Status effects (DoT must trigger death — arrows skip hp <= 0 targets)
+            const lethalDot = updateStatusEffects(m, dt, performance.now(), (damage, type) => {
                 let icon = '🔥', color = '#ff6600';
                 if (type === 'poison') { icon = '💚'; color = '#88ff88'; }
                 else if (type === 'ice') { icon = '❄️'; color = '#88ccff'; }
                 else if (type === 'bleed') { icon = '🩸'; color = '#ff4444'; }
                 VFX.addFloat(`${icon} ${Math.floor(damage)}`, m.x, m.y - 20, color);
             });
+
+            if (lethalDot || m.hp <= 0) {
+                updateMobHealthBar(m);
+                const idx = mobs?.indexOf(m) ?? -1;
+                openWorld?.killMob?.(m, idx);
+                return;
+            }
 
             if (archetypeBehavior?.groundAttacks) {
                 archetypeBehavior.groundAttacks.update(ctx.px, ctx.py, (damage) => {
@@ -122,9 +135,17 @@ export function createMobController(mob, entityLayer) {
                 moveY = (dy / len) * speed;
             }
 
-            // === ONLY let archetype override in CHASE state (most important fix) ===
-            if (state === 'CHASE' && archetypeBehavior?.update) {
-                const result = archetypeBehavior.update({ ...ctx, dt, isChasing: true });
+            const useArchetypeAi =
+                archetypeBehavior?.update &&
+                (state === 'CHASE' || archetypeType === ARCHETYPES.BAT);
+
+            if (useArchetypeAi) {
+                const result = archetypeBehavior.update({
+                    ...ctx,
+                    dt,
+                    isChasing: state === 'CHASE',
+                    mobState: state,
+                });
                 if (result.moveX !== undefined) moveX = result.moveX;
                 if (result.moveY !== undefined) moveY = result.moveY;
                 attackOverride = result.attackOverride || false;
@@ -177,6 +198,12 @@ export function createMobController(mob, entityLayer) {
                 m.c.y = newY;
             }
 
+            if (m._batPendingMelee) {
+                m._batPendingMelee = false;
+                useGameStore.getState().damagePlayer(m.damage, 'bat strike');
+                m.attackCooldown = Math.max(0.35, 1 / (m.attackSpeed || 1));
+            }
+
             // Attack only when chasing
             if (!attackOverride && state === 'CHASE') {
                 this.handleAttack({ distToPlayer, dt });
@@ -215,8 +242,7 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
 
     let finalArchetype = archetype;
     if (!finalArchetype || !ARCHETYPE_STATS[finalArchetype]) {
-        const archetypes = Object.values(ARCHETYPES);
-        finalArchetype = archetypes[Math.floor(mobSeededUnit(rng ^ 0xbeeff00d) * archetypes.length)];
+        finalArchetype = pickSpawnArchetype(mobSeededUnit(rng ^ 0xbeeff00d), biome);
     }
 
     const stats = ARCHETYPE_STATS[finalArchetype];

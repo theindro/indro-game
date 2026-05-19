@@ -110,11 +110,11 @@ export function getPropTypeByAssetId(assetId) {
 // Legacy biome-wide fallback (forest uses chunkProfiles.data.js per-chunk identity).
 export const BIOME_PROP_CONFIG = {
     forest: {
-        density: 1.0,
+        density: 2.6,
         props: [
-            { type: 'STONE', weight: 10 },
-            { type: 'TREE', weight: 30 },
-            { type: 'BUSH', weight: 40 },
+            { type: 'STONE', weight: 6 },
+            { type: 'TREE', weight: 44 },
+            { type: 'BUSH', weight: 50 },
         ],
     },
     desert: {

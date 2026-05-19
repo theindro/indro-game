@@ -118,6 +118,8 @@ export async function createGame() {
         openWorld, colliders, playWeaponShoot
     });
 
+    openWorld.killMob = (mob, mobIndex) => combat.killMob(mob, mobIndex);
+
     // ==================== ABILITIES ====================
     const dash = createDashAbility({input});
 

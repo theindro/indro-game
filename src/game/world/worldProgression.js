@@ -73,14 +73,18 @@ export function getBiomeForChunk(chunkX, chunkZ, _worldSeed) {
 export function getWorldContentScales(difficulty) {
     const d = Math.min(MAX_WORLD_DIFFICULTY, Math.max(1, difficulty ?? 1));
     const t = (d - 1) / (MAX_WORLD_DIFFICULTY - 1);
+    const early = d <= 3;
+    const earlyEase = early ? (3 - d) / 2 : 0;
 
     return {
-        mobPackChanceMul: 0.35 + t * 0.55,
-        mobPackCountMul: 0.5 + t * 0.4,
-        mobPackSizeMul: 0.45 + t * 0.4,
+        mobPackChanceMul: (early ? 0.78 : 0.35) + t * 0.55,
+        mobPackCountMul: (early ? 1.35 : 0.5) + t * 0.4 + earlyEase * 0.4,
+        mobPackSizeMul: (early ? 1.05 : 0.45) + t * 0.4 + earlyEase * 0.35,
         interactableIntensityMul: 0.42 + t * 0.58,
         interactableMaxMul: 0.5 + t * 0.5,
         lootMultiplier: 0.38 + t * 0.62,
         landscapeDensityMul: 0.55 + t * 0.45,
+        /** Extra trees/bushes in forest biome chunks. */
+        forestFoliageMul: 2.35,
     };
 }

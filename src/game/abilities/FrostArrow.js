@@ -214,12 +214,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
                 VFX.burst(mob.x, mob.y, 0xffd700);
 
                 if (mob.hp <= 0) {
-                    //VFX.burst(mob.x, mob.y, 0xffd700, 14, 4);
-                    store.addKills(1);
-                    store.addXP(mob.exp);
-                    openWorld.totemWaveEvent?.onMobRemoved(mob);
-                    openWorld.entityLayer?.removeChild(mob.c);
-                    mobs.splice(mi, 1);
+                    openWorld.killMob?.(mob, mi);
                 }
             }
         }

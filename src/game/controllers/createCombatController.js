@@ -99,6 +99,7 @@ export function createCombatController(ctx) {
 
     return {
         tryShoot,
+        killMob: arrowSystem.killMob,
         updateArrows: arrowSystem.updateArrows,
         updateEnemyProjs: projectileSystem.updateEnemyProjs,
         updateDrops: dropSystem.updateDrops,
