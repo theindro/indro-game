@@ -8,6 +8,8 @@ import { createProjectileSystem } from "./subsystems/createProjectileSystem.js";
 import { useArrowBarrage } from "../abilities/ArrowBarrage.js";
 import { useRapidFire } from "../abilities/RapidFire.js";
 import { useFrostArrow } from "../abilities/FrostArrow.js";
+import { useVenomNova } from "../abilities/VenomNova.js";
+import { useSpinshot, updateSpinshot } from "../abilities/Spinshot.js";
 import { useEmpower } from "../abilities/Empower.js";
 import { getEmpoweredArrowType } from "../abilities/empowerBuff.js";
 import {audioManager} from "../utils/audioManager.js";
@@ -65,7 +67,19 @@ export function createCombatController(ctx) {
                 maxRange: stats.attackRange ?? DEFAULT_ATTACK_RANGE,
                 speedScale: stats.projectileSpeed ?? 1,
             };
-            arrows.push(createArrow(entityLayer, px, py, tx, ty, spread, chainData, getEmpoweredArrowType(), tr));
+            const arrow = createArrow(
+                entityLayer,
+                px,
+                py,
+                tx,
+                ty,
+                spread,
+                chainData,
+                getEmpoweredArrowType(),
+                tr
+            );
+            arrow.pierceRemaining = stats.pierceCount ?? 0;
+            arrows.push(arrow);
         }
     }
 
@@ -97,9 +111,23 @@ export function createCombatController(ctx) {
         return useEmpower();
     }
 
+    function useVenomNovaWrapper(targetX, targetY) {
+        return useVenomNova({ ...ctx, entities }, targetX, targetY);
+    }
+
+    function useSpinshotWrapper() {
+        return useSpinshot({ ...ctx, arrows });
+    }
+
+    function isAbilityUnlocked(num) {
+        const key = `ability${num}`;
+        return !!useGameStore.getState().skillUnlocks?.[key];
+    }
+
     return {
         tryShoot,
         killMob: arrowSystem.killMob,
+        isAbilityUnlocked,
         updateArrows: arrowSystem.updateArrows,
         updateEnemyProjs: projectileSystem.updateEnemyProjs,
         updateDrops: dropSystem.updateDrops,
@@ -110,6 +138,9 @@ export function createCombatController(ctx) {
         useArrowBarrage: useArrowBarrageWrapper,
         useRapidFire: useRapidFireWrapper,
         useFrostArrow: useFrostArrowWrapper,
+        useVenomNova: useVenomNovaWrapper,
+        useSpinshot: useSpinshotWrapper,
+        updateSpinshot,
         useEmpower: useEmpowerWrapper,
     };
 }

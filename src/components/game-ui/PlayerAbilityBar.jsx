@@ -14,14 +14,16 @@ import {
     UserOutlined,
     ThunderboltOutlined,
 } from "@ant-design/icons";
-import {useGameStore} from "../../stores/gameStore.js";
+import {useGameStore, INITIAL_ABILITIES} from "../../stores/gameStore.js";
 
-const ABILITY_UNLOCK_LEVELS = {
-    1: 3,
-    2: 5,
-    3: 10,
-    4: 20,
-};
+const ABILITY_SLOTS = [
+    { num: 1, key: 'ability1', hotkey: '1' },
+    { num: 2, key: 'ability2', hotkey: '2' },
+    { num: 3, key: 'ability3', hotkey: '3' },
+    { num: 4, key: 'ability4', hotkey: '4' },
+    { num: 5, key: 'ability5', hotkey: '5' },
+    { num: 6, key: 'ability6', hotkey: '6' },
+];
 
 const styles = {
     root: {
@@ -47,10 +49,10 @@ const styles = {
 
 const AbilitySlot = React.memo(function AbilitySlot({
                                                         ability,
-                                                        index,
-                                                        playerLevel
+                                                        hotkeyLabel,
+                                                        isLocked,
+                                                        lockHint,
                                                     }) {
-    const isLocked = playerLevel < ABILITY_UNLOCK_LEVELS[index];
     const playerDmg = useGameStore((s) => s.player?.stats?.damage);
     const isReady =
         !isLocked &&
@@ -60,7 +62,7 @@ const AbilitySlot = React.memo(function AbilitySlot({
         <div>
             <div style={{fontWeight: 600, fontSize: 14}}>{ability.name}</div>
             <div style={{color: "#aaa", fontSize: 12}}>
-                Unlocks at level {ABILITY_UNLOCK_LEVELS[index]}
+                {lockHint ?? 'Unlock in Skill Tree (O)'}
             </div>
         </div>
     ) : (
@@ -126,7 +128,7 @@ const AbilitySlot = React.memo(function AbilitySlot({
                         color: isLocked ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)",
                     }}
                 >
-                    {isLocked ? `Lv${ABILITY_UNLOCK_LEVELS[index]}` : index}
+                    {isLocked ? '—' : hotkeyLabel}
                 </div>
             </div>
         </Tooltip>
@@ -145,12 +147,18 @@ export default function AbilityBar() {
     const dashCooldown = useGameStore(s => s.player.stats.dashCooldown);
 
     const abilities = useGameStore((s) => s.abilities);
+    const skillUnlocks = useGameStore((s) => s.skillUnlocks);
     const basicAttack = useGameStore((s) => s.basicAttack);
     const dash = useGameStore((s) => s.dash);
 
     const abilityList = useMemo(
-        () => [abilities?.ability1, abilities?.ability2, abilities?.ability3, abilities?.ability4],
-        [abilities]
+        () =>
+            ABILITY_SLOTS.map((slot) => ({
+                ...slot,
+                ability: abilities?.[slot.key] ?? INITIAL_ABILITIES[slot.key],
+                unlocked: !!skillUnlocks?.[slot.key],
+            })),
+        [abilities, skillUnlocks]
     );
 
     if (!abilities?.ability1) return null;
@@ -172,7 +180,7 @@ export default function AbilityBar() {
                 </div>
             </div>
             <Divider/>
-            <div style={styles.bar}>
+            <div>
                 <Space align="center" size={16}>
                     {/* Avatar + Level */}
                     <Badge
@@ -220,17 +228,16 @@ export default function AbilityBar() {
                     <Divider type="vertical" style={{height: 64, background: "rgba(255,255,255,0.1)"}}/>
 
                     {/* Main Abilities */}
-                    <Space size={8}>
-                        {abilityList.map((ability, i) =>
-                            ability ? (
-                                <AbilitySlot
-                                    key={i}
-                                    ability={ability}
-                                    index={i + 1}
-                                    playerLevel={playerLevel}
-                                />
-                            ) : null
-                        )}
+                    <Space size={8} wrap>
+                        {abilityList.map((slot) => (
+                            <AbilitySlot
+                                key={slot.key}
+                                ability={slot.ability}
+                                hotkeyLabel={slot.hotkey}
+                                isLocked={!slot.unlocked}
+                                lockHint="Spend a point in Skills (O)"
+                            />
+                        ))}
                     </Space>
 
                     <Divider type="vertical" style={{height: 64, background: "rgba(255,255,255,0.1)"}}/>
@@ -246,8 +253,8 @@ export default function AbilityBar() {
                                 description: "Standard attack",
                                 level: 1,
                             }}
-                            index="Basic"
-                            playerLevel={playerLevel}
+                            hotkeyLabel="LMB"
+                            isLocked={false}
                         />
 
                         <AbilitySlot
@@ -259,8 +266,8 @@ export default function AbilityBar() {
                                 description: "Quick dash",
                                 level: 1,
                             }}
-                            index="Dash"
-                            playerLevel={playerLevel}
+                            hotkeyLabel="Space"
+                            isLocked={false}
                         />
                     </Space>
                 </Space>

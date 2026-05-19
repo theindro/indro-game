@@ -2,21 +2,13 @@
 import React, {useEffect, useState} from "react";
 import {useGameStore} from "../../stores/gameStore.js";
 import {audioManager} from "../../game/utils/audioManager.js";
-
-const ABILITY_UNLOCK_LEVELS = {
-    3: "Arrow Barrage",
-    5: "Rapid Fire",
-    10: "Empower",
-    20: "Frost Arrow",
-};
+import { MAX_PLAYER_LEVEL } from '../../game/skills/skillTreeDefinitions.js';
 
 export default function LevelUpEffect() {
     const playerLevel = useGameStore((s) => s.player?.pLevel);
     const [visible, setVisible] = useState(false);
     const [displayLevel, setDisplayLevel] = useState(playerLevel);
     const [initialized, setInitialized] = useState(false);
-
-    console.log('level up render');
 
     useEffect(() => {
         if (!initialized) {
@@ -25,12 +17,10 @@ export default function LevelUpEffect() {
         }
         setDisplayLevel(playerLevel);
         setVisible(true);
-
         audioManager.playSFX('/sounds/level-up.mp3', 0.15);
-
         const t = setTimeout(() => setVisible(false), 5000);
         return () => clearTimeout(t);
-    }, [playerLevel]);
+    }, [playerLevel, initialized]);
 
     if (!visible) return null;
 
@@ -39,9 +29,9 @@ export default function LevelUpEffect() {
             position: "fixed",
             inset: 0,
             display: "flex",
-            alignItems: "flex-start",  // was "center"
+            alignItems: "flex-start",
             justifyContent: "center",
-            paddingTop: "18vh",         // push down from top edge
+            paddingTop: "18vh",
             zIndex: 9998,
             pointerEvents: "none",
         }}>
@@ -70,19 +60,17 @@ export default function LevelUpEffect() {
                 }}>
                     {displayLevel}
                 </div>
-
-                {ABILITY_UNLOCK_LEVELS[displayLevel] && (
+                {displayLevel <= MAX_PLAYER_LEVEL && (
                     <div style={{
-                        fontSize: 24,
-                        color: "#fff",
-                        letterSpacing: -2,
-                        lineHeight: 1,
+                        fontSize: 22,
+                        color: "#ffd299",
+                        letterSpacing: -1,
+                        lineHeight: 1.2,
                     }}>
-                        Unlocked {ABILITY_UNLOCK_LEVELS[displayLevel]}!
+                        +1 skill point — open Skills (O)
                     </div>
                 )}
             </div>
-
             <style>{`
                 @keyframes lvlup {
                     0%   { opacity: 0; transform: translateY(12px) scale(0.92); }

@@ -257,6 +257,7 @@ export async function createGame() {
         syncBossEncounterUi(openWorld, px, py);
 
         // Combat updates
+        combat.updateSpinshot?.(dt);
         combat.updateArrows(px, py, dt);
         combat.updateEnemyProjs(px, py, dt);
         combat.updateDrops(px, py, dt);
@@ -364,20 +365,28 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, ope
 
         switch (key) {
             case '1':
-                if (useGameStore.getState().player.pLevel >= 3)
+                if (combat.isAbilityUnlocked(1))
                     combat.useArrowBarrage(mouseWorld.x, mouseWorld.y);
                 break;
             case '2':
-                if (useGameStore.getState().player.pLevel >= 5)
+                if (combat.isAbilityUnlocked(2))
                     combat.useRapidFire(mouseWorld.x, mouseWorld.y);
                 break;
             case '3':
-                if (useGameStore.getState().player.pLevel >= 10)
+                if (combat.isAbilityUnlocked(3))
                     combat.useEmpower();
                 break;
             case '4':
-                if (useGameStore.getState().player.pLevel >= 20)
+                if (combat.isAbilityUnlocked(4))
                     combat.useFrostArrow(mouseWorld.x, mouseWorld.y);
+                break;
+            case '5':
+                if (combat.isAbilityUnlocked(5))
+                    combat.useVenomNova(mouseWorld.x, mouseWorld.y);
+                break;
+            case '6':
+                if (combat.isAbilityUnlocked(6))
+                    combat.useSpinshot();
                 break;
         }
 

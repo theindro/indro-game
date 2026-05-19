@@ -8,6 +8,15 @@ import {
     onQuestItemCrafted,
     clearQuestToast,
 } from '../game/quests/questProgress.js';
+import { MAX_PLAYER_LEVEL } from '../game/skills/skillTreeDefinitions.js';
+import {
+    applyAbilitySkillDeltas,
+    canAllocateSkill,
+    computeSkillModifiers,
+    migrateSkillRanks,
+    getSkillPointsEarned,
+    getTotalSkillPointsSpent,
+} from '../game/skills/skillEffects.js';
 
 // How much each enchant level multiplies base stats (12% per level)
 export const ENCHANT_BONUS_PER_LEVEL = 0.12;
@@ -23,7 +32,7 @@ export function getEnchantedStatValue(slotOrEquip, statKey, baseValue) {
 const STORAGE_KEY = 'voidhunt-game-v1';
 const STORAGE_VERSION = 1;
 
-const INITIAL_ABILITIES = {
+export const INITIAL_ABILITIES = {
     ability1: {
         name: 'Arrow Barrage',
         icon: '/icons/ability1.png',
@@ -69,9 +78,34 @@ const INITIAL_ABILITIES = {
         arrowCount: 1,
         projectileSpeed: 8,
     },
+    ability5: {
+        name: 'Venom Nova',
+        icon: '/icons/ability2.png',
+        cooldownEnd: 0,
+        maxCooldown: 12,
+        level: 1,
+        description: 'Poison explosion at target location',
+        explosionRadius: 140,
+        poisonDamage: 3,
+        poisonDuration: 5,
+        damageMultiplier: 1.2,
+    },
+    ability6: {
+        name: 'Spinshot',
+        icon: '/icons/ability1.png',
+        cooldownEnd: 0,
+        maxCooldown: 16,
+        level: 1,
+        description: 'Spin and fire arrows in all directions for 2s. Uses chain & pierce.',
+        spinDuration: 2,
+        fireInterval: 0.09,
+        arrowsPerWave: 6,
+        rotationSpeed: 3.2,
+        damageMultiplier: 0.5,
+    },
 };
 
-function cloneDefaultAbilities() {
+export function cloneDefaultAbilities() {
     return /** @type {typeof INITIAL_ABILITIES} */ (JSON.parse(JSON.stringify(INITIAL_ABILITIES)));
 }
 
@@ -156,13 +190,31 @@ function createGameStoreSlice(set, get) {
                 dashRange: 320,
                 dashDuration: 0.2,
                 dashCooldown: 2,
-                chainEnabled: true,
+                chainEnabled: false,
                 chainCount: 0,
                 chainRange: 350,
                 chainDamage: 0.5,
                 critChance: 5,
                 critDamage: 100,
+                pierceCount: 0,
+                basicBurnChance: 0,
+                basicPoisonChance: 0,
+                basicFreezeChance: 0,
+                burnTickDamage: 0,
             },
+        },
+
+        skills: {
+            ranks: { unlock_barrage: 1 },
+        },
+
+        skillUnlocks: {
+            ability1: true,
+            ability2: false,
+            ability3: false,
+            ability4: false,
+            ability5: false,
+            ability6: false,
         },
 
         // Inventory System
@@ -235,11 +287,15 @@ function createGameStoreSlice(set, get) {
                 let level = state.player.pLevel;
                 let nextXP = state.player.XPnext;
 
-                while (xp >= nextXP) {
+                while (xp >= nextXP && level < MAX_PLAYER_LEVEL) {
                     xp -= nextXP;
                     level++;
                     nextXP = Math.floor(nextXP * 1.25);
                     levelUp = true;
+                }
+                if (level >= MAX_PLAYER_LEVEL) {
+                    level = MAX_PLAYER_LEVEL;
+                    xp = Math.min(xp, nextXP - 1);
                 }
                 const base = getScaledStats(level);
 
@@ -259,8 +315,36 @@ function createGameStoreSlice(set, get) {
             if (levelUp) {
                 set((state) => ({
                     player: {...state.player, hp: state.player.maxHp},
+                    levelUpEffect: true,
                 }));
             }
+        },
+
+        allocateSkillPoint: (nodeId) => {
+            const state = get();
+            const ranks = state.skills?.ranks ?? { unlock_barrage: 1 };
+            const check = canAllocateSkill(ranks, nodeId, state.player.pLevel);
+            if (!check.ok) return check;
+
+            set((s) => ({
+                skills: {
+                    ranks: {
+                        ...(s.skills?.ranks ?? {}),
+                        [nodeId]: ((s.skills?.ranks ?? {})[nodeId] ?? 0) + 1,
+                    },
+                },
+            }));
+
+            get().recalculateStats();
+            return { ok: true };
+        },
+
+        getSkillPointsAvailable: () => {
+            const state = get();
+            return (
+                getSkillPointsEarned(state.player.pLevel) -
+                getTotalSkillPointsSpent(state.skills?.ranks ?? {})
+            );
         },
 
         useBasicAttack: () => {
@@ -480,6 +564,7 @@ function createGameStoreSlice(set, get) {
             const state = get();
             const level = state.player.pLevel;
             const base = getScaledStats(level);
+            const skillMods = computeSkillModifiers(state.skills?.ranks ?? {});
 
             let bonus = {
                 damage: 0,
@@ -512,32 +597,53 @@ function createGameStoreSlice(set, get) {
                 });
             });
 
-            const newMaxHp = base.maxHp + bonus.health;
+            const newMaxHp =
+                base.maxHp + bonus.health + (skillMods.health ?? 0);
+
+            const mergedAbilities = applyAbilitySkillDeltas(state.abilities, skillMods);
 
             set({
+                abilities: mergedAbilities,
+                skillUnlocks: { ...skillMods.unlockedAbilities },
                 player: {
                     ...state.player,
                     maxHp: newMaxHp,
                     hp: Math.min(state.player.hp, newMaxHp),
                     stats: {
-                        damage: base.damage + bonus.damage,
-                        attackCooldown: Math.max(0.12, base.attackCooldown * (1 - bonus.attackSpeed / 100)),
-                        attackRange: base.attackRange + bonus.attackRange,
-                        projectileSpeed: Math.max(0.15, base.projectileSpeed * (1 + bonus.projectileSpeed / 100)),
+                        damage: base.damage + bonus.damage + skillMods.damage,
+                        attackCooldown: Math.max(
+                            0.12,
+                            base.attackCooldown *
+                                (1 - (bonus.attackSpeed + skillMods.attackSpeed) / 100)
+                        ),
+                        attackRange:
+                            base.attackRange + bonus.attackRange + skillMods.attackRange,
+                        projectileSpeed: Math.max(
+                            0.15,
+                            base.projectileSpeed *
+                                (1 + (bonus.projectileSpeed + skillMods.projectileSpeed) / 100)
+                        ),
                         moveSpeed: base.moveSpeed + bonus.moveSpeed * 100,
-                        critChance: base.critChance + bonus.critChance,
-                        critDamage: base.critDamage + bonus.critDamage,
-                        projectiles: base.projectiles + bonus.projectiles,
-                        chainCount: base.chainCount + bonus.chainCount,
+                        critChance: base.critChance + bonus.critChance + skillMods.critChance,
+                        critDamage:
+                            base.critDamage + bonus.critDamage + skillMods.critDamage,
+                        projectiles:
+                            base.projectiles + bonus.projectiles + skillMods.projectiles,
+                        chainCount: base.chainCount + bonus.chainCount + skillMods.chainCount,
                         armor: bonus.armor,
                         dodge: bonus.dodge,
                         dashSpeed: state.player.stats.dashSpeed,
                         dashRange: state.player.stats.dashRange,
                         dashDuration: state.player.stats.dashDuration,
                         dashCooldown: state.player.stats.dashCooldown,
-                        chainEnabled: state.player.stats.chainEnabled,
-                        chainRange: state.player.stats.chainRange,
-                        chainDamage: state.player.stats.chainDamage,
+                        chainEnabled: skillMods.chainEnabled,
+                        chainRange: 350 + skillMods.chainRange,
+                        chainDamage: 0.5 + skillMods.chainDamage,
+                        pierceCount: skillMods.pierceCount,
+                        basicBurnChance: skillMods.basicBurnChance,
+                        basicPoisonChance: skillMods.basicPoisonChance,
+                        basicFreezeChance: skillMods.basicFreezeChance,
+                        burnTickDamage: skillMods.burnTickDamage,
                     },
                 },
             });
@@ -773,13 +879,21 @@ function getDefaultProgressPayload() {
                 dashRange: 320,
                 dashDuration: 0.2,
                 dashCooldown: 2,
-                chainEnabled: true,
+                chainEnabled: false,
                 chainCount: 0,
                 chainRange: 350,
                 chainDamage: 0.5,
                 critChance: 5,
                 critDamage: 100,
+                pierceCount: 0,
+                basicBurnChance: 0,
+                basicPoisonChance: 0,
+                basicFreezeChance: 0,
+                burnTickDamage: 0,
             },
+        },
+        skills: {
+            ranks: { unlock_barrage: 1 },
         },
         inventory: {
             slots: Array(20).fill(null),
@@ -877,6 +991,9 @@ function mergePersistedState(persisted, current) {
                 temporaryEvent: null,
             }
             : current.quests,
+        skills: p.skills?.ranks
+            ? { ranks: migrateSkillRanks({ ...(p.skills.ranks ?? {}) }) }
+            : { ranks: { unlock_barrage: 1 } },
     };
 }
 
@@ -915,6 +1032,7 @@ export const useGameStore = create(
                 completed: state.quests.completed,
                 recentComplete: state.quests.recentComplete,
             },
+            skills: state.skills,
         }),
         merge: (persistedState, currentState) => mergePersistedState(persistedState, currentState),
         onRehydrateStorage: () => () => {

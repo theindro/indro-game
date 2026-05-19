@@ -213,6 +213,23 @@ export function createArrowSystem(ctx) {
     /**
      * Applies hit effects to a target
      */
+    function tryApplySkillElementalProcs(mob, stats) {
+        if (!mob || mob.hp <= 0) return;
+
+        const roll = Math.random() * 100;
+
+        if (stats.basicBurnChance > 0 && roll < stats.basicBurnChance) {
+            const tick = 2 + (stats.burnTickDamage ?? 0);
+            applyStatusEffect(mob, createBurnEffect(2.5, tick));
+        }
+        if (stats.basicPoisonChance > 0 && roll < stats.basicPoisonChance) {
+            applyStatusEffect(mob, createPoisonEffect(4, 2 + Math.floor((stats.burnTickDamage ?? 0) / 2)));
+        }
+        if (stats.basicFreezeChance > 0 && roll < stats.basicFreezeChance) {
+            applyStatusEffect(mob, createFreezeEffect(1.8, 0.45));
+        }
+    }
+
     function applyHitEffects(x, y, damage, isCrit, isBoss = false, elementalType = 'normal') {
         const particleCount = isCrit ? (isBoss ? 15 : 12) : (isBoss ? 10 : 7);
         const textColor = '#fff';
@@ -321,18 +338,27 @@ export function createArrowSystem(ctx) {
                     applyStatusEffect(mob, createPoisonEffect(4, 2));
                 }
 
-                // Apply elemental effects
                 if (arrow.elementalEffect === 'ice') {
                     applyStatusEffect(mob, createFreezeEffect(2, 5));
                 }
 
+                tryApplySkillElementalProcs(mob, stats);
 
-                // Track hit mobs for chain
                 if (arrow.chainHitMobs) arrow.chainHitMobs.add(mob);
 
-                // Handle chain reaction
                 if (arrow.chainRemaining > 0 && stats.chainEnabled) {
                     trySpawnChainArrow(mob, arrow, finalDamage, stats);
+                }
+
+                if (mob.hp <= 0) {
+                    handleMobDeath(mob, mi);
+                    mi--;
+                }
+
+                const pierceLeft = arrow.pierceRemaining ?? 0;
+                if (pierceLeft > 0) {
+                    arrow.pierceRemaining = pierceLeft - 1;
+                    continue;
                 }
 
                 if (arrow.vfxGlow) {
@@ -345,12 +371,6 @@ export function createArrowSystem(ctx) {
                 }
                 arrows.splice(ai, 1);
                 hit = true;
-
-                // Handle mob death
-                if (mob.hp <= 0) {
-                    handleMobDeath(mob, mi);
-                    mi--; // Adjust index after deletion
-                }
                 break;
             }
 

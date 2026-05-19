@@ -18,12 +18,14 @@ import {
     PlusCircleOutlined, HeatMapOutlined, FireOutlined,
 } from '@ant-design/icons';
 import {useGameStore} from '../../stores/gameStore.js';
+import { getSkillPointsEarned, getTotalSkillPointsSpent } from '../../game/skills/skillEffects.js';
 import Inventory from './Inventory.jsx';
 import PauseScreen from "../screens/PauseScreen.jsx";
 import Character from "./Character.jsx";
 import CraftingPanel from "./Crafting.jsx";
 import QuestTracker from './quests/QuestTracker.jsx';
 import QuestPanel from './quests/QuestPanel.jsx';
+import SkillTreePanel from './skills/SkillTreePanel.jsx';
 
 const MENU_ITEMS = [
     {
@@ -56,7 +58,6 @@ const MENU_ITEMS = [
         icon: <FireOutlined/>,
         label: 'Skills',
         hotkey: 'O',
-        disabled: true,
     },
     {
         key: 'character',
@@ -102,6 +103,10 @@ const CurrencyList = () => {
 const BottomRightMenu = () => {
     const [openPanel, setOpenPanel] = useState(null);
     const enchantFocusSlotIndex = useGameStore((s) => s.ui?.enchantFocusSlotIndex);
+    const playerLevel = useGameStore((s) => s.player?.pLevel ?? 1);
+    const skillRanks = useGameStore((s) => s.skills?.ranks ?? {});
+    const skillPointsAvailable =
+        getSkillPointsEarned(playerLevel) - getTotalSkillPointsSpent(skillRanks);
 
     const isPaused = useGameStore.getState().gameState.paused;
 
@@ -134,6 +139,7 @@ const BottomRightMenu = () => {
             if (e.key.toLowerCase() === 'c') setOpenPanel(openPanel === 'character' ? '' : 'character');
             if (e.key.toLowerCase() === 'k') setOpenPanel(openPanel === 'crafting' ? '' : 'crafting');
             if (e.key.toLowerCase() === 'p') setOpenPanel(openPanel === 'quests' ? '' : 'quests');
+            if (e.key.toLowerCase() === 'o') setOpenPanel(openPanel === 'skills' ? '' : 'skills');
             if (!openPanel) {
                 if (e.key === 'Escape') {
                     setOpenPanel(openPanel === 'settings' ? '' : 'settings')
@@ -180,30 +186,51 @@ const BottomRightMenu = () => {
                         <Space size={4}>
 
                             {MENU_ITEMS.map((item) => {
+                                const button = (
+                                    <Button
+                                        disabled={item.disabled}
+                                        type={openPanel === item.key ? "primary" : "text"}
+                                        icon={item.key === 'inventory' ?
+                                            <img style={{marginBottom: -3}} src={item.icon} width={20}
+                                                 alt=""/> : item.icon}
+                                        onClick={() => togglePanel(item.key)}
+                                        style={{
+                                            width: 52,
+                                            height: 52,
+                                            borderRadius: 10,
+                                            fontSize: 22,
+                                            background: 'rgba(10, 12, 16, 0.85)'
+                                        }}
+                                    />
+                                );
+
+                                const showSkillBadge =
+                                    item.key === 'skills' && skillPointsAvailable > 0;
+
                                 return (
                                     <Tooltip
                                         key={item.key}
-                                        title={`${item.label} (${item.hotkey})`}
+                                        title={
+                                            showSkillBadge
+                                                ? `${item.label} (${item.hotkey}) — ${skillPointsAvailable} unspent point${skillPointsAvailable !== 1 ? 's' : ''}`
+                                                : `${item.label} (${item.hotkey})`
+                                        }
                                         placement="top"
                                         overlayStyle={{zIndex: 10001}}
                                     >
-                                        <Button
-                                            disabled={item.disabled}
-                                            type={openPanel === item.key ? "primary" : "text"}
-                                            icon={item.key === 'inventory' ?
-                                                <img style={{marginBottom: -3}} src={item.icon} width={20}
-                                                     alt=""/> : item.icon}
-                                            onClick={() => togglePanel(item.key)}
-                                            style={{
-                                                width: 52,
-                                                height: 52,
-                                                borderRadius: 10,
-                                                fontSize: 22,
-                                                background: 'rgba(10, 12, 16, 0.85)'
-                                            }}
-                                        />
+                                        {showSkillBadge ? (
+                                            <Badge
+                                                count={skillPointsAvailable}
+                                                offset={[-6, 6]}
+                                                style={{ zIndex: 1 }}
+                                            >
+                                                {button}
+                                            </Badge>
+                                        ) : (
+                                            button
+                                        )}
                                     </Tooltip>
-                                )
+                                );
                             })}
 
                         </Space>
@@ -216,6 +243,8 @@ const BottomRightMenu = () => {
                     <CraftingPanel isOpen={openPanel === 'crafting'}/>
 
                     <QuestPanel isOpen={openPanel === 'quests'} />
+
+                    <SkillTreePanel isOpen={openPanel === 'skills'} />
 
                     <PauseScreen/>
 
