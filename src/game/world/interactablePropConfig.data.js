@@ -547,27 +547,27 @@ export const BIOME_INTERACTABLE_CONFIG = {
 export const LOOT_TABLES = {
 
     chest_wood: [
-        { id: 'gold',         chance: 1.0, min: 3,  max: 14  },
+        { id: 'gold',         chance: 1.0, min: 25,  max: 39  },
         { id: 'herb_green',   chance: 0.45, min: 1,  max: 2   },
         { id: 'ore_iron',     chance: 0.25, min: 1,  max: 2   },
     ],
 
     chest_iron: [
-        { id: 'gold',         chance: 1.0, min: 10,  max: 35  },
+        { id: 'gold',         chance: 1.0, min: 40,  max: 59  },
         { id: 'ore_iron',     chance: 0.55, min: 1,   max: 3   },
         { id: 'ore_gold',     chance: 0.2, min: 1,   max: 2   },
         { id: 'void_essence', chance: 0.08, min: 1,   max: 1   },
     ],
 
     chest_gold: [
-        { id: 'gold',         chance: 1.0, min: 22,  max: 75  },
+        { id: 'gold',         chance: 1.0, min: 59,  max: 100  },
         { id: 'ore_gold',     chance: 0.6, min: 1,   max: 3   },
         { id: 'ore_crystal',  chance: 0.3, min: 1,   max: 2   },
         { id: 'void_essence', chance: 0.15, min: 1,   max: 1   },
     ],
 
     chest_ancient: [
-        { id: 'gold',         chance: 1.0, min: 45, max: 140 },
+        { id: 'gold',         chance: 1.0, min: 100, max: 200 },
         { id: 'ore_crystal',  chance: 0.7, min: 2,   max: 4   },
         { id: 'void_essence', chance: 0.5, min: 1,   max: 2   },
     ],
@@ -634,7 +634,6 @@ export const LOOT_TABLES = {
 
     wood: [
         { id: 'wood_plank',   chance: 1.0, min: 2,  max: 6  },
-        { id: 'gold',         chance: 0.1, min: 1,  max: 5  },
     ],
 
     wood_branch: [
@@ -643,27 +642,22 @@ export const LOOT_TABLES = {
 
     ore_iron: [
         { id: 'iron_ingot',   chance: 1.0, min: 1,  max: 3  },
-        { id: 'gold',         chance: 0.2, min: 1,  max: 5  },
     ],
 
     ore_gold: [
         { id: 'gold_ingot',   chance: 1.0, min: 1,  max: 2  },
-        { id: 'gold',         chance: 0.5, min: 5,  max: 20 },
     ],
 
     ore_crystal: [
         { id: 'crystal_shard', chance: 1.0, min: 1, max: 2  },
-        { id: 'void_essence',  chance: 0.3, min: 1, max: 1  },
     ],
 
     ore_lava: [
         { id: 'lava_stone',   chance: 1.0, min: 1,  max: 3  },
-        { id: 'iron_ingot',   chance: 0.4, min: 1,  max: 2  },
     ],
 
     herb_green: [
         { id: 'herb',         chance: 1.0, min: 1,  max: 3  },
-        { id: 'gold',         chance: 0.1, min: 1,  max: 3  },
     ],
 
     herb_ice: [
@@ -671,13 +665,13 @@ export const LOOT_TABLES = {
     ],
 
     barrel: [
-        { id: 'gold',         chance: 0.8, min: 1,  max: 15 },
+        { id: 'gold',         chance: 0.8, min: 5,  max: 29 },
         { id: 'herb',         chance: 0.4, min: 1,  max: 2  },
         { id: 'wood_plank',   chance: 0.3, min: 1,  max: 3  },
     ],
 
     crate: [
-        { id: 'gold',         chance: 0.7, min: 2,  max: 20 },
+        { id: 'gold',         chance: 0.7, min: 5,  max: 29 },
         { id: 'iron_ingot',   chance: 0.5, min: 1,  max: 3  },
         { id: 'ore_iron',     chance: 0.3, min: 1,  max: 2  },
     ],
