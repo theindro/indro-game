@@ -227,8 +227,8 @@ function createGameStoreSlice(set, get) {
                 boots: null,
                 ring: null,
             },
-            gold: 100000,
-            void_essence: 100000,
+            gold: 0,
+            void_essence: 0,
         },
 
         // Shop State
