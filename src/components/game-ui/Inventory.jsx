@@ -5,11 +5,12 @@ import {
     message,
     Row,
     Col,
-    Divider,
     Space,
     Typography,
-    Badge,
+    Button,
+    Popconfirm,
 } from 'antd';
+import {SortAscendingOutlined, ScissorOutlined, DeleteOutlined} from '@ant-design/icons';
 import { useGameStore } from '../../stores/gameStore.js';
 import { audioManager } from "../../game/utils/audioManager.js";
 import {ItemDatabase} from "../../game/items.js";
@@ -57,6 +58,9 @@ export default function Inventory({ isOpen, setIsOpen }) {
     const equipItem = useGameStore((s) => s.equipItem);
     const sellItem = useGameStore((s) => s.sellItem);
     const dropItemFromSlot = useGameStore((s) => s.dropItemFromSlot);
+    const sortInventory = useGameStore((s) => s.sortInventory);
+    const dismantleInventorySlot = useGameStore((s) => s.dismantleInventorySlot);
+    const dismantleAllGearInBag = useGameStore((s) => s.dismantleAllGearInBag);
     const openEnchantmentUI = useGameStore((s) => s.openEnchantmentUI);
     const playerLocation = useGameStore((s) => s.player.location);
     const [lootToasts, setLootToasts] = useState([]);
@@ -154,8 +158,46 @@ export default function Inventory({ isOpen, setIsOpen }) {
                 const name = ItemDatabase[dropped.id]?.name ?? 'Item';
                 messageApi.success(`Dropped ${name}`, 1.2);
             }
+            return;
         }
-    }, [equipItem, sellItem, dropItemFromSlot, openEnchantmentUI, playerLocation, messageApi]);
+        if (actionKey === 'dismantle') {
+            const res = dismantleInventorySlot(slotIndex);
+            if (res.ok) {
+                const name = ItemDatabase[res.itemId]?.name ?? 'Item';
+                messageApi.success(
+                    `Dismantled ${res.quantity > 1 ? `${res.quantity}× ` : ''}${name} (+${res.essence} void essence)`,
+                    1.8
+                );
+            } else if (res.reason === 'not_gear') {
+                messageApi.warning('Only equipment can be dismantled', 1.5);
+            }
+        }
+    }, [
+        equipItem,
+        sellItem,
+        dropItemFromSlot,
+        dismantleInventorySlot,
+        openEnchantmentUI,
+        playerLocation,
+        messageApi,
+    ]);
+
+    const handleSort = () => {
+        sortInventory();
+        messageApi.success('Inventory sorted', 1);
+    };
+
+    const handleDismantleAll = () => {
+        const res = dismantleAllGearInBag();
+        if (res.ok) {
+            messageApi.success(
+                `Dismantled ${res.count} item${res.count !== 1 ? 's' : ''} (+${res.essence} void essence)`,
+                2
+            );
+        } else {
+            messageApi.info('No equipment in bag to dismantle', 1.5);
+        }
+    };
 
     return (
         <>
@@ -184,13 +226,47 @@ export default function Inventory({ isOpen, setIsOpen }) {
                 >
                     <Row>
                         <Col span={24}>
-                            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 8 }}>
-                                <Text strong>
-                                    Inventory
-                                </Text>
-                                <Text type="secondary">
-                                    {slots.filter(Boolean).length} / {slots.length}
-                                </Text>
+                            <div style={{
+                                padding: '12px 16px',
+                                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 8,
+                            }}>
+                                <Space size={6}>
+                                    <Text strong>Inventory</Text>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                        {slots.filter(Boolean).length} / {slots.length}
+                                    </Text>
+                                </Space>
+                                <Space size={4}>
+                                    <Tooltip title="Sort by rarity" overlayStyle={{zIndex: 10001}}>
+                                        <Button
+                                            size="small"
+                                            type="text"
+                                            icon={<SortAscendingOutlined />}
+                                            onClick={handleSort}
+                                            style={{ color: 'rgba(255,255,255,0.65)' }}
+                                        />
+                                    </Tooltip>
+                                    <Popconfirm
+                                        overlayStyle={{zIndex: 10001}}
+                                        title="Dismantle all gear in bag?"
+                                        description="Converts equipment to void essence. Materials are kept."
+                                        onConfirm={handleDismantleAll}
+                                        okText="Dismantle"
+                                        cancelText="Cancel"
+                                    >
+                                        <Tooltip title="Dismantle all equipment" overlayStyle={{zIndex: 10001}}>
+                                            <Button
+                                                size="small"
+                                                type="text"
+                                                icon={<DeleteOutlined />}
+                                            />
+                                        </Tooltip>
+                                    </Popconfirm>
+                                </Space>
                             </div>
 
                             <div style={{ padding: '20px' }}>

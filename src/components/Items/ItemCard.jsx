@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Badge, Tooltip, Popover } from "antd";
 import { ItemDatabase } from "../../game/items.js";
 import { ENCHANT_BONUS_PER_LEVEL } from "../../stores/gameStore.js";
+import { canDismantleItem, getDismantleEssenceYield } from "../../game/itemDismantle.js";
 
 const rarityClass = {
     Common: "",
@@ -90,10 +91,16 @@ const ACTION_STYLE = {
     userSelect: 'none',
 };
 
-function ContextMenu({ item, enchantLevel, onAction, onClose }) {
+function ContextMenu({ item, enchantLevel, onAction, onClose, dismantleYield }) {
     const actions = [
         { key: 'equip',   label: 'Equip',      icon: '', show: !!item.equipSlot },
         { key: 'enchant', label: 'Enchant',    icon: '', show: !!item.equipSlot && !!item.stats },
+        {
+            key: 'dismantle',
+            label: dismantleYield > 0 ? `Dismantle (+${dismantleYield} essence)` : 'Dismantle',
+            icon: '',
+            show: dismantleYield > 0,
+        },
         { key: 'drop',    label: 'Drop',       icon: '', show: true, danger: true },
     ].filter(a => a.show);
 
@@ -179,6 +186,8 @@ const ItemCard = ({
 
     if (!dbItem) return null;
 
+    const dismantleYield = canDismantleItem(dbItem.id) ? getDismantleEssenceYield(dbItem.id) : 0;
+
     // Build enchanted stat values for tooltip
     const multiplier = 1 + enchantLevel * ENCHANT_BONUS_PER_LEVEL;
     const displayStats = dbItem.stats
@@ -250,6 +259,7 @@ const ItemCard = ({
                     <ContextMenu
                         item={dbItem}
                         enchantLevel={enchantLevel}
+                        dismantleYield={dismantleYield}
                         onAction={handleAction}
                         onClose={() => setMenuOpen(false)}
                     />

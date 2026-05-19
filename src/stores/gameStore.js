@@ -17,6 +17,11 @@ import {
     getSkillPointsEarned,
     getTotalSkillPointsSpent,
 } from '../game/skills/skillEffects.js';
+import {
+    canDismantleItem,
+    compareInventorySlots,
+    getDismantleEssenceYield,
+} from '../game/itemDismantle.js';
 
 // How much each enchant level multiplies base stats (12% per level)
 export const ENCHANT_BONUS_PER_LEVEL = 0.12;
@@ -416,6 +421,18 @@ function createGameStoreSlice(set, get) {
                 inventory: {...state.inventory, void_essence: state.inventory.void_essence + amount},
             })),
 
+        removeVoidEssence: (amount) => {
+            const current = get().inventory.void_essence ?? 0;
+            if (current < amount) return false;
+            set((state) => ({
+                inventory: {
+                    ...state.inventory,
+                    void_essence: current - amount,
+                },
+            }));
+            return true;
+        },
+
         removeGold: (amount) => {
             const currentGold = get().inventory.gold;
             if (currentGold >= amount) {
@@ -754,6 +771,82 @@ function createGameStoreSlice(set, get) {
             set((state) => ({
                 inventory: {...state.inventory, gold: state.inventory.gold + sellPrice},
             }));
+        },
+
+        sortInventory: () => {
+            const slots = get().inventory.slots ?? [];
+            const filled = slots.filter(Boolean).sort(compareInventorySlots);
+            const empties = slots.length - filled.length;
+            set((state) => ({
+                inventory: {
+                    ...state.inventory,
+                    slots: [...filled, ...Array(Math.max(0, empties)).fill(null)],
+                },
+            }));
+        },
+
+        dismantleInventorySlot: (slotIndex) => {
+            const state = get();
+            const slot = state.inventory.slots[slotIndex];
+            if (!slot) return { ok: false, reason: 'empty' };
+
+            if (!canDismantleItem(slot.id)) return { ok: false, reason: 'not_gear' };
+
+            const qty = slot.quantity ?? 1;
+            const perItem = getDismantleEssenceYield(slot.id);
+            const totalEssence = perItem * qty;
+
+            get().removeItem(slotIndex, qty);
+            get().addVoidEssence(totalEssence);
+            return { ok: true, essence: totalEssence, itemId: slot.id, quantity: qty };
+        },
+
+        dismantleEquippedItem: (equipSlotKey) => {
+            const state = get();
+            const equipped = state.inventory.equipment[equipSlotKey];
+            if (!equipped) return { ok: false, reason: 'empty' };
+
+            if (!canDismantleItem(equipped.id)) return { ok: false, reason: 'not_gear' };
+
+            const essence = getDismantleEssenceYield(equipped.id);
+            const newEquipment = { ...state.inventory.equipment, [equipSlotKey]: null };
+
+            set((s) => ({
+                inventory: {
+                    ...s.inventory,
+                    equipment: newEquipment,
+                    void_essence: (s.inventory.void_essence ?? 0) + essence,
+                },
+            }));
+            get().recalculateStats();
+            return { ok: true, essence, itemId: equipped.id };
+        },
+
+        dismantleAllGearInBag: () => {
+            const state = get();
+            let totalEssence = 0;
+            let count = 0;
+            const newSlots = [...state.inventory.slots];
+
+            for (let i = 0; i < newSlots.length; i++) {
+                const slot = newSlots[i];
+                if (!slot || !canDismantleItem(slot.id)) continue;
+                const qty = slot.quantity ?? 1;
+                totalEssence += getDismantleEssenceYield(slot.id) * qty;
+                count += qty;
+                newSlots[i] = null;
+            }
+
+            if (count === 0) return { ok: false, reason: 'none' };
+
+            set((s) => ({
+                inventory: {
+                    ...s.inventory,
+                    slots: newSlots,
+                    void_essence: (s.inventory.void_essence ?? 0) + totalEssence,
+                },
+            }));
+            return { ok: true, essence: totalEssence, count };
         },
 
         damagePlayer: (amount, source = 'unknown') =>

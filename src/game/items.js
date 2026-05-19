@@ -8,7 +8,33 @@ import {
 } from './equippableGear.js';
 
 export { ItemTypes, ItemRarity } from './itemConstants.js';
-export { GearCraftingRecipes, MOB_GEAR_DROP_RATES, rollMobGearDropIds, rollBossGearDropIds } from './equippableGear.js';
+export {
+    GearCraftingRecipes,
+    MOB_GEAR_DROP_RATES,
+    MOB_MATERIAL_DROP_RATES,
+    rollMobGearDropIds,
+    rollBossGearDropIds,
+} from './equippableGear.js';
+
+/** Craft void materials from wallet void essence. */
+export const MaterialCraftingRecipes = [
+    {
+        id: 'craft_void_soulstone',
+        result: 'void_soulstone',
+        goldCost: 0,
+        ingredients: [{ id: 'void_essence', quantity: 100 }],
+        category: 'material',
+        tier: 'epic',
+    },
+    {
+        id: 'craft_wrath_of_the_void',
+        result: 'wrath_of_the_void',
+        goldCost: 0,
+        ingredients: [{ id: 'void_essence', quantity: 1000 }],
+        category: 'material',
+        tier: 'legendary',
+    },
+];
 
 // Complete Item Database
 export const ItemDatabase = {
@@ -126,6 +152,30 @@ export const ItemDatabase = {
         stackable: true,
         gatherable: true,
         description: 'Volcanic ore infused with heat.',
+    },
+
+    void_soulstone: {
+        id: 'void_soulstone',
+        name: 'Void Soulstone',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.EPIC,
+        icon: '💜',
+        texture: '/void_essence.png',
+        textureId: 'void_essence',
+        stackable: true,
+        description: 'Condensed void energy. Required to craft epic (purple) gear.',
+    },
+
+    wrath_of_the_void: {
+        id: 'wrath_of_the_void',
+        name: 'Wrath of the Void',
+        type: ItemTypes.CRAFTING,
+        rarity: ItemRarity.LEGENDARY,
+        icon: '💜',
+        texture: '/void_essence.png',
+        textureId: 'void_essence',
+        stackable: true,
+        description: 'Pure void wrath. Required to craft legendary gear.',
     },
 
     // ============= HERBS =============

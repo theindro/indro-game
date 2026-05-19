@@ -20,6 +20,12 @@ export const MOB_GEAR_DROP_RATES = {
     legendary: 0,
 };
 
+/** Rare crafting materials from any mob kill. */
+export const MOB_MATERIAL_DROP_RATES = {
+    void_soulstone: 1 / 1000,
+    wrath_of_the_void: 1 / 10000,
+};
+
 const SLOT_DEFS = [
     {
         slot: 'boots',
@@ -118,6 +124,7 @@ const CRAFT_MATS = {
             { id: 'gold_ingot', quantity: 18 },
             { id: 'crystal_shard', quantity: 12 },
             { id: 'lava_stone', quantity: 8 },
+            { id: 'void_soulstone', quantity: 1 },
         ],
     },
     legendary: {
@@ -126,7 +133,7 @@ const CRAFT_MATS = {
             { id: 'gold_ingot', quantity: 28 },
             { id: 'crystal_shard', quantity: 18 },
             { id: 'lava_stone', quantity: 14 },
-            { id: 'void_essence', quantity: 10 },
+            { id: 'wrath_of_the_void', quantity: 1 },
         ],
     },
 };
@@ -237,6 +244,12 @@ export function rollMobGearDropIds() {
         const id = pickRandomGearId('epic');
         if (id) ids.push(id);
     }
+    if (Math.random() < MOB_MATERIAL_DROP_RATES.void_soulstone) {
+        ids.push('void_soulstone');
+    }
+    if (Math.random() < MOB_MATERIAL_DROP_RATES.wrath_of_the_void) {
+        ids.push('wrath_of_the_void');
+    }
     return ids;
 }
 
@@ -254,5 +267,11 @@ export function rollBossGearDropIds() {
     for (let i = 0; i < 3; i++) add('rare', 0.65);
     for (let i = 0; i < 2; i++) add('epic', 0.4);
     add('legendary', 0.12);
+    if (Math.random() < MOB_MATERIAL_DROP_RATES.void_soulstone) {
+        ids.push('void_soulstone');
+    }
+    if (Math.random() < MOB_MATERIAL_DROP_RATES.wrath_of_the_void) {
+        ids.push('wrath_of_the_void');
+    }
     return ids;
 }

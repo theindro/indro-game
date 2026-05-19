@@ -1,12 +1,17 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, Row, Col, Typography, Tabs, Button, Progress, message } from 'antd';
 import { useGameStore } from '../../stores/gameStore.js';
-import { ItemDatabase, ItemRarity, GearCraftingRecipes } from '../../game/items.js';
+import { ItemDatabase, ItemRarity, GearCraftingRecipes, MaterialCraftingRecipes } from '../../game/items.js';
 import ItemCard from '../Items/ItemCard.jsx';
 
 const { Text } = Typography;
 
-export const CraftingRecipes = GearCraftingRecipes;
+export const CraftingRecipes = [...MaterialCraftingRecipes, ...GearCraftingRecipes];
+
+function getIngredientAvailable(ing, resourceCounts, voidEssence) {
+    if (ing.id === 'void_essence') return voidEssence;
+    return resourceCounts[ing.id] || 0;
+}
 
 // ─── Enchantment Config ───────────────────────────────────────────────────────
 const ENCHANT_LEVELS = 10;
@@ -27,6 +32,17 @@ const enchantSuccessChance = (level) => Math.max(20, 100 - level * 8);
 const rarityColor = (rarity) => rarity?.color || 'rgba(255,255,255,0.4)';
 
 function MaterialIcon({ itemId, size = 24 }) {
+    if (itemId === 'void_essence') {
+        return (
+            <img
+                src="/void_essence.png"
+                width={size}
+                height={size}
+                alt=""
+                style={{ objectFit: 'contain', flexShrink: 0 }}
+            />
+        );
+    }
     const db = ItemDatabase[itemId];
     if (db?.texture) {
         return (
@@ -90,8 +106,10 @@ function CraftingTab() {
     const removeItem = useGameStore((s) => s.removeItem);
     const addItem = useGameStore((s) => s.addItem);
     const removeGold = useGameStore((s) => s.removeGold);
+    const removeVoidEssence = useGameStore((s) => s.removeVoidEssence);
     const slots = inventory?.slots || [];
     const gold = inventory?.gold ?? 0;
+    const voidEssence = inventory?.void_essence ?? 0;
 
     // Count how many of each resource the player has
     const resourceCounts = useMemo(() => {
@@ -107,18 +125,21 @@ function CraftingTab() {
         (recipe) => {
             if (gold < recipe.goldCost) return false;
             return recipe.ingredients.every(
-                (ing) => (resourceCounts[ing.id] || 0) >= ing.quantity
+                (ing) => getIngredientAvailable(ing, resourceCounts, voidEssence) >= ing.quantity
             );
         },
-        [resourceCounts, gold]
+        [resourceCounts, gold, voidEssence]
     );
 
     const handleCraft = useCallback(
         (recipe) => {
             if (!canCraft(recipe)) return;
 
-            // Deduct ingredients
             recipe.ingredients.forEach((ing) => {
+                if (ing.id === 'void_essence') {
+                    removeVoidEssence(ing.quantity);
+                    return;
+                }
                 let remaining = ing.quantity;
                 slots.forEach((slot, i) => {
                     if (!slot || slot.id !== ing.id || remaining <= 0) return;
@@ -144,7 +165,7 @@ function CraftingTab() {
                 messageApi.warning('Inventory full!', 2);
             }
         },
-        [canCraft, slots, removeItem, removeGold, addItem, messageApi]
+        [canCraft, slots, removeItem, removeGold, removeVoidEssence, addItem, messageApi]
     );
 
     const recipe = selectedRecipe ? CraftingRecipes.find((r) => r.id === selectedRecipe) : null;
@@ -170,7 +191,7 @@ function CraftingTab() {
                     <SectionLabel>Recipes</SectionLabel>
                     {[...CraftingRecipes]
                         .sort((a, b) => {
-                            const tierOrder = { common: 0, magic: 1, rare: 2, epic: 3, legendary: 4 };
+                            const tierOrder = { material: -1, common: 0, magic: 1, rare: 2, epic: 3, legendary: 4 };
                             const td = (tierOrder[a.tier] ?? 0) - (tierOrder[b.tier] ?? 0);
                             if (td !== 0) return td;
                             return (a.category ?? '').localeCompare(b.category ?? '');
@@ -296,9 +317,11 @@ function CraftingTab() {
                                 <SectionLabel>Materials required</SectionLabel>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     {recipe.ingredients.map((ing) => {
-                                        const have = resourceCounts[ing.id] || 0;
+                                        const have = getIngredientAvailable(ing, resourceCounts, voidEssence);
                                         const enough = have >= ing.quantity;
-                                        const db = ItemDatabase[ing.id];
+                                        const db = ing.id === 'void_essence'
+                                            ? { name: 'Void Essence', texture: '/void_essence.png' }
+                                            : ItemDatabase[ing.id];
                                         return (
                                             <div
                                                 key={ing.id}

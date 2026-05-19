@@ -2,11 +2,11 @@
  * World difficulty (1–10 from spawn), large biome regions, and content scaling.
  */
 
-export const MAX_WORLD_DIFFICULTY = 10;
+export const MAX_WORLD_DIFFICULTY = 50;
 /** Chunks per biome region edge (~24–30 chunk wide zones). */
 export const BIOME_REGION_CHUNKS = 26;
 /** Chunk distance from origin until difficulty reaches 10. */
-export const DIFFICULTY_RAMP_CHUNKS = 30;
+export const DIFFICULTY_RAMP_CHUNKS = 100;
 
 /** @param {number} chunkX */
 /** @param {number} chunkZ */

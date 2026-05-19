@@ -33,6 +33,7 @@ const Character = ({isOpen, setIsOpen}) => {
     const playerStats = useGameStore((s) => s.player.stats);
 
     const unequipItem = useGameStore((s) => s.unequipItem);
+    const dismantleEquippedItem = useGameStore((s) => s.dismantleEquippedItem);
 
     useEffect(() => {
         if (isOpen) audioManager.playSFX('/sounds/open-close.mp3', 0.15);
@@ -47,6 +48,23 @@ const Character = ({isOpen, setIsOpen}) => {
             messageApi.info(`Unequipped ${name}`, 1.5);
         } else {
             messageApi.warning('Inventory is full', 1.5);
+        }
+    };
+
+    const handleEquipAction = (actionKey, slotKey) => {
+        const equipped = inventory?.equipment?.[slotKey];
+        if (!equipped) return;
+
+        if (actionKey === 'dismantle') {
+            const res = dismantleEquippedItem(slotKey);
+            if (res.ok) {
+                const name = ItemDatabase[res.itemId]?.name ?? 'Item';
+                messageApi.success(`Dismantled ${name} (+${res.essence} void essence)`, 1.8);
+            }
+            return;
+        }
+        if (actionKey === 'equip' || actionKey === 'drop') {
+            handleUnequip(slotKey);
         }
     };
 
@@ -104,18 +122,19 @@ const Character = ({isOpen, setIsOpen}) => {
                                 {EQUIPMENT_LAYOUT.map((row, ri) => (
                                     <Row key={ri} justify="center" gutter={[12, 12]}>
                                         {row.map((slotKey, ci) => {
-                                            let dbItem = equipment[slotKey];
+                                            const equipped = equipment[slotKey];
+                                            const dbItem = equipped ? ItemDatabase[equipped.id] : null;
                                             return (
                                                 <Col key={ci}>
                                                     {slotKey ? (
                                                         <div style={{ textAlign: 'center' }}>
-                                                            {dbItem ? (
-
+                                                            {equipped && dbItem ? (
                                                             <ItemCard
-                                                                slotKey={slotKey}
+                                                                slot={equipped}
                                                                 item={dbItem}
-                                                                slot={dbItem}
+                                                                enchantLevel={equipped.enchantLevel}
                                                                 onClick={() => handleUnequip(slotKey)}
+                                                                onAction={(actionKey) => handleEquipAction(actionKey, slotKey)}
                                                             />
                                                             ) : (
                                                                 <div key={slotKey} className="item-card">-</div>
@@ -136,7 +155,7 @@ const Character = ({isOpen, setIsOpen}) => {
 
                         <Divider style={{ margin: 0 }} />
                         <div style={{ padding: '10px', textAlign: 'center', fontSize: 12, color: '#666' }}>
-                            Right-click to unequip
+                            Click to unequip · Right-click for dismantle
                         </div>
                     </Col>
                 </Row>

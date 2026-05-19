@@ -31,7 +31,7 @@ const styles = {
         bottom: 20,
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 9999,
+        zIndex: 99,
         padding: "0 16px",
     },
     abilitySlot: {
