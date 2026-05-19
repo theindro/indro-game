@@ -89,11 +89,7 @@ const AbilitySlot = React.memo(function AbilitySlot({
             <div
                 style={{
                     ...styles.abilitySlot,
-                    background: isLocked
-                        ? "rgba(255,255,255,0.03)"
-                        : isReady
-                            ? "rgba(255,255,255,0.08)"
-                            : "rgba(255,255,255,0.04)",
+                    background: "rgba(10, 12, 16, 0.85)",
                     border: `1px solid ${isLocked
                         ? "rgba(255,255,255,0.08)"
                         : isReady
@@ -192,7 +188,7 @@ export default function AbilityBar() {
                         <Avatar
                             size={52}
                             style={{
-                                background: "rgba(255,255,255,0.08)",
+                                background: "rgba(10, 12, 16, 0.85)",
                                 border: "1px solid rgba(255,255,255,0.15)",
                             }}
                         >
@@ -213,7 +209,6 @@ export default function AbilityBar() {
                                 display: "flex",
                                 justifyContent: "space-between",
                                 fontSize: 12,
-                                color: "#aaa",
                                 marginTop: 2
                             }}>
                                 <span>HP</span>

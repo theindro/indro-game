@@ -1,4 +1,4 @@
-import {frameScale, GS, MOB_RADIUS} from "../constants.js";
+import {frameScale, GS, MOB_RADIUS, MOB_SIM_RADIUS} from "../constants.js";
 import { applyMobDifficulty } from '../difficultyScaling.js';
 import { getWorldContentScales } from '../world/worldProgression.js';
 import { attachMonsterLevelUi, drawMonsterHpWithLevel } from '../ui/monsterLevelUi.js';
@@ -48,10 +48,12 @@ export function createMobController(mob, entityLayer) {
 
             const { px, py, colliders, openWorld, mobs, dt = 1 } = ctx;
             const m = this.mob;
-            const distToPlayer = Math.hypot(px - m.x, py - m.y);
             const time = performance.now();
 
             mob.c.zIndex = mob.y;
+
+            const distToPlayer = Math.hypot(px - m.x, py - m.y);
+            if (distToPlayer > MOB_SIM_RADIUS) return;
 
             // Status effects
             updateStatusEffects(m, dt, performance.now(), (damage, type) => {
@@ -67,8 +69,6 @@ export function createMobController(mob, entityLayer) {
                     useGameStore.getState().damagePlayer(damage, 'tank slam');
                 }, dt);
             }
-
-            if (distToPlayer > 1500) return;
 
             let moveX = 0, moveY = 0;
             let attackOverride = false;

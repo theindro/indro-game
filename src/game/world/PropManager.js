@@ -2,6 +2,7 @@ import { Sprite, Graphics, Texture, AnimatedSprite } from 'pixi.js';
 import { getPropTypes, getPropTypeByAssetId } from './propConfig.js';
 import { assetManager } from '../utils/assetManager.js';
 import { shadowManager } from '../controllers/createShadowController.js';
+import { computeFootSortZ } from './sortDepth.js';
 import {
     pickChunkProfile,
     buildPropPool,
@@ -275,7 +276,7 @@ export class PropManager {
         }
 
         const heightFactor = Math.min(1.5, propVisual.height / 120);
-        propVisual.zIndex = propVisual.y - (40 * heightFactor);
+        propVisual.zIndex = computeFootSortZ(propVisual.y);
         propVisual.chunkKey = chunkKey;
         this.tagWorldProp(propVisual, p.id, chunkKey);
         if (p.rotation != null) propVisual.rotation = p.rotation;
@@ -496,8 +497,7 @@ export class PropManager {
 
             const heightFactor = Math.min(1.5, propVisual.height / 120);
 
-            // CRITICAL: Set zIndex to Y position (no offset)
-            propVisual.zIndex = propVisual.y - (40 * heightFactor);
+            propVisual.zIndex = computeFootSortZ(propVisual.y);
 
             // Store chunk key for cleanup
             propVisual.chunkKey = key;

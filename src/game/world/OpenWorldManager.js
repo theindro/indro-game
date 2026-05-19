@@ -13,6 +13,17 @@ import {editorBridge} from "../../components/devtools/editorBridge.js";
 import { loadBossChunkContent } from './bossChunkContent.js';
 import { getChunkDifficulty } from '../difficultyScaling.js';
 import { getBiomeForChunk, getWorldContentScales } from './worldProgression.js';
+import {
+    MAX_ACTIVE_MOBS,
+    MAX_MOBS_PER_CHUNK,
+    MAX_PACKS_PER_DENSE_CHUNK,
+    computePackSizeScale,
+    clampPackMobCount,
+    getRemainingMobBudget,
+    pickMobsToCull,
+    shouldRenderMob,
+    shouldSimulateMob,
+} from './mobSpawnLimits.js';
 
 const weatherConfig = {
     forest: { type: '🌲 Dynamic (day/sunset/night/rain)', color: '#5a9a6a' },
@@ -217,7 +228,7 @@ export class OpenWorldManager {
         // Generate encounters
         const packMul = landscapeProfile.mobPackCountMul ?? 1;
 
-        const packSizeScale = difficulty * contentScales.mobPackSizeMul;
+        const packSizeScale = computePackSizeScale(difficulty, contentScales);
         const packCountScale = contentScales.mobPackCountMul;
 
         if (type === 'mob_pack') {
@@ -225,7 +236,10 @@ export class OpenWorldManager {
         }
 
         if (type === 'dense_pack') {
-            const denseCount = Math.max(1, Math.round(3 * packMul * packCountScale));
+            const denseCount = Math.min(
+                MAX_PACKS_PER_DENSE_CHUNK,
+                Math.max(1, Math.round(2 * packMul * packCountScale))
+            );
             data.packs = this.generateMobPacks(chunkX, chunkZ, denseCount, seed, packSizeScale, layoutAnchors, packMul);
         }
 
@@ -252,6 +266,7 @@ export class OpenWorldManager {
         const packs = [];
 
         const defaultPackSize = Math.max(1, packSizeScale);
+        const packMulClamped = Math.min(packMul, 1.85);
         const chunkSizeWorld = this.chunkSize * this.tileSize;
 
         const startX = chunkX * chunkSizeWorld;
@@ -277,8 +292,9 @@ export class OpenWorldManager {
                 x: centerX,
                 z: centerZ,
                 radius: 120 + this.seededRandom(packSeed + 888) * 120,
-                mobCount:
-                    Math.max(1, Math.floor((defaultPackSize + Math.floor(this.seededRandom(packSeed + 999) * 5)) * packMul)),
+                mobCount: clampPackMobCount(
+                    (defaultPackSize + Math.floor(this.seededRandom(packSeed + 999) * 3)) * packMulClamped
+                ),
                 archetype: 'melee',
             });
         }
@@ -499,6 +515,31 @@ export class OpenWorldManager {
         return getBiomeForChunk(chunkX, chunkZ, this.worldSeed);
     }
 
+    cullExcessMobs(playerX, playerZ) {
+        const mobs = this.entitiesList?.mobs;
+        if (!mobs?.length) return;
+
+        const excess = mobs.length - MAX_ACTIVE_MOBS;
+        if (excess <= 0) return;
+
+        const toRemove = pickMobsToCull(mobs, playerX, playerZ, excess);
+        for (const mob of toRemove) {
+            const idx = mobs.indexOf(mob);
+            if (idx > -1) mobs.splice(idx, 1);
+
+            const chunkKey = mob.spawnChunk;
+            if (chunkKey) {
+                const bucket = this.spawnedEntities.get(chunkKey);
+                if (bucket?.mobs) {
+                    const ci = bucket.mobs.indexOf(mob);
+                    if (ci > -1) bucket.mobs.splice(ci, 1);
+                }
+            }
+
+            this.worldObjects.destroyMob(mob);
+        }
+    }
+
     async spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData) {
         const key = `${chunkX},${chunkZ}`;
         const difficulty = chunkData.difficulty ?? getChunkDifficulty(chunkX, chunkZ);
@@ -506,11 +547,27 @@ export class OpenWorldManager {
         if (this.spawnedEntities.has(key)) return;
 
         const entities = {mobs: []};
+        let chunkSpawned = 0;
+        const chunkBudget = Math.min(
+            MAX_MOBS_PER_CHUNK,
+            getRemainingMobBudget(this.entitiesList.mobs.length)
+        );
+
+        if (chunkBudget <= 0) {
+            this.spawnedEntities.set(key, entities);
+            return;
+        }
 
         for (let pi = 0; pi < chunkData.packs.length; pi++) {
             const pack = chunkData.packs[pi];
 
             for (let i = 0; i < pack.mobCount; i++) {
+                if (
+                    chunkSpawned >= chunkBudget ||
+                    this.entitiesList.mobs.length >= MAX_ACTIVE_MOBS
+                ) {
+                    break;
+                }
                 const mobSeed =
                     chunkData.seed ^
                     (pi * 7919) ^
@@ -559,7 +616,15 @@ export class OpenWorldManager {
                     entities.mobs.push(mob);
 
                     this.entitiesList.mobs.push(mob);
+                    chunkSpawned++;
                 }
+            }
+
+            if (
+                chunkSpawned >= chunkBudget ||
+                this.entitiesList.mobs.length >= MAX_ACTIVE_MOBS
+            ) {
+                break;
             }
         }
 
@@ -687,27 +752,34 @@ export class OpenWorldManager {
             }
         }
 
-        // Only update mobs (no chunk loading this frame)
+        this.cullExcessMobs(playerX, playerZ);
+
+        // Only update mobs in loaded chunks near the player
         for (const m of this.entitiesList.mobs) {
-            if (this.editor.enabled) {
-                // freeze AI
-                continue;
-            }
+            if (!m?.c) continue;
+
+            const visible = shouldRenderMob(m, playerX, playerZ);
+            m.c.visible = visible;
+            if (!visible) continue;
+
+            if (this.editor.enabled) continue;
 
             const mobChunkX = Math.floor(m.x / chunkSizeWorld);
             const mobChunkZ = Math.floor(m.y / chunkSizeWorld);
-            if (activeChunks.has(`${mobChunkX},${mobChunkZ}`)) {
-                m.controller.update({
-                    px: playerX, py: playerZ,
-                    colliders: this.colliders,
-                    openWorld: this,
-                    enemyProjs: this.entitiesList.enemyProjs,
-                    playerState: useGameStore.getState().player,
-                    mobs: this.entitiesList.mobs,
-                    world: this.world,
-                    dt: dt
-                });
-            }
+            if (!activeChunks.has(`${mobChunkX},${mobChunkZ}`)) continue;
+
+            if (!shouldSimulateMob(m, playerX, playerZ)) continue;
+
+            m.controller.update({
+                px: playerX, py: playerZ,
+                colliders: this.colliders,
+                openWorld: this,
+                enemyProjs: this.entitiesList.enemyProjs,
+                playerState: useGameStore.getState().player,
+                mobs: this.entitiesList.mobs,
+                world: this.world,
+                dt: dt
+            });
         }
 
         // Interactable props

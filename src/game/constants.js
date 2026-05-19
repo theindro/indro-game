@@ -11,6 +11,13 @@ export const GS = 0.65; // global speed scalar
 // ── Mobs
 export const MOB_RADIUS = 13;
 export const MOB_HP = 60;
+export {
+    MAX_ACTIVE_MOBS,
+    MAX_MOBS_PER_CHUNK,
+    MAX_MOBS_PER_PACK,
+    MOB_SIM_RADIUS,
+    MOB_RENDER_RADIUS,
+} from './world/mobSpawnLimits.js';
 /** Walk speed scale before archetype `speedMultiplier`; world speed ≈ `MOB_BASE_SPEED_SCALE × speedMult × 60` px/s (chase vectors are unit length). */
 export const MOB_BASE_SPEED_SCALE = 2.45;
 

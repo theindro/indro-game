@@ -19,6 +19,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { scaleInteractableIntensity } from './chunkProfile.js';
 import { sampleInteractablePosition, RESOURCE_YARD_LAYOUTS } from './chunkPlacement.js';
 import { INTERACTABLE_HOVER_FILTER } from '../utils/highlightFilters.js';
+import { computeFootSortZ } from './sortDepth.js';
 
 // ── Visual constants ─────────────────────────────────────────────────────────
 const GLOW_PULSE_SPEED   = 25;
@@ -432,7 +433,7 @@ export class InteractablePropManager {
         container.addChild(visual);
 
         const heightFactor = visual instanceof Sprite ? Math.min(1.5, visual.height / 120) : 1;
-        container.zIndex = z - (40 * heightFactor);
+        container.zIndex = computeFootSortZ(z);
 
         // ── Shadow ──
         // shadowManager reads propVisual.x / propVisual.y as world-space coords.

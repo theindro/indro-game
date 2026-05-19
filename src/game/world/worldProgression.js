@@ -75,9 +75,9 @@ export function getWorldContentScales(difficulty) {
     const t = (d - 1) / (MAX_WORLD_DIFFICULTY - 1);
 
     return {
-        mobPackChanceMul: 0.35 + t * 0.65,
-        mobPackCountMul: 0.5 + t * 0.55,
-        mobPackSizeMul: 0.45 + t * 0.5,
+        mobPackChanceMul: 0.35 + t * 0.55,
+        mobPackCountMul: 0.5 + t * 0.4,
+        mobPackSizeMul: 0.45 + t * 0.4,
         interactableIntensityMul: 0.42 + t * 0.58,
         interactableMaxMul: 0.5 + t * 0.5,
         lootMultiplier: 0.38 + t * 0.62,

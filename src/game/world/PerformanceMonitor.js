@@ -1,4 +1,6 @@
 // game/PerformanceMonitor.js
+import { MAX_ACTIVE_MOBS } from './mobSpawnLimits.js';
+
 export class PerformanceMonitor {
     constructor() {
         this.fps = 60;
@@ -42,6 +44,7 @@ export class PerformanceMonitor {
 
             this.display.innerHTML = `
                 FPS: ${this.fps} | Frame: ${this.frameTime.toFixed(2)}ms<br>
+                Mobs: ${mobCount} / ${MAX_ACTIVE_MOBS}
             `;
         }
     }
