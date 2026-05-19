@@ -32,14 +32,6 @@ const styles = {
         zIndex: 9999,
         padding: "0 16px",
     },
-    bar: {
-        background: "rgba(10, 12, 16, 0.85)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: 16,
-        backdropFilter: "blur(20px)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-        padding: "12px 20px",
-    },
     abilitySlot: {
         width: 52,
         height: 52,
@@ -183,6 +175,7 @@ export default function AbilityBar() {
                     />
                 </div>
             </div>
+            <Divider/>
             <div style={styles.bar}>
                 <Space align="center" size={16}>
                     {/* Avatar + Level */}
