@@ -122,6 +122,8 @@ function createGameStoreSlice(set, get) {
             progress: {},
             completed: [],
             recentComplete: null,
+            /** Live world event row for QuestTracker (not persisted). */
+            temporaryEvent: null,
         },
 
         /** World drops queued from inventory (processed in game loop). */
@@ -397,6 +399,17 @@ function createGameStoreSlice(set, get) {
         },
 
         clearQuestToast: () => clearQuestToast(set),
+
+        /**
+         * @param {{ id: string, title: string, tag: string, label: string, percent: number } | null} payload
+         */
+        setTemporaryEventQuest: (payload) =>
+            set((state) => ({
+                quests: {
+                    ...state.quests,
+                    temporaryEvent: payload,
+                },
+            })),
 
         /** Remove one item from a slot and queue a world drop at player position. */
         dropItemFromSlot: (slotIndex, worldX, worldY) => {
@@ -808,6 +821,7 @@ function getDefaultProgressPayload() {
             progress: {},
             completed: [],
             recentComplete: null,
+            temporaryEvent: null,
         },
     };
 }
@@ -860,6 +874,7 @@ function mergePersistedState(persisted, current) {
                 progress: {...(p.quests.progress ?? {})},
                 completed: [...(p.quests.completed ?? [])],
                 recentComplete: null,
+                temporaryEvent: null,
             }
             : current.quests,
     };
@@ -895,7 +910,11 @@ export const useGameStore = create(
             defeatedBossChunkKeys: state.defeatedBossChunkKeys,
             audio: state.audio,
             currentRoomIndex: state.gameState.currentRoomIndex,
-            quests: state.quests,
+            quests: {
+                progress: state.quests.progress,
+                completed: state.quests.completed,
+                recentComplete: state.quests.recentComplete,
+            },
         }),
         merge: (persistedState, currentState) => mergePersistedState(persistedState, currentState),
         onRehydrateStorage: () => () => {

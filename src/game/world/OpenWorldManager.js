@@ -13,6 +13,7 @@ import {editorBridge} from "../../components/devtools/editorBridge.js";
 import { loadBossChunkContent } from './bossChunkContent.js';
 import { getChunkDifficulty } from '../difficultyScaling.js';
 import { getBiomeForChunk, getWorldContentScales } from './worldProgression.js';
+import { TotemWaveEventManager } from './events/totemWaveEvent.js';
 import {
     MAX_ACTIVE_MOBS,
     MAX_MOBS_PER_CHUNK,
@@ -138,6 +139,9 @@ export class OpenWorldManager {
             this.worldObjects,
             this.worldSeed
         );
+        this.totemWaveEvent = new TotemWaveEventManager(this);
+        this.interactablePropManager.onEventStart = (prop) =>
+            this.totemWaveEvent.tryStart(prop);
 
         this.chunkTypes = {
             empty: 0.25,
@@ -329,6 +333,7 @@ export class OpenWorldManager {
 
         // 3. Remove interactables
         this.interactablePropManager?.clear?.();
+        this.totemWaveEvent?.cancel?.();
 
         for (const m of this.entitiesList?.mobs || []) {
             this.worldObjects.destroyMob(m);
@@ -781,6 +786,8 @@ export class OpenWorldManager {
                 dt: dt
             });
         }
+
+        this.totemWaveEvent?.update(dt ?? 0);
 
         // Interactable props
         this.interactablePropManager.update(playerX, playerZ, dt ?? 0);

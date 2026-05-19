@@ -19,6 +19,45 @@
 /** Canonical prop type definitions */
 export const INTERACTABLE_PROP_TYPES = {
 
+    // ── World events ────────────────────────────────────────────────────────
+    event_totem: {
+        id: 'event_totem',
+        label: 'Ritual Totem',
+        category: 'event_totem',
+        radius: 34,
+        interactRange: 95,
+        respawnTime: null,
+        lootTable: null,
+        texture: 'ore_crystal',
+        fallbackColor: 0x8844ff,
+        scaleRange: { min: 1.1, max: 1.35 },
+        glowColor: 0xaa66ff,
+        vfxGlowAlpha: 0.35,
+        vfxGlowScale: 1.2,
+        harvestTime: 2,
+        collision: true,
+        castShadow: true,
+        rare: true,
+    },
+
+    totem_wave_chest: {
+        id: 'totem_wave_chest',
+        label: 'Totem Reward',
+        category: 'chest',
+        radius: 36,
+        interactRange: 100,
+        respawnTime: null,
+        lootTable: 'totem_wave_chest',
+        texture: 'chest_gold',
+        fallbackColor: 0xffd700,
+        scaleRange: { min: 0.85, max: 1 },
+        glowColor: 0xffaa44,
+        harvestTime: 2,
+        lootToGround: true,
+        collision: false,
+        rare: true,
+    },
+
     // ── Chests ──────────────────────────────────────────────────────────────
     chest_wood: {
         id: 'chest_wood',
@@ -393,6 +432,14 @@ export const BIOME_INTERACTABLE_CONFIG = {
                 { type: 'crate',  weight: 2 },
             ],
         },
+        event: {
+            intensity: 0.06,
+            maxPerChunk: 1,
+            minDistance: 280,
+            props: [
+                { type: 'event_totem', weight: 1 },
+            ],
+        },
     },
 
     desert: {
@@ -438,6 +485,14 @@ export const BIOME_INTERACTABLE_CONFIG = {
             props: [
                 { type: 'barrel', weight: 2 },
                 { type: 'crate',  weight: 3 },
+            ],
+        },
+        event: {
+            intensity: 0.05,
+            maxPerChunk: 1,
+            minDistance: 300,
+            props: [
+                { type: 'event_totem', weight: 1 },
             ],
         },
     },
@@ -486,6 +541,14 @@ export const BIOME_INTERACTABLE_CONFIG = {
             props: [
                 { type: 'barrel', weight: 1 },
                 { type: 'crate',  weight: 1 },
+            ],
+        },
+        event: {
+            intensity: 0.05,
+            maxPerChunk: 1,
+            minDistance: 300,
+            props: [
+                { type: 'event_totem', weight: 1 },
             ],
         },
     },
@@ -537,6 +600,14 @@ export const BIOME_INTERACTABLE_CONFIG = {
                 { type: 'crate',  weight: 2 },
             ],
         },
+        event: {
+            intensity: 0.04,
+            maxPerChunk: 1,
+            minDistance: 320,
+            props: [
+                { type: 'event_totem', weight: 1 },
+            ],
+        },
     },
 };
 
@@ -570,6 +641,14 @@ export const LOOT_TABLES = {
         { id: 'gold',         chance: 1.0, min: 100, max: 200 },
         { id: 'ore_crystal',  chance: 0.7, min: 2,   max: 4   },
         { id: 'void_essence', chance: 0.5, min: 1,   max: 2   },
+    ],
+
+    totem_wave_chest: [
+        { id: 'gold',         chance: 1.0, min: 45,  max: 90  },
+        { id: 'ore_gold',     chance: 0.55, min: 1,  max: 3   },
+        { id: 'ore_crystal',  chance: 0.35, min: 1,  max: 2   },
+        { id: 'void_essence', chance: 0.2, min: 1,  max: 2   },
+        { id: 'herb',         chance: 0.4, min: 1,  max: 3   },
     ],
 
     grove_boss_chest: [

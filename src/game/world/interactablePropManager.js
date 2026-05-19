@@ -54,6 +54,7 @@ export class InteractablePropManager {
         this.worldObjects    = worldObjects;
         this.worldSeed       = worldSeed;
         this.onLoot          = options.onLoot ?? null;
+        this.onEventStart    = options.onEventStart ?? null;
         this._hovered = null;
 
         this.layer = null;
@@ -377,7 +378,7 @@ export class InteractablePropManager {
         let nearestDist = Infinity;
 
         for (const prop of this.allProps) {
-            if (!prop.alive) continue;
+            if (!prop.alive || prop._eventConsumed) continue;
             const dist = Math.hypot(prop.x - playerX, prop.z - playerZ);
             if (dist < prop.def.interactRange && dist < nearestDist) {
                 nearestDist = dist;
@@ -671,6 +672,10 @@ export class InteractablePropManager {
     // ── Interaction logic ─────────────────────────────────────────────────────
 
     _openProp(prop) {
+        if (prop.def.category === 'event_totem') {
+            return this._activateEventTotem(prop);
+        }
+
         const lootMul = prop._lootMul ?? 1;
         const loot = this._rollLoot(prop.def.lootTable, prop.id, lootMul);
 
@@ -688,6 +693,20 @@ export class InteractablePropManager {
         if (this.onLoot) this.onLoot(loot, prop.def, prop.x, prop.z);
 
         return { prop, loot };
+    }
+
+    _activateEventTotem(prop) {
+        if (prop._eventConsumed) return null;
+
+        const started = this.onEventStart?.(prop) ?? false;
+        if (!started) return null;
+
+        this._playOpenAnim(prop);
+        prop.alive = false;
+        prop.deadAt = Date.now();
+        useGameStore.getState().addOpenedInteractableId(prop.id);
+
+        return { prop, loot: null, eventStarted: true };
     }
 
     _tickHarvest(prop, dt) {

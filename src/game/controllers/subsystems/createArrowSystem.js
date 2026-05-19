@@ -159,6 +159,8 @@ export function createArrowSystem(ctx) {
             }
         }
 
+        openWorld.totemWaveEvent?.onMobRemoved(mob);
+
         // Cleanup
         if (mob.c?.parent) {
             mob.c.parent.removeChild(mob.c);
