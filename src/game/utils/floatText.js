@@ -16,15 +16,19 @@ import {frameScale} from '../constants.js';
  * @param {number} wy
  * @param {string} msg
  * @param {string} [color='#ff6b8a']
+ * @param {{ fontSize?: number, opacity?: number }} [opts]
  */
-export function showFloat(wx, wy, msg, color = '#ff6b8a') {
+export function showFloat(wx, wy, msg, color = '#ff6b8a', opts = {}) {
+    const fontSize = opts.fontSize ?? 16;
+    const baseOpacity = opts.opacity ?? 0.5;
+
     const d = document.createElement('div');
     d.style.cssText = [
         'position:fixed',
         'pointer-events:none',
         'font-family:Nunito',
-        'font-size:16px',
-        'opacity:0.5',
+        `font-size:${fontSize}px`,
+        `opacity:${baseOpacity}`,
         `color:${color}`,
         'font-weight: bold',
         'transform:translate(-50%,-50%)',
@@ -37,7 +41,8 @@ export function showFloat(wx, wy, msg, color = '#ff6b8a') {
         el: d,
         wx, wy,
         vy: -0.9,
-        life: 60  // "frame units" at 60fps (~1.67s), drained with frameScale(dt)
+        life: 60,
+        baseOpacity,
     });
 }
 
@@ -63,7 +68,8 @@ export function tickFloats(camX, camY, screenW, screenH, dtSec = 1 / 60) {
 
         f.wy += f.vy * fs;
         f.life -= fs;
-        f.el.style.opacity = f.life / 44;
+        const fade = Math.max(0, f.life / 44);
+        f.el.style.opacity = String((f.baseOpacity ?? 0.5) * fade);
         f.el.style.left = ((f.wx - camX) + screenW / 2) + 'px';
         f.el.style.top = ((f.wy - camY) + screenH / 2) + 'px';
 

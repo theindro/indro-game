@@ -27,8 +27,8 @@ class VisualEffects {
     }
 
     // ============ FLOATING TEXT ============
-    addFloat(text, x, y, color = '#ffffff') {
-        showFloat(x, y, text, color);
+    addFloat(text, x, y, color = '#ffffff', opts = undefined) {
+        showFloat(x, y, text, color, opts);
     }
 
     // ============ PARTICLE EFFECTS ============

@@ -231,15 +231,16 @@ export function createArrowSystem(ctx) {
     }
 
     function applyHitEffects(x, y, damage, isCrit, isBoss = false, elementalType = 'normal') {
-        const particleCount = isCrit ? (isBoss ? 15 : 12) : (isBoss ? 10 : 7);
-        const textColor = '#fff';
         const burstColor = 'black';
-        const damageText = isCrit ? `${parseInt(damage)} CRIT!` : `${parseInt(damage)}`;
-
+        const damageText = isCrit ? `${parseInt(damage)}` : `${parseInt(damage)}`;
 
         VFX.burst(x, y, burstColor);
 
-        VFX.addFloat(damageText, x, y, textColor);
+        if (isCrit) {
+            VFX.addFloat(damageText, x, y, '#ffff00', { fontSize: 24 });
+        } else {
+            VFX.addFloat(damageText, x, y, '#ffffff');
+        }
 
         audioManager.playSFX('/sounds/hit-splat.ogg', 0.3);
     }
