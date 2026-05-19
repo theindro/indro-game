@@ -22,6 +22,8 @@ import Inventory from './Inventory.jsx';
 import PauseScreen from "../screens/PauseScreen.jsx";
 import Character from "./Character.jsx";
 import CraftingPanel from "./Crafting.jsx";
+import QuestTracker from './quests/QuestTracker.jsx';
+import QuestPanel from './quests/QuestPanel.jsx';
 
 const MENU_ITEMS = [
     {
@@ -41,8 +43,7 @@ const MENU_ITEMS = [
         key: 'quests',
         icon: <ExclamationCircleOutlined/>,
         label: 'Quests',
-        hotkey: 'p',
-        disabled: true,
+        hotkey: 'P',
     },
     {
         key: 'crafting',
@@ -132,6 +133,7 @@ const BottomRightMenu = () => {
             if (e.key.toLowerCase() === 'i') setOpenPanel(openPanel === 'inventory' ? '' : 'inventory');
             if (e.key.toLowerCase() === 'c') setOpenPanel(openPanel === 'character' ? '' : 'character');
             if (e.key.toLowerCase() === 'k') setOpenPanel(openPanel === 'crafting' ? '' : 'crafting');
+            if (e.key.toLowerCase() === 'p') setOpenPanel(openPanel === 'quests' ? '' : 'quests');
             if (!openPanel) {
                 if (e.key === 'Escape') {
                     setOpenPanel(openPanel === 'settings' ? '' : 'settings')
@@ -157,6 +159,8 @@ const BottomRightMenu = () => {
         <div>
             <CurrencyList/>
 
+            <QuestTracker onOpenQuests={() => setOpenPanel(openPanel === 'quests' ? '' : 'quests')} />
+
             <div style={{
                 position: 'fixed',
                 bottom: 20,
@@ -168,11 +172,8 @@ const BottomRightMenu = () => {
 
                     <Card
                         style={{
-                            background: 'rgba(10, 12, 16, 0.85)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            backdropFilter: 'blur(20px)',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                            padding: '8px 12px',
+                            background: "transparent",
+                            border: "none",
                         }}
                         styles={{body: {padding: 0}}}
                     >
@@ -198,6 +199,7 @@ const BottomRightMenu = () => {
                                                 height: 52,
                                                 borderRadius: 10,
                                                 fontSize: 22,
+                                                background: 'rgba(10, 12, 16, 0.85)'
                                             }}
                                         />
                                     </Tooltip>
@@ -212,6 +214,8 @@ const BottomRightMenu = () => {
                     <Character isOpen={openPanel === 'character'} setOpen={setOpenPanel}/>
 
                     <CraftingPanel isOpen={openPanel === 'crafting'}/>
+
+                    <QuestPanel isOpen={openPanel === 'quests'} />
 
                     <PauseScreen/>
 

@@ -2,6 +2,12 @@
 import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
 import {ItemDatabase} from '../game/items.js';
+import {
+    onQuestMobKilled,
+    onQuestItemCollected,
+    onQuestItemCrafted,
+    clearQuestToast,
+} from '../game/quests/questProgress.js';
 
 // How much each enchant level multiplies base stats (12% per level)
 export const ENCHANT_BONUS_PER_LEVEL = 0.12;
@@ -111,6 +117,13 @@ function createGameStoreSlice(set, get) {
             enchantFocusSlotIndex: null,
         },
 
+        /** Quest progress (see `src/game/quests/questDefinitions.js`). */
+        quests: {
+            progress: {},
+            completed: [],
+            recentComplete: null,
+        },
+
         /** World drops queued from inventory (processed in game loop). */
         pendingWorldDrops: [],
 
@@ -160,8 +173,8 @@ function createGameStoreSlice(set, get) {
                 boots: null,
                 ring: null,
             },
-            gold: 0,
-            void_essence: 0,
+            gold: 100000,
+            void_essence: 100000,
         },
 
         // Shop State
@@ -299,7 +312,10 @@ function createGameStoreSlice(set, get) {
         setMusicVolume: (volume) => set((state) => ({audio: {...state.audio, musicVolume: volume}})),
         setSfxVolume: (volume) => set((state) => ({audio: {...state.audio, sfxVolume: volume}})),
 
-        addKills: (amount) => set((state) => ({kills: state.kills + amount})),
+        addKills: (amount) => {
+            set((state) => ({kills: state.kills + amount}));
+            onQuestMobKilled(get, set, amount);
+        },
 
         // ===== GOLD =====
         getGold: () => get().inventory.gold,
@@ -361,6 +377,7 @@ function createGameStoreSlice(set, get) {
                     quantity: (newSlots[existingSlot].quantity || 1) + quantity,
                 };
                 set({inventory: {...state.inventory, slots: newSlots}});
+                onQuestItemCollected(get, set, itemId, quantity);
                 return true;
             }
 
@@ -371,8 +388,15 @@ function createGameStoreSlice(set, get) {
             if (enchantLevel > 0) entry.enchantLevel = enchantLevel;
             newSlots[emptySlot] = entry;
             set({inventory: {...state.inventory, slots: newSlots}});
+            onQuestItemCollected(get, set, itemId, quantity);
             return true;
         },
+
+        trackQuestCraft: (itemId, quantity = 1) => {
+            onQuestItemCrafted(get, set, itemId, quantity);
+        },
+
+        clearQuestToast: () => clearQuestToast(set),
 
         /** Remove one item from a slot and queue a world drop at player position. */
         dropItemFromSlot: (slotIndex, worldX, worldY) => {
@@ -780,6 +804,11 @@ function getDefaultProgressPayload() {
         },
         basicAttack: {cooldownEnd: 0},
         dash: {cooldownEnd: 0},
+        quests: {
+            progress: {},
+            completed: [],
+            recentComplete: null,
+        },
     };
 }
 
@@ -826,6 +855,13 @@ function mergePersistedState(persisted, current) {
         },
         showStartScreen: true,
         restartGeneration: current.restartGeneration,
+        quests: p.quests
+            ? {
+                progress: {...(p.quests.progress ?? {})},
+                completed: [...(p.quests.completed ?? [])],
+                recentComplete: null,
+            }
+            : current.quests,
     };
 }
 
@@ -859,6 +895,7 @@ export const useGameStore = create(
             defeatedBossChunkKeys: state.defeatedBossChunkKeys,
             audio: state.audio,
             currentRoomIndex: state.gameState.currentRoomIndex,
+            quests: state.quests,
         }),
         merge: (persistedState, currentState) => mergePersistedState(persistedState, currentState),
         onRehydrateStorage: () => () => {

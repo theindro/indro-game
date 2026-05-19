@@ -132,6 +132,7 @@ function CraftingTab() {
 
             const success = addItem(recipe.result, 1);
             if (success) {
+                useGameStore.getState().trackQuestCraft(recipe.result, 1);
                 const db = ItemDatabase[recipe.result];
                 messageApi.success(
                     <span>

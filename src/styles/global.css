@@ -206,6 +206,21 @@ body {
     100% { opacity: 0;   transform: translate(var(--dx2), -90px)         scale(0.2); }
 }
 
+.quest-tracker-panel {
+    position: fixed;
+    top: 272px;
+    right: 16px;
+    width: 220px;
+    z-index: 9998;
+    padding: 10px 12px;
+    border-radius: 12px;
+    pointer-events: auto;
+}
+
+.quest-panel-card {
+    z-index: 10001;
+}
+
 .bottom-right-float-card {
     position: fixed;
     bottom: 100px;
@@ -266,4 +281,19 @@ body {
 
 .ant-btn-primary:hover::after {
     opacity: 1;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128,128,128,0.25) transparent;
+}
+
+*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+    background: rgba(128,128,128,0.25);
+    border-radius: 100px;
+}
+*::-webkit-scrollbar-thumb:hover {
+    background: rgba(128,128,128,0.45);
 }

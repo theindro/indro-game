@@ -11,6 +11,7 @@ import AbilityBar from "./game-ui/PlayerAbilityBar.jsx";
 import LevelUpEffect from "./game-ui/LevelUpEffect.jsx";
 import BossHealthBar from "./game-ui/BossHealthBar.jsx";
 import BottomRightMenu from "./game-ui/BottomRightMenu.jsx";
+import QuestToastListener from "./game-ui/quests/QuestToastListener.jsx";
 import BottomDevMenu from "./devtools/BottomDevMenu.jsx";
 
 export default function GameApp() {
@@ -30,6 +31,8 @@ export default function GameApp() {
             {import.meta.env.DEV && <BottomDevMenu />}
 
             {!showStartScreen && <BottomRightMenu />}
+
+            {!showStartScreen && <QuestToastListener />}
 
             <DeathScreen />
 
