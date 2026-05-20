@@ -5,29 +5,30 @@
 export const MAX_WORLD_DIFFICULTY = 50;
 /** Chunks per biome region edge (~26 chunk-wide zones). */
 export const BIOME_REGION_CHUNKS = 26;
-/** Chunk distance from origin until difficulty reaches max. */
-export const DIFFICULTY_RAMP_CHUNKS = 100;
+/** Chunk distance from spawn before difficulty starts rising (Chebyshev). */
+export const DIFFICULTY_GRACE_CHUNKS = 2;
+/** Extra chunk distance per +1 difficulty after grace. */
+export const CHUNKS_PER_DIFFICULTY_UNIT = 6;
 
 /** All procedural biomes — any can appear at spawn depending on world seed. */
 export const WORLD_BIOMES = ['forest', 'desert', 'ice', 'lava'];
 
-/** @param {number} chunkX */
-/** @param {number} chunkZ */
+/** Chebyshev distance from spawn in chunk units (5 chunks north ⇒ level 5). */
 export function getChunkLevel(chunkX, chunkZ) {
-    return Math.floor(Math.sqrt(chunkX * chunkX + chunkZ * chunkZ));
+    return Math.max(Math.abs(chunkX | 0), Math.abs(chunkZ | 0));
 }
 
 /**
- * World difficulty from distance (spawn ≈ 0,0). Early chunks stay at 1 longer.
+ * World difficulty from distance (spawn ≈ 0,0). Stays at 1 through early exploration.
  * @param {number} chunkX
  * @param {number} chunkZ
  */
 export function getChunkDifficulty(chunkX, chunkZ) {
     const level = getChunkLevel(chunkX, chunkZ);
-    if (level <= 2) return 1;
+    if (level <= DIFFICULTY_GRACE_CHUNKS) return 1;
 
-    const t = Math.min(1, (level - 2) / DIFFICULTY_RAMP_CHUNKS);
-    const raw = 1 + t * (MAX_WORLD_DIFFICULTY - 1);
+    const extra = level - DIFFICULTY_GRACE_CHUNKS;
+    const raw = 1 + extra / CHUNKS_PER_DIFFICULTY_UNIT;
     return Math.min(MAX_WORLD_DIFFICULTY, Math.max(1, Math.round(raw * 10) / 10));
 }
 

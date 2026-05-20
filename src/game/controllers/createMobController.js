@@ -1,5 +1,5 @@
 import {frameScale, GS, MOB_RADIUS, MOB_SIM_RADIUS} from "../constants.js";
-import { applyMobDifficulty } from '../difficultyScaling.js';
+import { applyMobDifficulty, getMobExpReward } from '../difficultyScaling.js';
 import { getWorldContentScales } from '../world/worldProgression.js';
 import { attachMonsterLevelUi, drawMonsterHpWithLevel } from '../ui/monsterLevelUi.js';
 import {useGameStore} from "../../stores/gameStore.js";
@@ -270,7 +270,7 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
         damage: scaled.damage,
         attackSpeed: scaled.attackSpeed,
         attackCooldown: 0,
-        exp: Math.max(1, Math.round(stats.exp * (0.45 + contentScales.lootMultiplier * 0.55))),
+        exp: getMobExpReward(difficulty, stats.exp),
         animOffset: mobSeededUnit(rng ^ 0xdeadbeef) * 1000,
         spawnRngSeed: rng,
         _patrolStep: 0,

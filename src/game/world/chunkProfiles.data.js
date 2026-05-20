@@ -80,9 +80,9 @@ export const BIOME_CHUNK_PROFILES = {
             label: 'Dense Forest',
             weight: 18,
             density: 1.85,
-            basePropCount: 168,
+            basePropCount: 88,
             layout: 'clusters',
-            clusterCount: { min: 4, max: 8 },
+            clusterCount: { min: 7, max: 12 },
             clusterRadius: { min: 90, max: 170 },
             props: [
                 { type: 'TREE', weight: 52 },

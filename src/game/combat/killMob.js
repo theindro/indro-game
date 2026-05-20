@@ -42,7 +42,11 @@ export function killMob(mob, mobIndex, deps) {
     VFX.explosion(mob.x, mob.y, '', scale, mob.size);
 
     useGameStore.getState().addKills(1);
-    VFX.addFloat(`+${mob.exp} XP`, mob.x, mob.y - 30, '#ffffff', { opacity: 0.5 });
+
+    const playerLoc = useGameStore.getState().player?.location;
+    const xpFx = playerLoc?.x ?? mob.x;
+    const xpFy = playerLoc?.y ?? mob.y;
+    VFX.addFloat(`+${mob.exp} XP`, xpFx, xpFy - 30, '#ffffff', { opacity: 0.5 });
     useGameStore.getState().addXP(mob.exp);
 
     if (spawnDrops) {

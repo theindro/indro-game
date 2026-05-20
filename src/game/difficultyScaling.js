@@ -19,7 +19,23 @@ export {
     getBiomeForChunk,
     getSpawnBiome,
     WORLD_BIOMES,
+    DIFFICULTY_GRACE_CHUNKS,
+    CHUNKS_PER_DIFFICULTY_UNIT,
 } from './world/worldProgression.js';
+
+/** XP at world difficulty 1 (before archetype weighting). */
+export const MOB_EXP_BASE_AT_DIFFICULTY_1 = 10;
+
+/**
+ * Mob kill XP scales with chunk difficulty; diff 1 ⇒ 10 XP (× archetype weight).
+ * @param {number} difficulty
+ * @param {number} [archetypeExp=30]
+ */
+export function getMobExpReward(difficulty, archetypeExp = 30) {
+    const d = Math.max(1, difficulty ?? 1);
+    const archetypeMul = Math.max(0.5, (archetypeExp ?? 30) / 30);
+    return Math.max(1, Math.round(MOB_EXP_BASE_AT_DIFFICULTY_1 * d * archetypeMul));
+}
 
 /**
  * Early zones: weaker mobs (HP/damage), more spawns handled in worldProgression.
