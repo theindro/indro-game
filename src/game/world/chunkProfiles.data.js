@@ -1,4 +1,4 @@
-import { BOSS_ARENA_PLACEMENT, DESERT_BOSS_ARENA_PLACEMENT } from './chunkArenaLayouts.js';
+import {BOSS_ARENA_PLACEMENT, DESERT_BOSS_ARENA_PLACEMENT, ICE_BOSS_ARENA_PLACEMENT} from './chunkArenaLayouts.js';
 
 /**
  * Chunk landscape profiles — seeded “micro-biomes” inside each world biome.
@@ -82,7 +82,7 @@ export const BIOME_CHUNK_PROFILES = {
             density: 1.85,
             basePropCount: 168,
             layout: 'clusters',
-            clusterCount: { min: 13, max: 15 },
+            clusterCount: { min: 4, max: 8 },
             clusterRadius: { min: 90, max: 170 },
             props: [
                 { type: 'TREE', weight: 52 },
@@ -448,7 +448,7 @@ export const BIOME_CHUNK_PROFILES = {
             spawnBoss: true,
             bossType: 'ice',
             bossScale: 1.2,
-            arenaPlacements: BOSS_ARENA_PLACEMENT,
+            arenaPlacements: ICE_BOSS_ARENA_PLACEMENT,
             skipMobPacks: true,
             skipInteractables: true,
             props: [],

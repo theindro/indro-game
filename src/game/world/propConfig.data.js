@@ -56,12 +56,12 @@ export const PROP_TYPES = {
     },
     SNOW_TREE: {
         name: 'tree',
-        variants: ['log_pile', 'dead_tree'],
+        variants: ['snow_tree', 'snow_tree_2', 'snow_tree_3', 'snow_tree_4'],
         collision: false,
         minDistance: 80,
         margin: 0.8,
         damageOnTouch: 0,
-        scaleRange: { min: 0.75, max: 0.85 }
+        scaleRange: { min: 0.4, max: 0.5 }
     },
     // DESERT
     DESERT_TREE: {

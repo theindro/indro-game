@@ -71,5 +71,33 @@ export const DESERT_BOSS_ARENA_PLACEMENT = /** @type {ArenaPlacement[]} */ ([
     { assetId: 'desert_tree_4', nx: 0.6, nz: 0.68, scale: 0.7, collision: true },
 ]);
 
+/** Sand Titan arena — desert trees, cacti, and bushes (open center). */
+export const ICE_BOSS_ARENA_PLACEMENT = /** @type {ArenaPlacement[]} */ ([
+    { assetId: 'snow_tree', nx: 0.2, nz: 0.11, scale: 0.52, collision: true },
+    { assetId: 'snow_tree_2', nx: 0.35, nz: 0.09, scale: 0.48, collision: true },
+    { assetId: 'snow_tree_3', nx: 0.5, nz: 0.1, scale: 0.55, collision: true },
+    { assetId: 'snow_tree_4', nx: 0.65, nz: 0.11, scale: 0.6, collision: true },
+    { assetId: 'snow_tree', nx: 0.8, nz: 0.14, scale: 0.54, collision: true },
+    { assetId: 'snow_tree_2', nx: 0.88, nz: 0.28, scale: 0.45, collision: true },
+    { assetId: 'snow_tree_3', nx: 0.9, nz: 0.44, scale: 0.56, collision: true },
+    { assetId: 'snow_tree_4', nx: 0.87, nz: 0.6, scale: 0.52, collision: true },
+    { assetId: 'snow_tree', nx: 0.84, nz: 0.74, scale: 0.45, collision: true },
+    { assetId: 'snow_tree_2', nx: 0.72, nz: 0.84, scale: 0.44, collision: true },
+    { assetId: 'snow_tree_3', nx: 0.55, nz: 0.88, scale: 0.48, collision: true },
+    { assetId: 'snow_tree_4', nx: 0.38, nz: 0.86, scale: 0.42, collision: true },
+    { assetId: 'snow_tree', nx: 0.22, nz: 0.82, scale: 0.5, collision: true },
+    { assetId: 'snow_tree_2', nx: 0.11, nz: 0.68, scale: 0.48, collision: true },
+    { assetId: 'snow_tree_3', nx: 0.1, nz: 0.5, scale: 0.42, collision: true },
+    { assetId: 'snow_tree_4', nx: 0.11, nz: 0.32, scale: 0.5, collision: true },
+    { assetId: 'snowstone', nx: 0.16, nz: 0.18, scale: 0.75, collision: true },
+    { assetId: 'snowstone2', nx: 0.84, nz: 0.2, scale: 0.75, collision: true },
+    { assetId: 'snowstone3', nx: 0.82, nz: 0.78, scale: 0.6, collision: true },
+    { assetId: 'snowstone4', nx: 0.18, nz: 0.76, scale: 0.7, collision: true },
+    { assetId: 'snowstone2', nx: 0.4, nz: 0.3, scale: 0.75, collision: true },
+    { assetId: 'snowstone3', nx: 0.6, nz: 0.3, scale: 0.6, collision: true },
+    { assetId: 'snowstone', nx: 0.4, nz: 0.68, scale: 0.6, collision: true },
+    { assetId: 'snowstone4', nx: 0.6, nz: 0.68, scale: 0.7, collision: true },
+]);
+
 /** @deprecated Use BOSS_ARENA_PLACEMENT */
 export const TREE_GROVE_BOSS_ARENA = BOSS_ARENA_PLACEMENT;
