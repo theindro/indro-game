@@ -343,22 +343,19 @@ export function applyBreathing(mob, globalTime) {
 
     const offset = mob.animOffset || 0;
     const breath = Math.sin(globalTime + offset) * 0.5;
-    const facing = mob._facingSign ?? (bodyC.scale.x < 0 ? -1 : 1);
+    const facing = bodyC.scale.x < 0 ? -1 : 1;
 
     bodyC.scale.x = facing * (1 + breath * 0.15);
     bodyC.scale.y = 1 - breath * 0.08;
 }
 
-export function setFacingDirection(mob, vx, threshold = 2.5) {
+export function setFacingDirection(mob, vx) {
     const bodyC = mob.bodyC ?? mob.c;
     if (!bodyC) return;
 
-    if (Math.abs(vx) < threshold) return;
-
-    const sign = vx < 0 ? -1 : 1;
-    if (mob._facingSign === sign) return;
-
-    mob._facingSign = sign;
-    const mag = Math.abs(bodyC.scale.x) || 1;
-    bodyC.scale.x = sign * mag;
+    if (vx < -0.01 && bodyC.scale.x > 0) {
+        bodyC.scale.x *= -1;
+    } else if (vx > 0.01 && bodyC.scale.x < 0) {
+        bodyC.scale.x *= -1;
+    }
 }
