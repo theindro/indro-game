@@ -100,7 +100,7 @@ export const INITIAL_ABILITIES = {
         name: 'Spinshot',
         icon: '/icons/ability1.png',
         cooldownEnd: 0,
-        maxCooldown: 16,
+        maxCooldown: 44,
         level: 1,
         description: 'Spin and fire arrows in all directions for 2s. Uses chain & pierce.',
         spinDuration: 2,
