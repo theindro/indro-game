@@ -95,6 +95,17 @@ export const PROP_TYPES = {
         damageOnTouch: 0,
         scaleRange: { min: 0.2, max: 0.5 }
     },
+    // lava
+    LAVA_STONE: {
+        name: 'lava_stone',
+        variants: ['lava_stone', 'lava_stone_2', 'lava_stone_3', 'lava_stone_4'],
+        collision: true,
+        collisionType: 'auto',
+        minDistance: 500,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.5, max: 0.7 }
+    },
 };
 
 /**
@@ -118,6 +129,9 @@ export const PROP_SHADOW_OVERRIDES = {
     snowstone3: { offsetY: -50 },
     snowstone4: { offsetY: -50 },
     snowstone5: { offsetY: -50 },
+    lava_stone_4: { offsetY: -20 },
+    lava_stone_3: { offsetY: -20 },
+    lava_stone_2: { offsetY: -50 },
 
 };
 
@@ -164,7 +178,7 @@ export const BIOME_PROP_CONFIG = {
     lava: {
         density: 0.5,  // Root level
         props: [
-            { type: 'STONE', weight: 70 },
+            { type: 'LAVA_STONE', weight: 70 },
         ]
     }
 };
