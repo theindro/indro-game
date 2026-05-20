@@ -920,6 +920,8 @@ function createGameStoreSlice(set, get) {
             set((state) => ({
                 player: {...state.player, hp: state.player.maxHp},
             }));
+
+            window.location.reload();
         },
 
         /** Title screen: keep saved progress and enter the run. */
