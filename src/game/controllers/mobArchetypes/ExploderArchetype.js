@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import {useGameStore} from '../../../stores/gameStore.js';
+import { damagePlayerFromMob } from '../../elite/eliteMobs.js';
 import {GroundAttackController} from '../createGroundAttackController.js';
 import {VFX} from '../../GlobalEffects.js';
 import {GROUND_WARN_FAST} from '../../constants.js';
@@ -156,7 +156,7 @@ export class ExploderArchetype {
         if (distToPlayer < this.explosionRadius) {
             const distanceFactor = 1 - (distToPlayer / this.explosionRadius);
             const damage = Math.floor(this.explosionDamage * (0.5 + distanceFactor * 0.5));
-            useGameStore.getState().damagePlayer(damage, 'explosion');
+            damagePlayerFromMob(this.mob, damage, 'explosion');
 
         }
 

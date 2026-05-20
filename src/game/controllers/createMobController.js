@@ -15,6 +15,15 @@ import {
 import {updateStatusEffects} from "../statusEffects.js";
 import {VFX} from '../GlobalEffects.js';
 import { applyEntityOutlineFilter } from '../utils/highlightFilters.js';
+import {
+    shouldSpawnElite,
+    pickEliteType,
+    applyEliteStats,
+    attachEliteAura,
+    updateEliteAura,
+    damagePlayerFromMob,
+    ELITE_SIZE_MULT,
+} from '../elite/eliteMobs.js';
 
 /** Deterministic [0,1) from integer seed (matches world `seededRandom` style). */
 export function mobSeededUnit(seed) {
@@ -79,8 +88,12 @@ export function createMobController(mob, entityLayer) {
 
             if (archetypeBehavior?.groundAttacks) {
                 archetypeBehavior.groundAttacks.update(ctx.px, ctx.py, (damage) => {
-                    useGameStore.getState().damagePlayer(damage, 'tank slam');
+                    damagePlayerFromMob(m, damage, 'tank slam');
                 }, dt);
+            }
+
+            if (m.isElite) {
+                updateEliteAura(m, dt);
             }
 
             let moveX = 0, moveY = 0;
@@ -200,7 +213,7 @@ export function createMobController(mob, entityLayer) {
 
             if (m._batPendingMelee) {
                 m._batPendingMelee = false;
-                useGameStore.getState().damagePlayer(m.damage, 'bat strike');
+                damagePlayerFromMob(m, m.damage, 'bat strike');
                 m.attackCooldown = Math.max(0.35, 1 / (m.attackSpeed || 1));
             }
 
@@ -211,7 +224,7 @@ export function createMobController(mob, entityLayer) {
 
             updateMobHealthBar(m);
             applyEntityOutlineFilter(m.body, m, state === 'CHASE');
-            if (!mob.isCasting) {
+            if (!mob.isCasting && archetypeType !== ARCHETYPES.BAT) {
                 applyBreathing(mob, performance.now() * 0.003);
                 setFacingDirection(mob, moveX || (px - m.x));
             }
@@ -222,7 +235,7 @@ export function createMobController(mob, entityLayer) {
             m.attackCooldown = Math.max(0, (m.attackCooldown || 0) - dt);
 
             if (distToPlayer < 26 && m.attackCooldown <= 0) {
-                useGameStore.getState().damagePlayer(m.damage, `${this.archetypeType} atk`);
+                damagePlayerFromMob(m, m.damage, `${this.archetypeType} atk`);
                 m.attackCooldown = Math.max(0.2, 1 / (m.attackSpeed || 1));
             }
         },
@@ -246,7 +259,9 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
     }
 
     const stats = ARCHETYPE_STATS[finalArchetype];
-    const size = stats.size;
+    const eliteRoll = shouldSpawnElite(difficulty, mobSeededUnit(rng ^ 0x51a7e11e));
+    const eliteType = eliteRoll ? pickEliteType(rng) : null;
+    const size = eliteRoll ? stats.size * ELITE_SIZE_MULT : stats.size;
 
     const { c, bodyC, uiC, body, eye, hpBar } = createMobEntity(renderer, biome, size, null, stats.type);
     c.x = x;
@@ -278,14 +293,23 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
         archetype: finalArchetype,
         biome,
         size,
-        archetypeData: {}
+        archetypeData: {},
+        isElite: false,
+        eliteType: null,
+        type: 'mob',
     };
+
+    if (eliteType) {
+        applyEliteStats(mob, eliteType, stats.exp, difficulty);
+        attachEliteAura(mob, eliteType);
+    }
 
     applyArchetypeVisuals(mob, finalArchetype, biome);
 
     attachMonsterLevelUi(mob, difficulty, {
         barHalfWidth: size + 2,
         barY: -(size + 14),
+        eliteType: mob.eliteType,
     });
 
     mob.controller = createMobController(mob, world);
@@ -319,20 +343,22 @@ export function applyBreathing(mob, globalTime) {
 
     const offset = mob.animOffset || 0;
     const breath = Math.sin(globalTime + offset) * 0.5;
-    const facing = bodyC.scale.x < 0 ? -1 : 1;
+    const facing = mob._facingSign ?? (bodyC.scale.x < 0 ? -1 : 1);
 
     bodyC.scale.x = facing * (1 + breath * 0.15);
     bodyC.scale.y = 1 - breath * 0.08;
 }
 
-export function setFacingDirection(mob, vx) {
+export function setFacingDirection(mob, vx, threshold = 2.5) {
     const bodyC = mob.bodyC ?? mob.c;
     if (!bodyC) return;
 
-    if (vx < -0.01 && bodyC.scale.x > 0) {
-        bodyC.scale.x *= -1;
-    }
-    else if (vx > 0.01 && bodyC.scale.x < 0) {
-        bodyC.scale.x *= -1;
-    }
+    if (Math.abs(vx) < threshold) return;
+
+    const sign = vx < 0 ? -1 : 1;
+    if (mob._facingSign === sign) return;
+
+    mob._facingSign = sign;
+    const mag = Math.abs(bodyC.scale.x) || 1;
+    bodyC.scale.x = sign * mag;
 }

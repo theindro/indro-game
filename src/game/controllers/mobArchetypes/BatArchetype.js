@@ -15,6 +15,7 @@ export class BatArchetype {
         this.orbitRadius = 55 + Math.random() * 45;
         this.bobPhase = Math.random() * Math.PI * 2;
         this._didHitThisStrike = false;
+        this._faceSign = 1;
     }
 
     update(ctx) {
@@ -56,6 +57,7 @@ export class BatArchetype {
                 this._didHitThisStrike = false;
                 this._strikeDirX = (px - m.x) / distToPlayer;
                 this._strikeDirY = (py - m.y) / distToPlayer;
+                this._faceSign = this._strikeDirX < 0 ? -1 : 1;
             }
         } else if (this.phase === 'strike') {
             this.strikeTimer -= dt;
@@ -96,11 +98,12 @@ export class BatArchetype {
             bodyC.y = bob;
             const banking = this.phase === 'strike' ? 0.22 : 0.08;
             bodyC.rotation = Math.sin(this.bobPhase * 0.7) * banking;
+            const sx = this._faceSign;
             if (this.phase === 'strike') {
-                bodyC.scale.set(1.12, 0.92);
+                bodyC.scale.set(sx * 1.12, 0.92);
                 if (m.gl) m.gl.alpha = 0.35;
             } else {
-                bodyC.scale.set(1, 1);
+                bodyC.scale.set(sx, 1);
                 if (m.gl) m.gl.alpha = 0.18;
             }
         }
@@ -113,7 +116,7 @@ export class BatArchetype {
         if (bodyC) {
             bodyC.y = 0;
             bodyC.rotation = 0;
-            bodyC.scale.set(1, 1);
+            bodyC.scale.set(this._faceSign ?? 1, 1);
         }
     }
 }

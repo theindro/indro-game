@@ -1,5 +1,6 @@
 import { useGameStore } from '../../stores/gameStore.js';
 import { VFX } from '../GlobalEffects.js';
+import { destroyEliteAura } from '../elite/eliteMobs.js';
 
 /**
  * Full mob death: XP, drops, VFX, archetype cleanup, remove from entities list.
@@ -30,7 +31,7 @@ export function killMob(mob, mobIndex, deps) {
         }
     }
 
-    const isElite = mob.type === 'elite';
+    const isElite = mob.isElite || mob.type === 'elite';
     const minMobSize = 12;
     const maxMobSize = 40;
     const minScale = 0.2;
@@ -58,6 +59,7 @@ export function killMob(mob, mobIndex, deps) {
     }
 
     openWorld.totemWaveEvent?.onMobRemoved(mob);
+    destroyEliteAura(mob);
 
     if (mob.c?.parent) {
         mob.c.parent.removeChild(mob.c);

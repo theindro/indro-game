@@ -15,6 +15,12 @@ export function getMonsterUiContainer(entity) {
  * @param {number} worldDifficulty
  * @param {{ barHalfWidth?: number, barY?: number, barHeight?: number }} [layout]
  */
+const ELITE_BADGE_STROKE = {
+    burn: 0xf39c12,
+    poison: 0x2ecc71,
+    freeze: 0x3498db,
+};
+
 export function attachMonsterLevelUi(entity, worldDifficulty, layout = {}) {
     const uiRoot = getMonsterUiContainer(entity);
     if (!uiRoot) return;
@@ -63,7 +69,11 @@ export function attachMonsterLevelUi(entity, worldDifficulty, layout = {}) {
 
     entity.worldDifficulty = worldDifficulty;
     entity.monsterLevel = getMonsterLevel(worldDifficulty);
-    entity.levelUi.levelText.text = String(entity.monsterLevel);
+    entity.levelUi.levelText.text = entity.isElite ? `★${entity.monsterLevel}` : String(entity.monsterLevel);
+
+    if (entity.isElite && layout.eliteType) {
+        entity.levelUi.badgeStroke = ELITE_BADGE_STROKE[layout.eliteType] ?? 0x9b59b6;
+    }
 }
 
 /**
@@ -93,7 +103,8 @@ export function drawMonsterHpWithLevel(entity, hpPct) {
 
     badgeBg.clear();
     badgeBg.circle(badgeCenterX, badgeY, badgeR).fill({ color: BADGE_FILL, alpha: 0.92 });
-    badgeBg.circle(badgeCenterX, badgeY, badgeR).stroke({ color: BADGE_STROKE, width: 1.5, alpha: 0.9 });
+    const strokeCol = ui.badgeStroke ?? BADGE_STROKE;
+    badgeBg.circle(badgeCenterX, badgeY, badgeR).stroke({ color: strokeCol, width: 1.5, alpha: 0.9 });
 
     connector.clear();
     const connX0 = badgeCenterX + badgeR;

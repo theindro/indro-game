@@ -220,7 +220,7 @@ export class MinimapManager {
                     entity: mob,
                     pos: pos,
                     distance: distance,
-                    priority: mob.type === 'elite' ? 0 : 1 // Elite mobs get higher priority
+                    priority: mob.isElite || mob.type === 'elite' ? 0 : 1
                 });
             }
         }
@@ -311,7 +311,7 @@ export class MinimapManager {
 
             switch(item.type) {
                 case 'mob':
-                    const isElite = item.entity.type === 'elite';
+                    const isElite = item.entity.isElite || item.entity.type === 'elite';
                     g.circle(0, 0, isElite ? 4 : 3).fill({ color: this.colors.mob });
                     if (isElite) {
                         g.circle(0, 0, 6).fill({ color: this.colors.elite, alpha: 0.3 });

@@ -101,6 +101,10 @@ export class RangedArchetype {
             elementalType
         );
 
+        if (m.isElite && m.eliteType) {
+            proj.eliteType = m.eliteType;
+        }
+
         if (enemyProjs) {
             enemyProjs.push(proj);
         }

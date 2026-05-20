@@ -1,6 +1,7 @@
 // controllers/subsystems/createProjectileSystem.js
 import {useGameStore} from "../../../stores/gameStore.js";
 import {VFX} from "../../GlobalEffects.js";
+import { applyEliteHitDebuff } from '../../combat/playerDebuffs.js';
 
 export function createProjectileSystem(ctx) {
     const { enemyProjs, openWorld } = ctx;
@@ -87,6 +88,9 @@ export function createProjectileSystem(ctx) {
 
             if (Math.hypot(px - ep.c.x, py - ep.c.y) < 16) {
                 useGameStore.getState().damagePlayer(ep.dmg, 'enemy projectile');
+                if (ep.eliteType) {
+                    applyEliteHitDebuff(ep.eliteType);
+                }
                 destroyProj(ep);
                 enemyProjs.splice(ei, 1);
             }

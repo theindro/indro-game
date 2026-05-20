@@ -20,6 +20,7 @@ import {VFX} from './GlobalEffects.js';
 import {ChunkMonitor} from "./world/ChunkMonitor.js";
 import {createLightingController} from "./controllers/createLightingController.js";
 import {audioManager} from "./utils/audioManager.js";
+import { tickPlayerDebuffs, getPlayerDebuffMoveMul, clearPlayerDebuffs } from './combat/playerDebuffs.js';
 
 /** Same closing speed as legacy `current += (target-current)*alpha` once per 60fps tick, for arbitrary `dt`. */
 function smoothTowardAlpha(alphaPer60FpsFrame, dt) {
@@ -215,6 +216,8 @@ export async function createGame() {
         if (shootCooldown > 0) shootCooldown -= dt;
         if (combat.updateFreezeTimers) combat.updateFreezeTimers(dt);
 
+        tickPlayerDebuffs(dt, { x: px, y: py });
+
         // Shooting
         shootCooldown = handleShooting(input, combat, px, py, world, shootCooldown, playerState.stats);
 
@@ -229,7 +232,7 @@ export async function createGame() {
         const movement = handlePlayerMovement(
             input, px, py, playerState.stats,
             dash, openWorld, colliders, dt,
-            movePenalty // ← add this param
+            movePenalty * getPlayerDebuffMoveMul()
         );
 
         px = movement.x;
@@ -519,6 +522,7 @@ function updateMinimap(minimap, px, py, input, world, mouseWorld) {
 
 function checkDeath(playerState, gameState, killsRef) {
     if (playerState.hp <= 0 && !gameState.dead) {
+        clearPlayerDebuffs();
         useGameStore.getState().setDead(true);
         document.body.style.cursor = 'default';
         document.getElementById('death-kills').textContent = `${killsRef.value} enemies slain · level ${playerState.pLevel}`;

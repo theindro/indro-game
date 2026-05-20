@@ -1,6 +1,7 @@
 // Single ownership point for world entity display nodes (entityLayer) and
 // gameplay colliders for props / interactables. Other systems request work here.
 import { spawnMob as spawnMobEntity } from '../controllers/createMobController.js';
+import { destroyEliteAura } from '../elite/eliteMobs.js';
 import { bindMobHighlightPointer } from '../utils/highlightFilters.js';
 
 export class WorldObjectManager {
@@ -64,6 +65,7 @@ export class WorldObjectManager {
 
     destroyMob(mob) {
         if (!mob) return;
+        destroyEliteAura(mob);
         if (mob.c?.parent) {
             mob.c.parent.removeChild(mob.c);
         }
