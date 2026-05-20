@@ -13,6 +13,7 @@ import {
     usesArenaLayout,
 } from './chunkProfile.js';
 import { samplePropPosition } from './chunkPlacement.js';
+import { computePropColliderBounds, shouldCreatePropCollider } from './propCollider.js';
 import { PLAYER_RADIUS } from '../constants.js';
 
 /** Alpha for non-colliding props when the player walks behind them. */
@@ -320,21 +321,14 @@ export class PropManager {
                 ? p.collision
                 : (propType ? propType.collision : true);
 
-        if (!wantsCollision) {
+        if (!shouldCreatePropCollider(wantsCollision, propType)) {
             this._enableOcclusionFade(propVisual);
         }
 
-        if (wantsCollision) {
-            const baseWidth = Math.max(20, propVisual.width || 30);
-            const baseHeight = Math.max(20, propVisual.height || 30);
-            const width = baseWidth * 0.85;
-            const height = baseHeight * 0.85;
-
+        const bounds = computePropColliderBounds(x, z, propVisual, propType);
+        if (bounds && shouldCreatePropCollider(wantsCollision, propType)) {
             this.worldObjects.addWorldCollider({
-                x,
-                y: z - height / 2,
-                width,
-                height,
+                ...bounds,
                 collision: true,
                 type: 'prop',
                 propType: propType?.type ?? 'loaded',
@@ -342,7 +336,7 @@ export class PropManager {
                 chunkKey,
                 id: p.id,
                 visual: propVisual,
-                sprite: propVisual
+                sprite: propVisual,
             });
         }
 
@@ -542,32 +536,22 @@ export class PropManager {
                 shadowsList.push(shadow);
             }
 
-            if (!propType.collision) {
+            if (!shouldCreatePropCollider(propType.collision, propType)) {
                 this._enableOcclusionFade(propVisual);
             }
 
-            // Create collider
-            if (propType.collision) {
-                const baseWidth = Math.max(20, propVisual.width || 30);
-                const baseHeight = Math.max(20, propVisual.height || 30);
-                const width = baseWidth * 0.85;
-                const height = baseHeight * 0.85;
-
-                const collider = {
-                    x: x,
-                    y: z - height / 2,
-                    width,
-                    height,
+            const bounds = computePropColliderBounds(x, z, propVisual, propType);
+            if (bounds && shouldCreatePropCollider(propType.collision, propType)) {
+                this.worldObjects.addWorldCollider({
+                    ...bounds,
                     collision: true,
                     type: 'prop',
                     propType: propType.type,
-                    biome: biome,
+                    biome,
                     chunkKey: key,
                     visual: propVisual,
-                    sprite: propVisual
-                };
-
-                this.worldObjects.addWorldCollider(collider);
+                    sprite: propVisual,
+                });
             }
 
             propsList.push(propVisual);

@@ -14,7 +14,7 @@
     {
       "typeKey": "SNOW_STONE",
       "name": "snow_stone",
-      "variants": ["snowstone1", "snowstone2", "snowstone3", "snowstone4", "snowstone5", "snowstone7"],
+      "variants": ["snowstone1", "snowstone2", "snowstone3", "snowstone4", "snowstone5"],
       "collision": true,
       "collisionType": "auto",
       "minDistance": 500,

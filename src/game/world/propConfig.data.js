@@ -1,6 +1,9 @@
 // propConfig.js - Simplified with multiple variants
+//
+// collisionType: 'auto' | 'rect' | 'none'
+//   rect — fixed box at prop foot (bottom-center); optional rectWidth / rectHeight (default 50)
 export const PROP_TYPES = {
-    // Stone has multiple variants
+    // FOREST
     STONE: {
         name: 'stone',
         variants: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5', 'stone6', 'stone7', 'stone8', 'stone9', 'stone10'],
@@ -11,35 +14,14 @@ export const PROP_TYPES = {
         damageOnTouch: 0,
         scaleRange: { min: 0.6, max: 0.6}  // Random size variation
     },
-    SNOW_STONE: {
-        name: 'snow_stone',
-        variants: ['snowstone1', 'snowstone2', 'snowstone3' , 'snowstone4', 'snowstone5'],
-        collision: true,
-        collisionType: 'auto',
-        minDistance: 500,
-        margin: 0.8,
-        damageOnTouch: 0,
-        scaleRange: { min: 0.5, max: 0.7 }
-    },
     TREE: {
         name: 'tree',
         variants: ['tree1', 'tree2', 'tree3', 'tree4', 'tree5'],
         collision: false,
-        collisionType: 'rect',
         minDistance: 80,
         margin: 0.8,
         damageOnTouch: 0,
         scaleRange: { min: 0.9, max: 1.0 }
-    },
-    SNOW_TREE: {
-        name: 'tree',
-        variants: ['log_pile', 'dead_tree'],
-        collision: false,
-        collisionType: 'rect',
-        minDistance: 80,
-        margin: 0.8,
-        damageOnTouch: 0,
-        scaleRange: { min: 0.15, max: 0.25 }
     },
     BUSH: {
         name: 'bush',
@@ -61,16 +43,58 @@ export const PROP_TYPES = {
         damageOnTouch: 0,
         scaleRange: { min: 0.4, max: 0.7 }
     },
-    CACTUS: {
-        name: 'cactus',
-        variants: [],
+    // ICE
+    SNOW_STONE: {
+        name: 'snow_stone',
+        variants: ['snowstone1', 'snowstone2', 'snowstone3' , 'snowstone4', 'snowstone5'],
         collision: true,
         collisionType: 'auto',
+        minDistance: 500,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.5, max: 0.7 }
+    },
+    SNOW_TREE: {
+        name: 'tree',
+        variants: ['log_pile', 'dead_tree'],
+        collision: false,
+        minDistance: 80,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.75, max: 0.85 }
+    },
+    // DESERT
+    DESERT_TREE: {
+        name: 'tree',
+        variants: ['desert_tree', 'desert_tree_2', 'desert_tree_3', 'desert_tree_4'],
+        collision: false,
+        minDistance: 80,
+        margin: 0.8,
+        damageOnTouch: 0,
+        scaleRange: { min: 0.5, max: 0.75 }
+    },
+    CACTUS: {
+        name: 'cactus',
+        variants: ['desert_cactus', 'desert_cactus_2', 'desert_cactus_3', 'desert_cactus_4'],
+        collision: true,
+        collisionType: 'rect',
+        rectWidth: 42,
+        rectHeight: 50,
+        minDistance: 60,
+        margin: 0.75,
+        damageOnTouch: 1,
+        scaleRange: { min: 0.5, max: 0.8 }
+    },
+    DESERT_BUSH: {
+        name: 'bush',
+        variants: ['desert_bush', 'desert_bush_2'],
+        collision: false,
+        collisionType: 'none',
         minDistance: 60,
         margin: 0.75,
         damageOnTouch: 0,
-        scaleRange: { min: 0.6, max: 1.0 }
-    }
+        scaleRange: { min: 0.2, max: 0.5 }
+    },
 };
 
 /**
@@ -89,6 +113,12 @@ export const PROP_SHADOW_OVERRIDES = {
     stone6: { offsetY: -50 },
     stone7: { offsetY: -50 },
     stone8: { offsetY: -50 },
+    snowstone1: { offsetY: -50 },
+    snowstone2: { offsetY: -50 },
+    snowstone3: { offsetY: -50 },
+    snowstone4: { offsetY: -50 },
+    snowstone5: { offsetY: -50 },
+
 };
 
 /** @param {string | null | undefined} assetId */
@@ -120,7 +150,9 @@ export const BIOME_PROP_CONFIG = {
     desert: {
         density: 0.5,  // Root level
         props: [
-            { type: 'STONE', weight: 100 },
+            { type: 'CACTUS', weight: 50 },
+            { type: 'DESERT_TREE', weight: 25 },
+            { type: 'DESERT_BUSH', weight: 25 },
         ]
     },
     ice: {
