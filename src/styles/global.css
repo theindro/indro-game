@@ -26,6 +26,12 @@ img {
     -webkit-user-drag: none;
 }
 
+/* Dev monster editor: use normal pointer on canvas (global custom cursor breaks grab affordance) */
+.monster-editor-canvas-host,
+.monster-editor-canvas-host canvas {
+    cursor: crosshair !important;
+}
+
 /* Optional: prevent scrolling/bounce on mobile */
 html,
 body {

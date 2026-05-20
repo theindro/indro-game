@@ -3,7 +3,7 @@ export class RusherArchetype {
         this.mob = mob;
         this.dashCooldown = 2;
         this.dashSpeed = 6.25;
-        this.dashDuration = 0.2;
+        this.dashDuration = 0.5;
         this.dashing = false;
         this.dashTimer = 0;
     }

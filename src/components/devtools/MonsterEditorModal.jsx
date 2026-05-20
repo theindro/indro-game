@@ -44,6 +44,12 @@ function downloadText(filename, text) {
 export default function MonsterEditorModal({ open, onClose }) {
     const canvasHostRef = useRef(null);
     const engineRef = useRef(null);
+
+    const handleClose = useCallback(() => {
+        engineRef.current?.destroy();
+        engineRef.current = null;
+        onClose();
+    }, [onClose]);
     const [messageApi, contextHolder] = message.useMessage();
 
     const [shapeKey, setShapeKey] = useState('VOID_SHAPE_7');
@@ -68,32 +74,38 @@ export default function MonsterEditorModal({ open, onClose }) {
     }, []);
 
     useEffect(() => {
-        if (!open) {
-            engineRef.current?.destroy();
-            engineRef.current = null;
-            return;
-        }
+        if (!open) return;
 
         let cancelled = false;
+        /** @type {MonsterEditorEngine | null} */
+        let pendingEngine = null;
 
         (async () => {
             await new Promise((r) => requestAnimationFrame(r));
             if (cancelled || !canvasHostRef.current) return;
 
             const engine = new MonsterEditorEngine(canvasHostRef.current);
+            pendingEngine = engine;
             engine.onModelChange = syncUiFromEngine;
-            engineRef.current = engine;
             await engine.init();
+
+            if (cancelled) {
+                engine.destroy();
+                return;
+            }
+
+            engineRef.current = engine;
             engine.setShapeKey(shapeKey);
             syncUiFromEngine();
         })();
 
         return () => {
             cancelled = true;
-            engineRef.current?.destroy();
+            const engine = engineRef.current ?? pendingEngine;
             engineRef.current = null;
+            engine?.destroy();
         };
-    }, [open]);
+    }, [open, syncUiFromEngine]);
 
     const handleShapeKeyChange = (key) => {
         setShapeKey(key);
@@ -176,7 +188,11 @@ export default function MonsterEditorModal({ open, onClose }) {
             <Modal
                 title="Monster shape editor"
                 open={open}
-                onCancel={onClose}
+                onCancel={handleClose}
+                afterClose={() => {
+                    engineRef.current?.destroy();
+                    engineRef.current = null;
+                }}
                 width={1100}
                 footer={null}
                 destroyOnClose
@@ -186,13 +202,16 @@ export default function MonsterEditorModal({ open, onClose }) {
                     <Col span={15}>
                         <div
                             ref={canvasHostRef}
+                            className="monster-editor-canvas-host"
                             style={{
                                 width: '100%',
                                 height: 520,
                                 borderRadius: 8,
                                 overflow: 'hidden',
                                 border: '1px solid rgba(255,255,255,0.12)',
-                                background: '#0b0b14',
+                                background: '#ffffff',
+                                cursor: 'crosshair',
+                                touchAction: 'none',
                             }}
                         />
                         <Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 8 }}>
