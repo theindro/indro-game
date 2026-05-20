@@ -16,11 +16,13 @@ import { getBiomeForChunk, getWorldContentScales } from './worldProgression.js';
 import { TotemWaveEventManager } from './events/totemWaveEvent.js';
 import {
     MAX_ACTIVE_MOBS,
-    MAX_MOBS_PER_CHUNK,
     MAX_PACKS_PER_DENSE_CHUNK,
     computePackSizeScale,
     clampPackMobCount,
+    capPackMobCounts,
+    getMaxMobsPerChunk,
     getRemainingMobBudget,
+    isMobSpawnTooClose,
     pickMobsToCull,
     shouldRenderMob,
     shouldSimulateMob,
@@ -234,8 +236,13 @@ export class OpenWorldManager {
         const packSizeScale = computePackSizeScale(difficulty, contentScales);
         const packCountScale = contentScales.mobPackCountMul;
 
+        const chunkMobCap = getMaxMobsPerChunk(difficulty);
+
         if (type === 'mob_pack') {
-            data.packs = this.generateMobPacks(chunkX, chunkZ, 1, seed, packSizeScale, layoutAnchors, packMul * packCountScale);
+            data.packs = capPackMobCounts(
+                this.generateMobPacks(chunkX, chunkZ, 1, seed, packSizeScale, layoutAnchors, packMul * packCountScale, difficulty),
+                chunkMobCap
+            );
         }
 
         if (type === 'dense_pack') {
@@ -243,7 +250,10 @@ export class OpenWorldManager {
                 MAX_PACKS_PER_DENSE_CHUNK,
                 Math.max(1, Math.round(2 * packMul * packCountScale))
             );
-            data.packs = this.generateMobPacks(chunkX, chunkZ, denseCount, seed, packSizeScale, layoutAnchors, packMul);
+            data.packs = capPackMobCounts(
+                this.generateMobPacks(chunkX, chunkZ, denseCount, seed, packSizeScale, layoutAnchors, packMul, difficulty),
+                chunkMobCap
+            );
         }
 
         if (type === 'elite') {
@@ -265,15 +275,19 @@ export class OpenWorldManager {
         return data;
     }
 
-    generateMobPacks(chunkX, chunkZ, packCount, seed, packSizeScale, layoutAnchors = null, packMul = 1) {
+    generateMobPacks(chunkX, chunkZ, packCount, seed, packSizeScale, layoutAnchors = null, packMul = 1, difficulty = 1) {
         const packs = [];
 
+        const d = Math.max(1, difficulty ?? 1);
         const defaultPackSize = Math.max(2, Math.round(packSizeScale));
-        const packMulClamped = Math.min(packMul, 2.35);
+        const packMulClamped = Math.min(packMul, d <= 3 ? 1.15 : 2.35);
         const chunkSizeWorld = this.chunkSize * this.tileSize;
 
         const startX = chunkX * chunkSizeWorld;
         const startZ = chunkZ * chunkSizeWorld;
+        const margin = chunkSizeWorld * 0.12;
+        const usable = chunkSizeWorld - margin * 2;
+        const gridCols = Math.max(1, Math.ceil(Math.sqrt(packCount)));
 
         for (let i = 0; i < packCount; i++) {
 
@@ -286,17 +300,27 @@ export class OpenWorldManager {
                 const center = sampleMobPackCenter(layoutAnchors, i, packSeed);
                 centerX = center.x;
                 centerZ = center.z;
+            } else if (packCount > 1) {
+                const col = i % gridCols;
+                const row = Math.floor(i / gridCols);
+                const gridRows = Math.ceil(packCount / gridCols);
+                const cellW = usable / gridCols;
+                const cellH = usable / gridRows;
+                centerX = startX + margin + (col + 0.5) * cellW + (this.seededRandom(packSeed) - 0.5) * cellW * 0.38;
+                centerZ = startZ + margin + (row + 0.5) * cellH + (this.seededRandom(packSeed + 5555) - 0.5) * cellH * 0.38;
             } else {
-                centerX = startX + this.seededRandom(packSeed) * chunkSizeWorld;
-                centerZ = startZ + this.seededRandom(packSeed + 5555) * chunkSizeWorld;
+                centerX = startX + margin + this.seededRandom(packSeed) * usable;
+                centerZ = startZ + margin + this.seededRandom(packSeed + 5555) * usable;
             }
+
+            const spreadRadius = 200 + this.seededRandom(packSeed + 888) * (d <= 3 ? 140 : 240);
 
             packs.push({
                 x: centerX,
                 z: centerZ,
-                radius: 120 + this.seededRandom(packSeed + 888) * 120,
+                radius: spreadRadius,
                 mobCount: clampPackMobCount(
-                    (defaultPackSize + Math.floor(this.seededRandom(packSeed + 999) * 3)) * packMulClamped
+                    (defaultPackSize + Math.floor(this.seededRandom(packSeed + 999) * 2)) * packMulClamped
                 ),
                 archetype: 'melee',
             });
@@ -553,7 +577,7 @@ export class OpenWorldManager {
         const entities = {mobs: []};
         let chunkSpawned = 0;
         const chunkBudget = Math.min(
-            MAX_MOBS_PER_CHUNK,
+            getMaxMobsPerChunk(difficulty),
             getRemainingMobBudget(this.entitiesList.mobs.length)
         );
 
@@ -561,6 +585,8 @@ export class OpenWorldManager {
             this.spawnedEntities.set(key, entities);
             return;
         }
+
+        const chunkPlaced = [];
 
         for (let pi = 0; pi < chunkData.packs.length; pi++) {
             const pack = chunkData.packs[pi];
@@ -572,18 +598,34 @@ export class OpenWorldManager {
                 ) {
                     break;
                 }
-                const mobSeed =
-                    chunkData.seed ^
-                    (pi * 7919) ^
-                    (i * 7933) ^
-                    (Math.floor(pack.x) * 17) ^
-                    (Math.floor(pack.z) * 31);
 
-                const angle = this.seededRandom(mobSeed) * Math.PI * 2;
-                const dist = this.seededRandom(mobSeed + 424242) * pack.radius;
+                let x = 0;
+                let z = 0;
+                let mobSeed = 0;
+                let placedOk = false;
 
-                const x = pack.x + Math.cos(angle) * dist;
-                const z = pack.z + Math.sin(angle) * dist;
+                for (let attempt = 0; attempt < 10; attempt++) {
+                    mobSeed =
+                        chunkData.seed ^
+                        (pi * 7919) ^
+                        (i * 7933) ^
+                        (attempt * 12011) ^
+                        (Math.floor(pack.x) * 17) ^
+                        (Math.floor(pack.z) * 31);
+
+                    const angle = this.seededRandom(mobSeed) * Math.PI * 2;
+                    const dist = (0.35 + this.seededRandom(mobSeed + 424242) * 0.65) * pack.radius;
+
+                    x = pack.x + Math.cos(angle) * dist;
+                    z = pack.z + Math.sin(angle) * dist;
+
+                    if (!isMobSpawnTooClose(x, z, chunkPlaced)) {
+                        placedOk = true;
+                        break;
+                    }
+                }
+
+                if (!placedOk) continue;
 
                 // TODO: Dont respawn mobs that are killed
                 //if (this.persistedMobs.has(mobId)) continue;
@@ -618,6 +660,7 @@ export class OpenWorldManager {
                     mob.packId = `${key}_${pack.x}_${pack.z}`;
 
                     entities.mobs.push(mob);
+                    chunkPlaced.push({ x, z });
 
                     this.entitiesList.mobs.push(mob);
                     chunkSpawned++;

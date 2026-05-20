@@ -232,7 +232,7 @@ export function sampleMobPackCenter(anchors, packIndex, seed) {
     if (RESOURCE_YARD_LAYOUTS.has(anchors.type)) {
         const cx = anchors.centerX ?? anchors.startX + anchors.chunkSizeWorld * 0.5;
         const cz = anchors.centerZ ?? anchors.startZ + anchors.chunkSizeWorld * 0.5;
-        const jitter = 35 + seededRandom(seed + packIndex * 91) * 95;
+        const jitter = 90 + seededRandom(seed + packIndex * 91) * 180;
         const angle = seededRandom(seed + packIndex * 103) * Math.PI * 2;
         return {
             x: cx + Math.cos(angle) * jitter,
@@ -242,7 +242,7 @@ export function sampleMobPackCenter(anchors, packIndex, seed) {
 
     if (anchors.centers?.length && seededRandom(seed + packIndex * 91) > 0.25) {
         const c = anchors.centers[packIndex % anchors.centers.length];
-        const jitter = 40 + seededRandom(seed + packIndex * 97) * 80;
+        const jitter = 85 + seededRandom(seed + packIndex * 97) * 150;
         const angle = seededRandom(seed + packIndex * 103) * Math.PI * 2;
         return {
             x: c.x + Math.cos(angle) * jitter,

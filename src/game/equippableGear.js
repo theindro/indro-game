@@ -253,7 +253,7 @@ export function rollMobGearDropIds() {
     return ids;
 }
 
-/** Boss: several magic/rare, few epic, small legendary chance. */
+/** Boss: green/blue gear only, plus at most one purple (epic) equipment piece. */
 export function rollBossGearDropIds() {
     const ids = [];
     const add = (tier, chance) => {
@@ -263,15 +263,17 @@ export function rollBossGearDropIds() {
         }
     };
 
-    for (let i = 0; i < 4; i++) add('magic', 0.75);
-    for (let i = 0; i < 3; i++) add('rare', 0.65);
-    for (let i = 0; i < 2; i++) add('epic', 0.4);
-    add('legendary', 0.12);
+    for (let i = 0; i < 4; i++) add('magic', 0.78);
+    for (let i = 0; i < 3; i++) add('rare', 0.68);
+
+    if (Math.random() < 0.58) {
+        const epicId = pickRandomGearId('epic');
+        if (epicId) ids.push(epicId);
+    }
+
     if (Math.random() < MOB_MATERIAL_DROP_RATES.void_soulstone) {
         ids.push('void_soulstone');
     }
-    if (Math.random() < MOB_MATERIAL_DROP_RATES.wrath_of_the_void) {
-        ids.push('wrath_of_the_void');
-    }
+
     return ids;
 }

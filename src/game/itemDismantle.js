@@ -2,11 +2,11 @@ import { ItemDatabase } from './items.js';
 
 /** Void essence returned when dismantling gear by rarity (Magic = "uncommon" tier). */
 export const DISMANTLE_ESSENCE_BY_RARITY = {
-    Common: 1,
-    Magic: 2,
-    Rare: 3,
-    Epic: 4,
-    Legendary: 5,
+    Common: 2,
+    Magic: 4,
+    Rare: 8,
+    Epic: 25,
+    Legendary: 50,
 };
 
 const RARITY_SORT_ORDER = {

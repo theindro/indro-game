@@ -79,9 +79,9 @@ export function getWorldContentScales(difficulty) {
     const earlyEase = early ? (3 - d) / 2 : 0;
 
     return {
-        mobPackChanceMul: (early ? 0.78 : 0.35) + t * 0.55,
-        mobPackCountMul: (early ? 1.35 : 0.5) + t * 0.4 + earlyEase * 0.4,
-        mobPackSizeMul: (early ? 1.05 : 0.45) + t * 0.4 + earlyEase * 0.35,
+        mobPackChanceMul: (early ? 0.72 : 0.35) + t * 0.55,
+        mobPackCountMul: (early ? 0.82 : 0.5) + t * 0.4 + earlyEase * 0.12,
+        mobPackSizeMul: (early ? 0.72 : 0.45) + t * 0.45 + earlyEase * 0.15,
         interactableIntensityMul: 0.42 + t * 0.58,
         interactableMaxMul: 0.5 + t * 0.5,
         lootMultiplier: 0.38 + t * 0.62,

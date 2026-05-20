@@ -127,7 +127,7 @@ export async function createGame() {
     const minimap = new MinimapManager(app, openWorld, {x: px, y: py, rotation: 0}, entities);
 
     // ==================== SETUP ====================
-    setupEventListeners(input, dash, combat, playerState.stats, mouseWorld, entities.bosses, openWorld);
+    setupEventListeners(input, dash, combat, playerState.stats, mouseWorld);
     setupChunkChangeHandler(openWorld, weatherSystem);
 
     // Initial player position
@@ -356,8 +356,7 @@ function initWeatherSystem(app, world) {
 }
 
 // Key listeners
-function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, openWorld) {
-
+function setupEventListeners(input, dash, combat, stats, mouseWorld) {
     window.addEventListener('keydown', (e) => {
         const key = e.key;
 
@@ -389,11 +388,6 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld, bosses, ope
                     combat.useSpinshot();
                 break;
         }
-
-
-        if (e.key === 'b' || e.key === 'B') {
-            spawnTestBoss(bosses, openWorld);
-        }
     });
 }
 
@@ -405,25 +399,6 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
         weatherSystem.setActiveBiome(info.biome);
         lastWeatherBiome = info.biome;
     };
-}
-
-async function spawnTestBoss(bosses, openWorld) {
-    const {x: px, y: py} = useGameStore.getState().player.location;
-    console.log('🎮 Spawning test boss!');
-
-    const {spawnBoss} = await import('./controllers/createBossController.js');
-    const bossX = px + 300;
-    const bossY = py + 200;
-    const boss = spawnBoss(openWorld.entityLayer, 'lava', bossX, bossY, 1);
-
-    bosses.push(boss);
-
-    console.log(`🔥 Boss spawned at (${bossX}, ${bossY}) on entityLayer`);
-    VFX.shake(10);
-
-    if (window.audioManager) {
-        window.audioManager.play('/sounds/boss.mp3');
-    }
 }
 
 function handleShooting(input, combat, px, py, world, shootCooldown, stats) {

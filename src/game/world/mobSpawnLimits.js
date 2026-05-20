@@ -8,6 +8,12 @@ export const MAX_ACTIVE_MOBS = 300;
 /** Max mobs spawned when a single chunk loads. */
 export const MAX_MOBS_PER_CHUNK = 75;
 
+/** Target cap for low-difficulty chunks (spawn area). */
+export const EARLY_MAX_MOBS_PER_CHUNK = 10;
+
+/** Minimum spacing between mob spawn points in the same chunk (world px). */
+export const MIN_MOB_SPAWN_SPACING = 56;
+
 /** Max mobs in one pack definition. */
 export const MAX_MOBS_PER_PACK = 25;
 
@@ -31,8 +37,67 @@ const MOB_RENDER_RADIUS_SQ = MOB_RENDER_RADIUS * MOB_RENDER_RADIUS;
 export function computePackSizeScale(difficulty, contentScales) {
     const d = Math.max(1, difficulty ?? 1);
     const mul = contentScales?.mobPackSizeMul ?? 1;
-    const earlyBoost = d <= 3 ? 1.2 + ((3 - d) / 2) * 0.55 : 1;
-    return (1 + Math.sqrt(d - 1) * 1.75 * mul) * earlyBoost;
+    const earlyDampen = d <= 3 ? 0.62 + d * 0.11 : 1;
+    const linear = (d - 1) * 1.05 * mul;
+    const curve = Math.sqrt(d - 1) * 1.35 * mul;
+    return Math.max(2, (2 + linear + curve) * earlyDampen);
+}
+
+/**
+ * Per-chunk mob cap — stays near {@link EARLY_MAX_MOBS_PER_CHUNK} at low difficulty.
+ * @param {number} difficulty
+ */
+export function getMaxMobsPerChunk(difficulty) {
+    const d = Math.max(1, difficulty ?? 1);
+    if (d <= 2) return EARLY_MAX_MOBS_PER_CHUNK;
+    if (d <= 5) return Math.round(EARLY_MAX_MOBS_PER_CHUNK + (d - 2) * 5);
+    if (d <= 12) return Math.round(25 + (d - 5) * 4);
+    return Math.min(MAX_MOBS_PER_CHUNK, Math.round(53 + (d - 12) * 2.5));
+}
+
+/**
+ * Trim pack mob counts so a chunk does not exceed the difficulty budget.
+ * @param {Array<{ mobCount: number }>} packs
+ * @param {number} maxTotal
+ */
+export function capPackMobCounts(packs, maxTotal) {
+    if (!packs?.length || maxTotal <= 0) return packs ?? [];
+
+    const capped = packs.map((p) => ({ ...p }));
+    let total = capped.reduce((sum, p) => sum + p.mobCount, 0);
+    if (total <= maxTotal) return capped;
+
+    while (total > maxTotal) {
+        let pick = 0;
+        let best = capped[0]?.mobCount ?? 0;
+        for (let i = 1; i < capped.length; i++) {
+            if (capped[i].mobCount > best) {
+                best = capped[i].mobCount;
+                pick = i;
+            }
+        }
+        if (best <= 1) break;
+        capped[pick].mobCount--;
+        total--;
+    }
+
+    return capped;
+}
+
+/**
+ * @param {number} x
+ * @param {number} z
+ * @param {Array<{ x: number, z: number }>} placed
+ * @param {number} [minDist=MIN_MOB_SPAWN_SPACING]
+ */
+export function isMobSpawnTooClose(x, z, placed, minDist = MIN_MOB_SPAWN_SPACING) {
+    const minSq = minDist * minDist;
+    for (const p of placed) {
+        const dx = p.x - x;
+        const dz = p.z - z;
+        if (dx * dx + dz * dz < minSq) return true;
+    }
+    return false;
 }
 
 /**
