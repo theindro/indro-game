@@ -2,6 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { GroundAttackController } from '../createGroundAttackController.js';
 import { GROUND_WARN_NORMAL } from '../../constants.js';
 import { VFX } from '../../GlobalEffects.js';
+import { drawMobEye } from '../../voidShapeLayout.js';
 
 const CAST_DURATION_SEC = GROUND_WARN_NORMAL / 60;
 const EYE_COLOR_IDLE = 0xffffff;
@@ -10,15 +11,7 @@ const SPARK_COUNT = 10;
 
 function redrawMobEye(eye, shape, size, fillColor) {
     if (!eye || !shape?.eye) return;
-    const s = Math.min(size / 13, 2);
-    const eyeX = shape.eye.x * s;
-    const eyeY = shape.eye.y * s;
-    eye.clear();
-    eye.moveTo(eyeX, eyeY)
-        .lineTo(eyeX - 8 * s, eyeY - 2 * s)
-        .lineTo(eyeX - 6 * s, eyeY + 1 * s)
-        .closePath()
-        .fill(fillColor);
+    drawMobEye(eye, shape, size, fillColor);
 }
 
 export class TankArchetype {

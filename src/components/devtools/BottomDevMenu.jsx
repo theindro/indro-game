@@ -7,12 +7,13 @@ import {
     Button, Tag, Row,
 } from 'antd';
 import {
-    PauseCircleOutlined, SearchOutlined, EditOutlined, SaveOutlined, LoadingOutlined, UploadOutlined,
+    PauseCircleOutlined, SearchOutlined, EditOutlined, SaveOutlined, UploadOutlined, BugOutlined,
 } from '@ant-design/icons';
 import {useGameStore} from '../../stores/gameStore.js';
 import WorldEditorModal from "./WorldEditorModal.jsx";
 import {editorBridge} from "./editorBridge.js";
 import ItemBrowser from "./ItemBrowser.jsx";
+import MonsterEditorModal from "./MonsterEditorModal.jsx";
 
 const MENU_ITEMS = [
     {
@@ -31,6 +32,12 @@ const MENU_ITEMS = [
         key: 'item-browser',
         icon: <SearchOutlined/>,
         label: 'Item database',
+        hotkey: '',
+    },
+    {
+        key: 'monster-editor',
+        icon: <BugOutlined/>,
+        label: 'Monster shape editor',
         hotkey: '',
     },
     {
@@ -163,6 +170,11 @@ const BottomDevMenu = () => {
                 />
 
                 <ItemBrowser open={openPanel === 'item-browser'} setOpen={setOpenPanel}/>
+
+                <MonsterEditorModal
+                    open={openPanel === 'monster-editor'}
+                    onClose={() => setOpenPanel(null)}
+                />
             </Row>
         </div>
     );

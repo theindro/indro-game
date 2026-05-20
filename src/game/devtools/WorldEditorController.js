@@ -184,7 +184,7 @@ export class WorldEditorController {
             this.app.renderer,
             "forest",
             stats.size,
-            "",
+            null,
             stats.type
         );
 

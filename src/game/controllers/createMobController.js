@@ -248,7 +248,7 @@ export function spawnMob(renderer, world, x, y, biome = 'forest', archetype = nu
     const stats = ARCHETYPE_STATS[finalArchetype];
     const size = stats.size;
 
-    const { c, bodyC, uiC, body, eye, hpBar } = createMobEntity(renderer, biome, size, '', stats.type);
+    const { c, bodyC, uiC, body, eye, hpBar } = createMobEntity(renderer, biome, size, null, stats.type);
     c.x = x;
     c.y = y;
     c.sortableChildren = true;

@@ -35,13 +35,6 @@ const MENU_ITEMS = [
         hotkey: 'Esc',
     },
     {
-        key: 'map',
-        icon: <CompassOutlined/>,
-        label: 'Map',
-        hotkey: 'M',
-        disabled: true,
-    },
-    {
         key: 'quests',
         icon: <ExclamationCircleOutlined/>,
         label: 'Quests',
