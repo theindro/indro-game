@@ -172,3 +172,28 @@ export function canAllocateSkill(ranks, nodeId, level) {
 
     return { ok: true };
 }
+
+/** Nodes that list `nodeId` in `requires`. */
+export function getDependentSkillNodes(nodeId) {
+    return SKILL_NODES.filter((n) => (n.requires ?? []).includes(nodeId));
+}
+
+/**
+ * @param {Record<string, number>} ranks
+ * @param {string} nodeId
+ */
+export function canDeallocateSkill(ranks, nodeId) {
+    const node = getSkillNode(nodeId);
+    if (!node) return { ok: false, reason: 'Unknown skill' };
+
+    const current = ranks[nodeId] ?? 0;
+    if (current <= 0) return { ok: false, reason: 'No ranks allocated' };
+
+    for (const dep of getDependentSkillNodes(nodeId)) {
+        if ((ranks[dep.id] ?? 0) > 0) {
+            return { ok: false, reason: `Remove points from ${dep.name} first` };
+        }
+    }
+
+    return { ok: true };
+}

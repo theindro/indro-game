@@ -12,6 +12,7 @@ import { MAX_PLAYER_LEVEL } from '../game/skills/skillTreeDefinitions.js';
 import {
     applyAbilitySkillDeltas,
     canAllocateSkill,
+    canDeallocateSkill,
     computeSkillModifiers,
     migrateSkillRanks,
     getSkillPointsEarned,
@@ -339,6 +340,24 @@ function createGameStoreSlice(set, get) {
                     },
                 },
             }));
+
+            get().recalculateStats();
+            return { ok: true };
+        },
+
+        deallocateSkillPoint: (nodeId) => {
+            const state = get();
+            const ranks = state.skills?.ranks ?? { unlock_barrage: 1 };
+            const check = canDeallocateSkill(ranks, nodeId);
+            if (!check.ok) return check;
+
+            const next = (ranks[nodeId] ?? 0) - 1;
+            set((s) => {
+                const prev = { ...(s.skills?.ranks ?? {}) };
+                if (next <= 0) delete prev[nodeId];
+                else prev[nodeId] = next;
+                return { skills: { ranks: prev } };
+            });
 
             get().recalculateStats();
             return { ok: true };
