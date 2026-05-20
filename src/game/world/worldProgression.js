@@ -1,12 +1,15 @@
 /**
- * World difficulty (1–10 from spawn), large biome regions, and content scaling.
+ * World difficulty (distance from spawn), randomized biome regions, and content scaling.
  */
 
 export const MAX_WORLD_DIFFICULTY = 50;
-/** Chunks per biome region edge (~24–30 chunk wide zones). */
+/** Chunks per biome region edge (~26 chunk-wide zones). */
 export const BIOME_REGION_CHUNKS = 26;
-/** Chunk distance from origin until difficulty reaches 10. */
+/** Chunk distance from origin until difficulty reaches max. */
 export const DIFFICULTY_RAMP_CHUNKS = 100;
+
+/** All procedural biomes — any can appear at spawn depending on world seed. */
+export const WORLD_BIOMES = ['forest', 'desert', 'ice', 'lava'];
 
 /** @param {number} chunkX */
 /** @param {number} chunkZ */
@@ -15,7 +18,7 @@ export function getChunkLevel(chunkX, chunkZ) {
 }
 
 /**
- * World difficulty 1–10 from distance (spawn ≈ 0,0). Early chunks stay at 1 longer.
+ * World difficulty from distance (spawn ≈ 0,0). Early chunks stay at 1 longer.
  * @param {number} chunkX
  * @param {number} chunkZ
  */
@@ -28,47 +31,45 @@ export function getChunkDifficulty(chunkX, chunkZ) {
     return Math.min(MAX_WORLD_DIFFICULTY, Math.max(1, Math.round(raw * 10) / 10));
 }
 
-/** Monster level badge = difficulty × 5 (diff 10 → Lv 50). */
+/** Monster level badge ≈ world difficulty. */
 export function getMonsterLevel(worldDifficulty) {
-    return Math.max(1, Math.round((worldDifficulty ?? 1)));
+    return Math.max(1, Math.round(worldDifficulty ?? 1));
 }
 
 /**
- * Single biome for a difficulty band.
- * Forest ≤3, ice (3,5], desert (5,8], lava >8.
- * @param {number} difficulty
+ * @param {number} rx Region index (chunkX / BIOME_REGION_CHUNKS)
+ * @param {number} rz Region index (chunkZ / BIOME_REGION_CHUNKS)
+ * @param {number} worldSeed
  */
-export function getBiomeForDifficulty(difficulty) {
-    const d = Math.min(MAX_WORLD_DIFFICULTY, Math.max(1, difficulty ?? 1));
-    if (d <= 3) return 'forest';
-    if (d <= 5) return 'ice';
-    if (d <= 8) return 'desert';
-    return 'lava';
+function hashRegionBiome(rx, rz, worldSeed) {
+    let h = (worldSeed | 0) ^ Math.imul(rx | 0, 73856093) ^ Math.imul(rz | 0, 19349663);
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return h >>> 0;
 }
 
 /**
- * @param {number} difficulty
- * @returns {string[]}
- */
-export function getAllowedBiomesForDifficulty(difficulty) {
-    return [getBiomeForDifficulty(difficulty)];
-}
-
-/**
- * Large coherent biome per region (not per-chunk noise).
+ * Deterministic biome per map region from world seed (not difficulty).
  * @param {number} chunkX
  * @param {number} chunkZ
- * @param {number} _worldSeed
+ * @param {number} [worldSeed=0]
  */
-export function getBiomeForChunk(chunkX, chunkZ, _worldSeed) {
-    const d = getChunkDifficulty(chunkX, chunkZ);
-    // Integer tier bands ≈ several chunks wide (smoother than 0.1 steps, matches difficulty UI).
-    return getBiomeForDifficulty(Math.floor(d));
+export function getBiomeForChunk(chunkX, chunkZ, worldSeed = 0) {
+    const rx = Math.floor(chunkX / BIOME_REGION_CHUNKS);
+    const rz = Math.floor(chunkZ / BIOME_REGION_CHUNKS);
+    const h = hashRegionBiome(rx, rz, worldSeed);
+    return WORLD_BIOMES[h % WORLD_BIOMES.length];
+}
+
+/** Biome at the default spawn chunk (0, 0) for this world seed. */
+export function getSpawnBiome(worldSeed = 0) {
+    return getBiomeForChunk(0, 0, worldSeed);
 }
 
 /**
  * Scales spawns, resources, and loot by world difficulty (tuned for slower early game).
- * @param {number} difficulty 1–10
+ * @param {number} difficulty 1–MAX_WORLD_DIFFICULTY
  */
 export function getWorldContentScales(difficulty) {
     const d = Math.min(MAX_WORLD_DIFFICULTY, Math.max(1, difficulty ?? 1));

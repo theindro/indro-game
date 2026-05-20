@@ -28,7 +28,7 @@ export default function GameApp() {
                 <GameCanvas />
             </div>
 
-            {import.meta.env.DEV && <BottomDevMenu />}
+            {false && <BottomDevMenu />}
 
             {!showStartScreen && <BottomRightMenu />}
 

@@ -98,8 +98,8 @@ export class ChunkMonitor {
         const biome = chunkData?.biome || 'unknown';
         const weather = chunkData?.weather || 'unknown';
         const difficulty = chunkData?.difficulty ?? '?';
-        const monsterLv = chunkData?.difficulty
-            ? chunkData.difficulty * 5
+        const monsterLv = chunkData?.difficulty != null
+            ? Math.round(chunkData.difficulty)
             : '?';
 
         const type =
@@ -118,7 +118,7 @@ export class ChunkMonitor {
                         
             <div>Chunk: ${chunkX}, ${chunkZ}</div>
             <div>Type: ${type}</div>
-            <div>Difficulty: ${difficulty} / 10 (mobs ~Lv ${monsterLv})</div>
+            <div>Difficulty: ${difficulty} (mobs ~Lv ${monsterLv})</div>
             <div>POI: ${poi}</div>
 
             <hr style="border-color:rgba(255,255,255,0.08)" />

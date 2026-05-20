@@ -69,7 +69,6 @@ export class OpenWorldManager {
                 ? worldSeedFromStore | 0
                 : 1337;
         this.config = {
-            biomeScale: 0.006,
             debugChunks: false,
             poi: {
                 spawnChance: 0.12,

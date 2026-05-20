@@ -17,7 +17,8 @@ export {
     MAX_WORLD_DIFFICULTY,
     getWorldContentScales,
     getBiomeForChunk,
-    getBiomeForDifficulty,
+    getSpawnBiome,
+    WORLD_BIOMES,
 } from './world/worldProgression.js';
 
 /**
