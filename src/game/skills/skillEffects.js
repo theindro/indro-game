@@ -41,6 +41,8 @@ export function createEmptySkillModifiers() {
         basicPoisonChance: 0,
         basicFreezeChance: 0,
         burnTickDamage: 0,
+        gatherSpeedPct: 0,
+        gatherYieldPct: 0,
         unlockedAbilities: {
             ability1: false,
             ability2: false,
@@ -97,6 +99,18 @@ export function computeSkillModifiers(ranks = {}) {
     }
 
     return mods;
+}
+
+/**
+ * Gathering bonuses applied to interactable harvest time and loot amounts.
+ * @param {Record<string, number>} [ranks]
+ */
+export function getGatheringModifiers(ranks = {}) {
+    const mods = computeSkillModifiers(ranks);
+    return {
+        speedMul: 1 + (mods.gatherSpeedPct ?? 0) / 100,
+        yieldMul: 1 + (mods.gatherYieldPct ?? 0) / 100,
+    };
 }
 
 /**

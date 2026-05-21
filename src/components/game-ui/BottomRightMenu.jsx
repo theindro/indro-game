@@ -233,11 +233,11 @@ const BottomRightMenu = () => {
 
                     <Character isOpen={openPanel === 'character'} setOpen={setOpenPanel}/>
 
-                    <CraftingPanel isOpen={openPanel === 'crafting'}/>
+                    <CraftingPanel isOpen={openPanel === 'crafting'} onClose={() => setOpenPanel('')}/>
 
                     <QuestPanel isOpen={openPanel === 'quests'} />
 
-                    <SkillTreePanel isOpen={openPanel === 'skills'} />
+                    <SkillTreePanel isOpen={openPanel === 'skills'} onClose={() => setOpenPanel('')} />
 
                     <PauseScreen/>
 

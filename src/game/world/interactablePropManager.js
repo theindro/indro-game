@@ -16,6 +16,7 @@ import { assetManager } from '../utils/assetManager.js';
 import { shadowManager } from '../controllers/createShadowController.js';
 import { VFX } from '../GlobalEffects.js';
 import { useGameStore } from '../../stores/gameStore.js';
+import { getGatheringModifiers } from '../skills/skillEffects.js';
 import { scaleInteractableIntensity } from './chunkProfile.js';
 import { sampleInteractablePosition, RESOURCE_YARD_LAYOUTS } from './chunkPlacement.js';
 import { INTERACTABLE_HOVER_FILTER } from '../utils/highlightFilters.js';
@@ -331,13 +332,23 @@ export class InteractablePropManager {
 
     // ── Interaction API ───────────────────────────────────────────────────────
 
+    _gatheringMods() {
+        const ranks = useGameStore.getState().skills?.ranks ?? {};
+        return getGatheringModifiers(ranks);
+    }
+
     /** @param {import('./interactablePropConfig.data.js').INTERACTABLE_PROP_TYPES[string]} def */
     _interactionDuration(def) {
+        let base = 0;
         if (def.harvestTime != null && def.harvestTime > 0) {
-            return def.harvestTime;
+            base = def.harvestTime;
+        } else if (def.category === 'chest') {
+            base = 2;
         }
-        if (def.category === 'chest') return 2;
-        return 0;
+        if (base <= 0) return 0;
+
+        const { speedMul } = this._gatheringMods();
+        return Math.max(0.25, base / Math.max(1, speedMul));
     }
 
     _beginChannel(prop, playerX, playerZ) {
@@ -677,7 +688,8 @@ export class InteractablePropManager {
         }
 
         const lootMul = prop._lootMul ?? 1;
-        const loot = this._rollLoot(prop.def.lootTable, prop.id, lootMul);
+        const { yieldMul } = this._gatheringMods();
+        const loot = this._rollLoot(prop.def.lootTable, prop.id, lootMul, yieldMul);
 
         this._playOpenAnim(prop);
 
@@ -734,13 +746,14 @@ export class InteractablePropManager {
 
     // ── Loot rolling ─────────────────────────────────────────────────────────
 
-    _rollLoot(tableId, basisId = '', lootMul = 1) {
+    _rollLoot(tableId, basisId = '', lootMul = 1, gatherYieldMul = 1) {
         const table = getLootTables()[tableId];
         if (!table) return [];
 
         const basis = this.hashString(String(tableId)) ^ this.hashString(String(basisId));
         const drops = [];
         let idx = 0;
+        const yieldMul = Math.max(1, gatherYieldMul ?? 1);
 
         for (const entry of table) {
             const rollSeed = this.worldSeed ^ basis ^ (idx++ * 0x9e3779b9);
@@ -748,8 +761,16 @@ export class InteractablePropManager {
                 const amtSeed = rollSeed + 9181;
                 const span = entry.max - entry.min + 1;
                 let amount = entry.min + Math.floor(this.seededRandom(amtSeed) * span);
-                if (lootMul < 1 && entry.id !== 'void_essence') {
-                    amount = Math.max(entry.min > 0 ? 1 : 0, Math.floor(amount * lootMul));
+                if (entry.id !== 'void_essence') {
+                    if (lootMul !== 1) {
+                        amount = Math.max(entry.min > 0 ? 1 : 0, Math.floor(amount * lootMul));
+                    }
+                    if (yieldMul > 1) {
+                        amount = Math.max(
+                            entry.min > 0 ? entry.min : 0,
+                            Math.floor(amount * yieldMul),
+                        );
+                    }
                 }
                 if (amount > 0) {
                     drops.push({ id: entry.id, amount });

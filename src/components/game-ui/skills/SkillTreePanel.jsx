@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Card, Typography, Tag, Tooltip, message } from 'antd';
+import {Card, Typography, Tag, Tooltip, message, Modal, Drawer} from 'antd';
 import {
     LockOutlined,
     AimOutlined,
@@ -15,6 +15,8 @@ import {
     SyncOutlined,
     KeyOutlined,
     StarOutlined,
+    GoldOutlined,
+    ToolOutlined,
 } from '@ant-design/icons';
 import { useGameStore } from '../../../stores/gameStore.js';
 import {
@@ -68,6 +70,12 @@ const NODE_ICONS = {
     venom_mastery: BugOutlined,
     unlock_spin: SyncOutlined,
     spin_mastery: SyncOutlined,
+    nimble_hands: ThunderboltOutlined,
+    bounty: GoldOutlined,
+    fleet_fingers: ThunderboltOutlined,
+    rich_veins: GoldOutlined,
+    harvest_mastery: ToolOutlined,
+    prospector: GoldOutlined,
 };
 
 const BRANCH_BY_ID = Object.fromEntries(SKILL_BRANCHES.map((b) => [b.id, b]));
@@ -357,7 +365,7 @@ function BranchLabels() {
     return <>{labels}</>;
 }
 
-export default function SkillTreePanel({ isOpen }) {
+export default function SkillTreePanel({ isOpen, onClose }) {
     const [messageApi, contextHolder] = message.useMessage();
     const level = useGameStore((s) => s.player.pLevel);
     const ranks = useGameStore((s) => s.skills?.ranks ?? {});
@@ -393,10 +401,10 @@ export default function SkillTreePanel({ isOpen }) {
     return (
         <>
             {contextHolder}
-            <Card
-                className="bottom-right-float-card quest-panel-card"
-                style={{ width: 920, maxHeight: '78vh', overflow: 'hidden' }}
-                styles={{ body: { padding: 12, overflow: 'auto', maxHeight: 'calc(78vh - 56px)' } }}
+            <Drawer
+                onClose={onClose}
+                width={LAYOUT.width}
+                open={isOpen}
                 title={
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Title level={4} style={{ margin: 0, color: '#fff' }}>
@@ -438,7 +446,7 @@ export default function SkillTreePanel({ isOpen }) {
                         );
                     })}
                 </div>
-            </Card>
+            </Drawer>
         </>
     );
 }

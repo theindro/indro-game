@@ -217,7 +217,7 @@ body {
     top: 272px;
     right: 16px;
     width: 220px;
-    z-index: 9998;
+    z-index: 99;
     padding: 10px 12px;
     border-radius: 12px;
     pointer-events: auto;

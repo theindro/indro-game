@@ -1,4 +1,4 @@
-/** @typedef {'marksmanship'|'chain'|'elemental'|'abilities'} SkillBranch */
+/** @typedef {'marksmanship'|'chain'|'elemental'|'abilities'|'gathering'} SkillBranch */
 
 /**
  * @typedef {object} SkillNodeEffect
@@ -358,6 +358,75 @@ export const SKILL_NODES = [
             { ability: 'ability6', field: 'fireInterval', perRank: -0.008 },
         ],
     },
+
+    // ── Gathering ─────────────────────────────────────────────────────────
+    {
+        id: 'nimble_hands',
+        name: 'Nimble Hands',
+        description: '+8% gather & interact speed per rank',
+        branch: 'gathering',
+        tier: 1,
+        column: 1,
+        maxRank: 3,
+        effects: [{ stat: 'gatherSpeedPct', perRank: 8 }],
+    },
+    {
+        id: 'bounty',
+        name: 'Bounty',
+        description: '+10% resource yield per rank',
+        branch: 'gathering',
+        tier: 1,
+        column: 2,
+        maxRank: 3,
+        effects: [{ stat: 'gatherYieldPct', perRank: 10 }],
+    },
+    {
+        id: 'fleet_fingers',
+        name: 'Fleet Fingers',
+        description: '+15% gather & interact speed per rank',
+        branch: 'gathering',
+        tier: 2,
+        column: 1,
+        maxRank: 2,
+        requires: ['nimble_hands'],
+        effects: [{ stat: 'gatherSpeedPct', perRank: 15 }],
+    },
+    {
+        id: 'rich_veins',
+        name: 'Rich Veins',
+        description: '+20% resource yield per rank',
+        branch: 'gathering',
+        tier: 2,
+        column: 2,
+        maxRank: 2,
+        requires: ['bounty'],
+        effects: [{ stat: 'gatherYieldPct', perRank: 20 }],
+    },
+    {
+        id: 'harvest_mastery',
+        name: 'Harvest Mastery',
+        description: '+26% speed and +26% yield per rank',
+        branch: 'gathering',
+        tier: 3,
+        column: 1,
+        maxRank: 2,
+        requires: ['fleet_fingers'],
+        effects: [
+            { stat: 'gatherSpeedPct', perRank: 26 },
+            { stat: 'gatherYieldPct', perRank: 26 },
+        ],
+    },
+    {
+        id: 'prospector',
+        name: 'Prospector',
+        description: '+30% resource yield per rank',
+        branch: 'gathering',
+        tier: 3,
+        column: 2,
+        maxRank: 2,
+        requires: ['rich_veins'],
+        effects: [{ stat: 'gatherYieldPct', perRank: 30 }],
+    },
 ];
 
 const nodeById = new Map(SKILL_NODES.map((n) => [n.id, n]));
@@ -368,8 +437,9 @@ export function getSkillNode(id) {
 }
 
 export const SKILL_BRANCHES = [
-    { id: 'marksmanship', label: 'Marksmanship', color: '#ff8844' },
-    { id: 'chain', label: 'Chain', color: '#88ccff' },
+    { id: 'marksmanship', label: 'Marksmanship', color: '#ff3535' },
     { id: 'elemental', label: 'Elemental', color: '#44ff88' },
     { id: 'abilities', label: 'Abilities', color: '#b674ff' },
+    { id: 'chain', label: 'Chain', color: '#88ccff' },
+    { id: 'gathering', label: 'Gathering', color: '#d4a84b' },
 ];

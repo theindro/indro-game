@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Card, Row, Col, Typography, Tabs, Button, Progress, message } from 'antd';
+import {Card, Row, Col, Typography, Tabs, Button, Progress, message, Drawer} from 'antd';
 import { useGameStore, ENCHANT_BONUS_PER_LEVEL } from '../../stores/gameStore.js';
 import { ItemDatabase, ItemRarity, GearCraftingRecipes, MaterialCraftingRecipes } from '../../game/items.js';
 import ItemCard from '../Items/ItemCard.jsx';
@@ -895,7 +895,7 @@ function EnchantmentTab({ initialSlotIndex = null }) {
 
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
-export default function CraftingPanel({ isOpen }) {
+export default function CraftingPanel({ isOpen, onClose }) {
     const craftingOpenTab = useGameStore((s) => s.ui?.craftingOpenTab);
     const enchantFocusSlotIndex = useGameStore((s) => s.ui?.enchantFocusSlotIndex);
     const clearEnchantmentUI = useGameStore((s) => s.clearEnchantmentUI);
@@ -917,13 +917,10 @@ export default function CraftingPanel({ isOpen }) {
     if (!isOpen) return null;
 
     return (
-        <Card
-            style={{ width: 520 }}
-            className="bottom-right-float-card"
-            styles={{
-                body: { padding: 0 },
-                header: { display: 'none' },
-            }}
+        <Drawer
+            width={1000}
+            open={isOpen}
+            close={onClose}
         >
             {/* Header */}
             <div
@@ -971,6 +968,6 @@ export default function CraftingPanel({ isOpen }) {
                     <EnchantmentTab initialSlotIndex={enchantFocusSlotIndex} />
                 )}
             </div>
-        </Card>
+        </Drawer>
     );
 }
