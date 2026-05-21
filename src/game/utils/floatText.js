@@ -18,34 +18,53 @@ import {frameScale} from '../constants.js';
  * @param {string} [color='#ff6b8a']
  * @param {{ fontSize?: number, opacity?: number }} [opts]
  */
-export function showFloat(wx, wy, msg, color = '#ff6b8a', opts = {}) {
-    const fontSize = opts.fontSize ?? 16;
-    const baseOpacity = opts.opacity ?? 0.5;
+export function showFloat(wx, wy, msg, color = '#ffb347', opts = {}) {
+    const fontSize = opts.fontSize ?? 18;
+    const baseOpacity = opts.opacity ?? 1;
 
     const d = document.createElement('div');
+
     d.style.cssText = [
         'position:fixed',
         'pointer-events:none',
-        'font-family:Nunito',
+
+        // Better font
+        'font-family:"Teko", "Rajdhani", sans-serif',
+
         `font-size:${fontSize}px`,
         `opacity:${baseOpacity}`,
         `color:${color}`,
-        'font-weight: bold',
-        'transform:translate(-50%,-50%)',
+
+        // Diablo style
+        'font-weight:900',
+        'letter-spacing:0.5px',
+        'text-transform:uppercase',
+
+        // Crisp rendering
+        '-webkit-font-smoothing:none',
+        'text-rendering:geometricPrecision',
+
+
+        'transform:translate(-50%,-50%) scale(1)',
         'z-index:20',
+        'user-select:none',
+        'will-change:transform, opacity',
     ].join(';');
+
     d.textContent = msg;
+
     document.body.appendChild(d);
 
     VFX.floats.push({
         el: d,
-        wx, wy,
-        vy: -0.9,
+        wx,
+        wy,
+        vy: -1.15,
         life: 60,
         baseOpacity,
+        scale: 1.25,
     });
 }
-
 /**
  * Tick all floating texts — call once per frame.
  * @param {number} camX
