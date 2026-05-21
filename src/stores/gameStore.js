@@ -25,7 +25,7 @@ import {
 } from '../game/itemDismantle.js';
 
 // How much each enchant level multiplies base stats (12% per level)
-export const ENCHANT_BONUS_PER_LEVEL = 0.12;
+export const ENCHANT_BONUS_PER_LEVEL = 0.08;
 
 // Given a slot wrapper { id, quantity, enchantLevel? } and a stat key+value,
 // return the enchant-boosted value.

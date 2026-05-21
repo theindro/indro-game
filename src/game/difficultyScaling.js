@@ -34,7 +34,7 @@ export const MOB_EXP_BASE_AT_DIFFICULTY_1 = 10;
 export function getMobExpReward(difficulty, archetypeExp = 30) {
     const d = Math.max(1, difficulty ?? 1);
     const archetypeMul = Math.max(0.5, (archetypeExp ?? 30) / 30);
-    return Math.max(1, Math.round(MOB_EXP_BASE_AT_DIFFICULTY_1 * d * archetypeMul));
+    return Math.max(1, Math.round(MOB_EXP_BASE_AT_DIFFICULTY_1 * d * archetypeMul * 0.5));
 }
 
 /**

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, Row, Col, Typography, Tabs, Button, Progress, message } from 'antd';
-import { useGameStore } from '../../stores/gameStore.js';
+import { useGameStore, ENCHANT_BONUS_PER_LEVEL } from '../../stores/gameStore.js';
 import { ItemDatabase, ItemRarity, GearCraftingRecipes, MaterialCraftingRecipes } from '../../game/items.js';
 import ItemCard from '../Items/ItemCard.jsx';
 
@@ -21,9 +21,6 @@ const enchantGoldCost = (level) => Math.floor(50 * Math.pow(1.6, level));
 
 // Void essence cost per enchant level
 const enchantEssenceCost = (level) => Math.floor(5 * Math.pow(1.5, level));
-
-// Stat multiplier per enchant level (each level adds X% of base stat)
-const ENCHANT_BONUS_PER_LEVEL = 0.12; // 12% of base stat per level
 
 // Success chance per level
 const enchantSuccessChance = (level) => Math.max(20, 100 - level * 8);

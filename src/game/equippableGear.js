@@ -16,7 +16,7 @@ export const MOB_GEAR_DROP_RATES = {
     common: 1 / 12,
     magic: 1 / 40,
     rare: 1 / 150,
-    epic: 1 / 400,
+    epic: 0,
     legendary: 0,
 };
 
@@ -140,12 +140,15 @@ const CRAFT_MATS = {
 
 const FRACTIONAL_STAT_KEYS = new Set(['moveSpeed', 'attackSpeed', 'dodge', 'goldFind', 'lifeSteal']);
 
+/** Global equip stat tuning (~35% reduction). */
+export const GEAR_STAT_SCALE = 0.65;
+
 function scaleStats(base, growth, tierIndex) {
     const mul = GEAR_TIERS[tierIndex].rarity.multiplier;
     const out = {};
     for (const [k, v] of Object.entries(base)) {
         const g = growth[k] ?? 0;
-        const scaled = (v + g * tierIndex) * mul;
+        const scaled = (v + g * tierIndex) * mul * GEAR_STAT_SCALE;
         out[k] = FRACTIONAL_STAT_KEYS.has(k)
             ? Math.round(scaled * 100) / 100
             : Math.floor(scaled);
@@ -238,10 +241,6 @@ export function rollMobGearDropIds() {
     }
     if (Math.random() < MOB_GEAR_DROP_RATES.rare) {
         const id = pickRandomGearId('rare');
-        if (id) ids.push(id);
-    }
-    if (Math.random() < MOB_GEAR_DROP_RATES.epic) {
-        const id = pickRandomGearId('epic');
         if (id) ids.push(id);
     }
     if (Math.random() < MOB_MATERIAL_DROP_RATES.void_soulstone) {
