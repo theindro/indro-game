@@ -239,7 +239,7 @@ export const ItemDatabase = {
         rarity: ItemRarity.COMMON,
         icon: '🧪',
         texture: '/rpg/health-potion.png',
-        textureId: 'health_potion',
+        textureId: 'health-potion',
         stackable: true,
         healAmount: 40,
         useCooldownMs: 5000,

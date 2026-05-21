@@ -158,7 +158,9 @@ export function createDropSystem(ctx) {
 
             container.addChild(shadow);
 
-            const texture = assetManager.getTexture(drop.item.textureId);
+            const texture =
+                assetManager.resolveTexture(drop.item.textureId) ??
+                assetManager.resolveTexture(drop.item.id);
 
             if (texture) {
                 const sprite = new Sprite(texture);

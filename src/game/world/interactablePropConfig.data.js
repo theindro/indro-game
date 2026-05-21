@@ -619,12 +619,14 @@ export const LOOT_TABLES = {
 
     chest_wood: [
         { id: 'gold',         chance: 1.0, min: 25,  max: 39  },
+        { id: 'health_potion',chance: 1.0, min: 1,  max: 2  },
         { id: 'herb_green',   chance: 0.45, min: 1,  max: 2   },
         { id: 'ore_iron',     chance: 0.25, min: 1,  max: 2   },
     ],
 
     chest_iron: [
         { id: 'gold',         chance: 1.0, min: 40,  max: 59  },
+        { id: 'health_potion',chance: 1.0, min: 1,  max: 2  },
         { id: 'ore_iron',     chance: 0.55, min: 1,   max: 3   },
         { id: 'ore_gold',     chance: 0.2, min: 1,   max: 2   },
         { id: 'void_essence', chance: 0.08, min: 1,   max: 1   },
@@ -632,6 +634,7 @@ export const LOOT_TABLES = {
 
     chest_gold: [
         { id: 'gold',         chance: 1.0, min: 59,  max: 100  },
+        { id: 'health_potion',chance: 1.0, min: 1,  max: 2  },
         { id: 'ore_gold',     chance: 0.6, min: 1,   max: 3   },
         { id: 'ore_crystal',  chance: 0.3, min: 1,   max: 2   },
         { id: 'void_essence', chance: 0.15, min: 1,   max: 1   },
@@ -639,12 +642,14 @@ export const LOOT_TABLES = {
 
     chest_ancient: [
         { id: 'gold',         chance: 1.0, min: 100, max: 200 },
+        { id: 'health_potion',chance: 1.0, min: 1,  max: 2  },
         { id: 'ore_crystal',  chance: 0.7, min: 2,   max: 4   },
         { id: 'void_essence', chance: 0.5, min: 1,   max: 2   },
     ],
 
     totem_wave_chest: [
         { id: 'gold',         chance: 1.0, min: 45,  max: 90  },
+        { id: 'health_potion',chance: 1.0, min: 1,  max: 2  },
         { id: 'ore_gold',     chance: 0.55, min: 1,  max: 3   },
         { id: 'ore_crystal',  chance: 0.35, min: 1,  max: 2   },
         { id: 'void_essence', chance: 0.2, min: 1,  max: 2   },
