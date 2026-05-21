@@ -20,6 +20,7 @@ import { getGatheringModifiers } from '../skills/skillEffects.js';
 import { scaleInteractableIntensity } from './chunkProfile.js';
 import { sampleInteractablePosition, RESOURCE_YARD_LAYOUTS } from './chunkPlacement.js';
 import { INTERACTABLE_HOVER_FILTER } from '../utils/highlightFilters.js';
+import { CURSOR_GAME_GRAB } from '../utils/gameCursor.js';
 import { computeFootSortZ } from './sortDepth.js';
 
 // ── Visual constants ─────────────────────────────────────────────────────────
@@ -441,7 +442,7 @@ export class InteractablePropManager {
         }
 
         visual.eventMode = 'static';
-        visual.cursor    = 'pointer';
+        visual.cursor = CURSOR_GAME_GRAB;
         container.addChild(visual);
 
         const heightFactor = visual instanceof Sprite ? Math.min(1.5, visual.height / 120) : 1;
@@ -590,7 +591,7 @@ export class InteractablePropManager {
         const visual = prop.visual;
 
         visual.eventMode = 'static';
-        visual.cursor = 'pointer';
+        visual.cursor = CURSOR_GAME_GRAB;
 
         visual.on('pointerover', () => {
             this._hovered = prop;

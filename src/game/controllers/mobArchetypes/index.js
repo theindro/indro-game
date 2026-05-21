@@ -6,7 +6,7 @@ import { BatArchetype } from './BatArchetype.js';
 import * as PIXI from 'pixi.js';
 import {
     VOID_SHAPE_2,
-    VOID_SHAPE_4,
+    VOID_SHAPE_4, VOID_SHAPE_5,
     VOID_SHAPE_6,
     VOID_SHAPE_7,
     VOID_SHAPE_BAT,
@@ -47,7 +47,7 @@ export const ARCHETYPE_STATS = {
         damage: 2,
         size: 40,
         exp: 30,
-        type: VOID_SHAPE_7
+        type: VOID_SHAPE_5
     },
     [ARCHETYPES.RANGED]: {
         hpMultiplier: 0.9,

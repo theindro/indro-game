@@ -1,4 +1,4 @@
-import {Application, Container} from 'pixi.js';
+import {Application, Container, Graphics} from 'pixi.js';
 import {createPlayerEntity} from './entities/createPlayerEntity.js';
 import {tickParticles} from './utils/particles.js';
 import {tickFloats} from './utils/floatText.js';
@@ -21,6 +21,12 @@ import {ChunkMonitor} from "./world/ChunkMonitor.js";
 import {createLightingController} from "./controllers/createLightingController.js";
 import {audioManager} from "./utils/audioManager.js";
 import { tickPlayerDebuffs, getPlayerDebuffMoveMul, clearPlayerDebuffs } from './combat/playerDebuffs.js';
+import {
+    applyDefaultGameCursor,
+    applySystemCursor,
+    initPixiCursors,
+    CURSOR_GAME_DEFAULT,
+} from './utils/gameCursor.js';
 
 /** Same closing speed as legacy `current += (target-current)*alpha` once per 60fps tick, for arbitrary `dt`. */
 function smoothTowardAlpha(alphaPer60FpsFrame, dt) {
@@ -321,7 +327,12 @@ async function initApp() {
         autoDensity: true,
     });
     document.body.prepend(app.canvas);
-    document.body.style.cursor = useGameStore.getState().showStartScreen ? 'default' : 'none';
+    initPixiCursors(app);
+    if (useGameStore.getState().showStartScreen) {
+        applySystemCursor();
+    } else {
+        applyDefaultGameCursor();
+    }
     return app;
 }
 
@@ -335,6 +346,16 @@ function createWorldContainer(app) {
     app.stage.sortableChildren = true;
     app.stage.addChild(world);
     app.stage.roundPixels = true;
+
+    // Catch hovers on empty space so the custom default cursor shows (not OS arrow).
+    const cursorPad = new Graphics();
+    cursorPad.rect(-100_000, -100_000, 200_000, 200_000);
+    cursorPad.fill({ color: 0x000000, alpha: 0.0001 });
+    cursorPad.eventMode = 'static';
+    cursorPad.cursor = CURSOR_GAME_DEFAULT;
+    cursorPad.zIndex = -1_000_000;
+    world.addChild(cursorPad);
+
     return world;
 }
 
@@ -524,7 +545,7 @@ function checkDeath(playerState, gameState, killsRef) {
     if (playerState.hp <= 0 && !gameState.dead) {
         clearPlayerDebuffs();
         useGameStore.getState().setDead(true);
-        document.body.style.cursor = 'default';
+        applySystemCursor();
         document.getElementById('death-kills').textContent = `${killsRef.value} enemies slain · level ${playerState.pLevel}`;
         document.getElementById('deathscreen').classList.add('active');
     }

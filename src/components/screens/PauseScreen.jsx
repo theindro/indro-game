@@ -2,6 +2,7 @@
 import { Modal, Button, Space, Switch, Slider, Divider, Typography } from 'antd';
 import { CaretRightOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useGameStore } from '../../stores/gameStore.js';
+import { applyDefaultGameCursor } from '../../game/utils/gameCursor.js';
 
 const { Text } = Typography;
 
@@ -16,7 +17,7 @@ export default function PauseScreen() {
 
     const handleResume = () => {
         togglePause();
-        document.body.style.cursor = 'none';
+        applyDefaultGameCursor();
     };
 
     const handleRestart = () => {

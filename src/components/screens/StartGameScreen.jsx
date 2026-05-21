@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Button, Space, Switch, Slider, Typography } from 'antd';
 import { CaretRightOutlined, RocketOutlined, SoundOutlined } from '@ant-design/icons';
 import { useGameStore } from '../../stores/gameStore.js';
+import { applyDefaultGameCursor, applySystemCursor } from '../../game/utils/gameCursor.js';
 
 const { Text } = Typography;
 
@@ -25,7 +26,7 @@ export default function StartGameScreen() {
 
     useEffect(() => {
         if (showStartScreen) {
-            document.body.style.cursor = 'default';
+            applySystemCursor();
         }
     }, [showStartScreen]);
 
@@ -33,12 +34,12 @@ export default function StartGameScreen() {
 
     const handleContinue = () => {
         continueFromTitle();
-        document.body.style.cursor = 'none';
+        applyDefaultGameCursor();
     };
 
     const handleNewGame = () => {
         restartGame();
-        document.body.style.cursor = 'none';
+        applyDefaultGameCursor();
     };
 
     return (
