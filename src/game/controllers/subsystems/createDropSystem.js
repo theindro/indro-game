@@ -11,11 +11,18 @@ import {
 import {assetManager} from '../../utils/assetManager.js';
 import {VFX} from "../../GlobalEffects.js";
 import {audioManager} from "../../utils/audioManager.js";
+import {SFX_PATHS} from "../../sfxPaths.js";
 import {frameScale} from "../../constants.js";
 import {createLootBeam, createLootBeamGlows, updateLootBeam} from "../../vfx/lootBeam.js";
 
 const PICKUP_RADIUS = 60;
 const MAGNET_RADIUS = 120;
+
+/** @param {{ rarity?: { name?: string } }} item */
+function isEpicOrLegendaryItem(item) {
+    const name = item?.rarity?.name;
+    return name === 'Epic' || name === 'Legendary';
+}
 
 
 /** Soft additive glows synced to the loot beam (ground pool + mid-pillar). */
@@ -288,6 +295,11 @@ export function createDropSystem(ctx) {
         // Add to global drops array
         if (drops && dropObjects.length) {
             drops.push(...dropObjects);
+        }
+
+        if (dropList.some((d) => d.type === 'item' && isEpicOrLegendaryItem(d.item))) {
+            audioManager.setCooldown(SFX_PATHS.ITEM_DROP, 350);
+            audioManager.playSFX(SFX_PATHS.ITEM_DROP, 0.5);
         }
 
         return dropObjects;

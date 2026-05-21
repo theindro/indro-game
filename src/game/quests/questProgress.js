@@ -4,6 +4,8 @@ import {
     QuestType,
     questMatchesItem,
 } from './questDefinitions.js';
+import { audioManager } from '../utils/audioManager.js';
+import { SFX_PATHS } from '../sfxPaths.js';
 
 /**
  * @param {import('../../stores/gameStore.js').useGameStore.getState} get
@@ -39,6 +41,8 @@ function completeQuest(get, set, questId) {
     if (def.rewards.gold) addGold(def.rewards.gold);
     if (def.rewards.xp) addXP(def.rewards.xp);
 
+    const wasAlreadyComplete = get().quests.completed.includes(questId);
+
     set((state) => {
         const completed = state.quests.completed.includes(questId)
             ? state.quests.completed
@@ -61,6 +65,10 @@ function completeQuest(get, set, questId) {
             },
         };
     });
+
+    if (!wasAlreadyComplete) {
+        audioManager.playSFX(SFX_PATHS.QUEST_COMPLETE, 0.45);
+    }
 }
 
 /**
