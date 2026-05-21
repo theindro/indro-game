@@ -13,7 +13,7 @@ import {
 import {SortAscendingOutlined, ScissorOutlined, DeleteOutlined} from '@ant-design/icons';
 import { useGameStore } from '../../stores/gameStore.js';
 import { audioManager } from "../../game/utils/audioManager.js";
-import {ItemDatabase} from "../../game/items.js";
+import {ItemDatabase, ItemTypes} from "../../game/items.js";
 import ItemCard from "../Items/ItemCard.jsx";
 
 const { Text } = Typography;
@@ -56,6 +56,7 @@ export default function Inventory({ isOpen, setIsOpen }) {
     const inventory = useGameStore((s) => s.inventory);
 
     const equipItem = useGameStore((s) => s.equipItem);
+    const useConsumableFromSlot = useGameStore((s) => s.useConsumableFromSlot);
     const sellItem = useGameStore((s) => s.sellItem);
     const dropItemFromSlot = useGameStore((s) => s.dropItemFromSlot);
     const sortInventory = useGameStore((s) => s.sortInventory);
@@ -122,10 +123,33 @@ export default function Inventory({ isOpen, setIsOpen }) {
         if (isOpen) audioManager.playSFX('/sounds/open-close.mp3', 0.15);
     }, [isOpen]);
 
-    const handleEquip = (slotWrapper, slotIndex) => {
+    const reportConsumableUse = (res, dbItem) => {
+        if (res.ok) {
+            messageApi.success(`Used ${dbItem.name} (+${res.healed} HP)`, 1.5);
+            return;
+        }
+        if (res.reason === 'cooldown') {
+            messageApi.warning(`Potion on cooldown (${res.remainingSec}s)`, 1.5);
+            return;
+        }
+        if (res.reason === 'full_hp') {
+            messageApi.info('Already at full health', 1.2);
+            return;
+        }
+        if (res.reason === 'dead') {
+            messageApi.warning('Cannot use items while dead', 1.5);
+        }
+    };
+
+    const handleItemClick = (slotWrapper, slotIndex) => {
         if (!slotWrapper?.id) return;
 
         const dbItem = ItemDatabase[slotWrapper.id];
+
+        if (dbItem?.type === ItemTypes.CONSUMABLE) {
+            reportConsumableUse(useConsumableFromSlot(slotIndex), dbItem);
+            return;
+        }
 
         if (dbItem?.equipSlot) {
             equipItem(slotWrapper, slotIndex);
@@ -140,6 +164,11 @@ export default function Inventory({ isOpen, setIsOpen }) {
     const handleAction = useCallback((actionKey, slotPayload, slotIndex) => {
         if (actionKey === 'equip') {
             equipItem(slotPayload, slotIndex);
+            return;
+        }
+        if (actionKey === 'use') {
+            const dbItem = ItemDatabase[slotPayload?.id];
+            if (dbItem) reportConsumableUse(useConsumableFromSlot(slotIndex), dbItem);
             return;
         }
         if (actionKey === 'sell') {
@@ -174,6 +203,7 @@ export default function Inventory({ isOpen, setIsOpen }) {
         }
     }, [
         equipItem,
+        useConsumableFromSlot,
         sellItem,
         dropItemFromSlot,
         dismantleInventorySlot,
@@ -288,7 +318,7 @@ export default function Inventory({ isOpen, setIsOpen }) {
                                                 quantity={item?.quantity}
                                                 enchantLevel={item?.enchantLevel}
                                                 item={dbItem}
-                                                onClick={handleEquip}
+                                                onClick={handleItemClick}
                                                 onAction={(actionKey, slotPayload) =>
                                                     handleAction(actionKey, slotPayload, i)
                                                 }

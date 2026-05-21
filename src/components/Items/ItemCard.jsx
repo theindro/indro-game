@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Badge, Tooltip, Popover } from "antd";
-import { ItemDatabase } from "../../game/items.js";
+import { ItemDatabase, ItemTypes } from "../../game/items.js";
 import { ENCHANT_BONUS_PER_LEVEL } from "../../stores/gameStore.js";
 import { canDismantleItem, getDismantleEssenceYield } from "../../game/itemDismantle.js";
 
@@ -93,6 +93,7 @@ const ACTION_STYLE = {
 
 function ContextMenu({ item, enchantLevel, onAction, onClose, dismantleYield }) {
     const actions = [
+        { key: 'use',     label: 'Use',        icon: '', show: item.type === ItemTypes.CONSUMABLE },
         { key: 'equip',   label: 'Equip',      icon: '', show: !!item.equipSlot },
         { key: 'enchant', label: 'Enchant',    icon: '', show: !!item.equipSlot && !!item.stats },
         {
@@ -217,6 +218,14 @@ const ItemCard = ({
                     </div>
                     {dbItem.description && (
                         <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>{dbItem.description}</div>
+                    )}
+                    {dbItem.type === ItemTypes.CONSUMABLE && dbItem.healAmount > 0 && (
+                        <div style={{ marginTop: 6, fontSize: 12 }}>
+                            Restores <b>{dbItem.healAmount}</b> HP
+                            {dbItem.useCooldownMs ? (
+                                <span style={{ opacity: 0.75 }}> · {(dbItem.useCooldownMs / 1000)}s cooldown</span>
+                            ) : null}
+                        </div>
                     )}
                     {dbItem.equipSlot && (
                         <div style={{ marginTop: 6, fontSize: 12 }}>Slot: <b>{dbItem.equipSlot}</b></div>

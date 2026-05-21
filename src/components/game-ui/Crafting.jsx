@@ -1,12 +1,22 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {Card, Row, Col, Typography, Tabs, Button, Progress, message, Drawer} from 'antd';
 import { useGameStore, ENCHANT_BONUS_PER_LEVEL } from '../../stores/gameStore.js';
-import { ItemDatabase, ItemRarity, GearCraftingRecipes, MaterialCraftingRecipes } from '../../game/items.js';
+import {
+    ItemDatabase,
+    ItemRarity,
+    GearCraftingRecipes,
+    MaterialCraftingRecipes,
+    ConsumableCraftingRecipes,
+} from '../../game/items.js';
 import ItemCard from '../Items/ItemCard.jsx';
 
 const { Text } = Typography;
 
-export const CraftingRecipes = [...MaterialCraftingRecipes, ...GearCraftingRecipes];
+export const CraftingRecipes = [
+    ...MaterialCraftingRecipes,
+    ...ConsumableCraftingRecipes,
+    ...GearCraftingRecipes,
+];
 
 function getIngredientAvailable(ing, resourceCounts, voidEssence) {
     if (ing.id === 'void_essence') return voidEssence;

@@ -1,7 +1,7 @@
 // stores/gameStore.js
 import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
-import {ItemDatabase} from '../game/items.js';
+import {ItemDatabase, ItemTypes} from '../game/items.js';
 import {
     onQuestMobKilled,
     onQuestItemCollected,
@@ -185,6 +185,7 @@ function createGameStoreSlice(set, get) {
             hp: 100,
             maxHp: 100,
             location: {x: 0, y: 0},
+            consumableCooldownUntil: 0,
             stats: {
                 attackCooldown: 0.6,
                 attackRange: 520,
@@ -595,6 +596,49 @@ function createGameStoreSlice(set, get) {
             set({inventory: {...state.inventory, slots: newSlots}});
         },
 
+        useConsumableFromSlot: (slotIndex) => {
+            const state = get();
+            const slot = state.inventory.slots[slotIndex];
+            if (!slot?.id) return { ok: false, reason: 'empty' };
+
+            const dbItem = ItemDatabase[slot.id];
+            if (!dbItem || dbItem.type !== ItemTypes.CONSUMABLE) {
+                return { ok: false, reason: 'not_consumable' };
+            }
+
+            if (state.gameState?.dead) return { ok: false, reason: 'dead' };
+
+            const now = Date.now();
+            const cooldownUntil = state.player.consumableCooldownUntil ?? 0;
+            if (now < cooldownUntil) {
+                return {
+                    ok: false,
+                    reason: 'cooldown',
+                    remainingSec: Math.ceil((cooldownUntil - now) / 1000),
+                };
+            }
+
+            const healAmount = dbItem.healAmount ?? 0;
+            const hpBefore = state.player.hp;
+            const healed = Math.min(healAmount, state.player.maxHp - hpBefore);
+            if (healed <= 0) {
+                return { ok: false, reason: 'full_hp' };
+            }
+
+            get().removeItem(slotIndex, 1);
+            get().healPlayer(healAmount);
+
+            const cooldownMs = dbItem.useCooldownMs ?? 5000;
+            set((s) => ({
+                player: {
+                    ...s.player,
+                    consumableCooldownUntil: now + cooldownMs,
+                },
+            }));
+
+            return { ok: true, healed };
+        },
+
         // ===== RECALCULATE STATS =====
         recalculateStats: () => {
             const state = get();
@@ -982,6 +1026,7 @@ function getDefaultProgressPayload() {
             hp: 100,
             maxHp: 100,
             location: {x: 0, y: 0},
+            consumableCooldownUntil: 0,
             stats: {
                 attackCooldown: 0.6,
                 attackRange: 520,

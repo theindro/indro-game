@@ -17,6 +17,30 @@ export {
 } from './equippableGear.js';
 
 /** Craft void materials from wallet void essence. */
+/** Independent rolls for consumables on normal mob kills. */
+export const MOB_CONSUMABLE_DROP_RATES = {
+    health_potion: 1 / 25,
+};
+
+export function rollMobConsumableDropIds() {
+    const ids = [];
+    if (Math.random() < MOB_CONSUMABLE_DROP_RATES.health_potion) {
+        ids.push('health_potion');
+    }
+    return ids;
+}
+
+export const ConsumableCraftingRecipes = [
+    {
+        id: 'craft_health_potion',
+        result: 'health_potion',
+        goldCost: 30,
+        ingredients: [{ id: 'herb', quantity: 5 }],
+        category: 'consumable',
+        tier: 'common',
+    },
+];
+
 export const MaterialCraftingRecipes = [
     {
         id: 'craft_void_soulstone',
@@ -204,6 +228,22 @@ export const ItemDatabase = {
         stackable: true,
         gatherable: true,
         description: 'Cold herb used in potions.',
+    },
+
+    // ============= CONSUMABLES =============
+
+    health_potion: {
+        id: 'health_potion',
+        name: 'Health Potion',
+        type: ItemTypes.CONSUMABLE,
+        rarity: ItemRarity.COMMON,
+        icon: '🧪',
+        texture: '/rpg/health-potion.png',
+        textureId: 'health_potion',
+        stackable: true,
+        healAmount: 40,
+        useCooldownMs: 5000,
+        description: 'Restores 40 HP. 5s cooldown between uses.',
     },
 
 // ============= CONTAINERS =============

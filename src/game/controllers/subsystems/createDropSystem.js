@@ -6,6 +6,7 @@ import {
     getDropTableForMob,
     rollMobGearDropIds,
     rollBossGearDropIds,
+    rollMobConsumableDropIds,
 } from '../../items.js';
 import {assetManager} from '../../utils/assetManager.js';
 import {VFX} from "../../GlobalEffects.js";
@@ -74,6 +75,15 @@ export function createDropSystem(ctx) {
             const item = ItemDatabase[gearId];
             if (item) {
                 drops.push({ type: 'item', item: { ...item }, quantity: 1 });
+            }
+        }
+
+        if (!isBoss && mobType !== 'boss') {
+            for (const consumableId of rollMobConsumableDropIds()) {
+                const item = ItemDatabase[consumableId];
+                if (item) {
+                    drops.push({ type: 'item', item: { ...item }, quantity: 1 });
+                }
             }
         }
 
