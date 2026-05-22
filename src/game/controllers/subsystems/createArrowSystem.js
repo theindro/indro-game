@@ -12,6 +12,8 @@ import {
 } from "../../statusEffects.js";
 import {VFX} from "../../GlobalEffects.js";
 import { killMob } from '../../combat/killMob.js';
+import { destroyBossTotem, TOTEM_RADIUS } from '../bossTotem.js';
+import { applyMobCombatAggro, applyBossCombatAggro } from '../../combat/combatAggro.js';
 
 // Constants
 const COLLISION_RADIUS = 16;
@@ -130,7 +132,7 @@ export function createArrowSystem(ctx) {
         }
 
         if (boss.destroy) {
-            boss.destroy();
+            boss.destroy(entities.bossTotems ?? []);
         }
 
         //VFX.burst(x, y, biomeCol, 50, 6);
@@ -326,6 +328,7 @@ export function createArrowSystem(ctx) {
                 // Calculate damage
                 const {damage: finalDamage, isCrit} = calculateArrowDamage(arrow, stats, store);
                 mob.hp -= finalDamage;
+                applyMobCombatAggro(mob);
 
                 // Apply hit effects
                 applyHitEffects(mob.x, mob.y, finalDamage, isCrit, false, arrow.elementalEffect);
@@ -378,6 +381,45 @@ export function createArrowSystem(ctx) {
 
             if (hit) continue;
 
+            if (entities.bossTotems?.length) {
+                for (let ti = entities.bossTotems.length - 1; ti >= 0; ti--) {
+                    const totem = entities.bossTotems[ti];
+                    if (!totem || totem.dead || !totem.c) continue;
+
+                    const totemR = totem.radius ?? TOTEM_RADIUS;
+                    if (Math.hypot(totem.x - arrow.c.x, totem.y - arrow.c.y) >= totemR) continue;
+
+                    const { damage: finalDamage, isCrit } = calculateArrowDamage(arrow, stats, store);
+                    totem.hp -= finalDamage;
+                    applyHitEffects(totem.x, totem.y, finalDamage, isCrit, false, arrow.elementalEffect);
+
+                    if (totem.hp <= 0) {
+                        VFX.burst(totem.x, totem.y, 0xeab47a, 12, 3);
+                        destroyBossTotem(totem, entities.bossTotems, ti);
+                    }
+
+                    const pierceLeft = arrow.pierceRemaining ?? 0;
+                    if (pierceLeft > 0) {
+                        arrow.pierceRemaining = pierceLeft - 1;
+                        continue;
+                    }
+
+                    if (arrow.vfxGlow) {
+                        VFX.removeAttached(arrow.vfxGlow);
+                        arrow.vfxGlow = null;
+                    }
+                    if (arrow.c.parent) {
+                        arrow.c.parent.removeChild(arrow.c);
+                        arrow.c.destroy();
+                    }
+                    arrows.splice(ai, 1);
+                    hit = true;
+                    break;
+                }
+            }
+
+            if (hit) continue;
+
             // Check collision with bosses
             for (let bi = 0; bi < entities.bosses.length; bi++) {
                 const boss = entities.bosses[bi];
@@ -388,6 +430,7 @@ export function createArrowSystem(ctx) {
                 let baseDamage = ARROW_CONFIG.BOSS_BASE_DAMAGE + Math.floor(Math.random() * 10);
                 const {damage: finalDamage, isCrit} = store.calculateCritDamage(baseDamage);
                 boss.hp -= finalDamage;
+                applyBossCombatAggro(boss);
 
                 // Apply hit effects
                 applyHitEffects(boss.x, boss.y, finalDamage, isCrit, true, arrow.elementalEffect);

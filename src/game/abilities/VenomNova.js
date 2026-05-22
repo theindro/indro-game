@@ -1,6 +1,7 @@
 import { useGameStore } from '../../stores/gameStore.js';
 import { VFX } from '../GlobalEffects.js';
 import { applyStatusEffect, createPoisonEffect } from '../statusEffects.js';
+import { applyMobCombatAggro } from '../combat/combatAggro.js';
 
 /** Ground poison burst unlocked via skill tree (key 5). */
 export function useVenomNova(ctx, targetX, targetY) {
@@ -32,6 +33,7 @@ export function useVenomNova(ctx, targetX, targetY) {
 
         const falloff = 1 - dist / radius * 0.35;
         mob.hp -= Math.floor(baseDamage * falloff);
+        applyMobCombatAggro(mob);
         applyStatusEffect(mob, createPoisonEffect(duration, poisonDmg, 0.8));
 
         if (mob.hp <= 0) {

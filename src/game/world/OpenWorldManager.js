@@ -383,10 +383,11 @@ export class OpenWorldManager {
         this.entitiesList.mobs.length = 0;
 
         for (const boss of [...(this.entitiesList?.bosses || [])]) {
-            boss.destroy?.();
+            boss.destroy?.(this.entitiesList?.bossTotems ?? []);
             boss.c?.destroy?.({ children: true });
         }
         if (this.entitiesList?.bosses) this.entitiesList.bosses.length = 0;
+        if (this.entitiesList?.bossTotems) this.entitiesList.bossTotems.length = 0;
 
         this.worldObjects.clearColliders();
         this._bossRewardChestKeys?.clear();
@@ -927,7 +928,7 @@ export class OpenWorldManager {
         if (entities?.boss && !entities.boss.dead) {
             const bi = this.entitiesList.bosses.indexOf(entities.boss);
             if (bi !== -1) this.entitiesList.bosses.splice(bi, 1);
-            entities.boss.destroy?.();
+            entities.boss.destroy?.(this.entitiesList?.bossTotems ?? []);
             this.worldObjects.removeFromParent(entities.boss.c);
             entities.boss.c?.destroy?.({ children: true });
         }

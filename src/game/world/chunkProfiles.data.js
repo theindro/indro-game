@@ -334,7 +334,7 @@ export const BIOME_CHUNK_PROFILES = {
             spacingScale: { CACTUS: 0.42, DESERT_TREE: 0.45, DESERT_BUSH: 0.65 },
             interactableScale: { metal: 1.35, chest: 1.0 },
             mobPackBonus: 0.11,
-            lakes: [{ radiusMin: 180, radiusMax: 340, count: 1 }],
+            lakes: [{ radiusMin: 180, radiusMax: 340, count: 2 }],
         },
         {
             id: 'sand_titan_arena',

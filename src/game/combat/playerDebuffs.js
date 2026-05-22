@@ -10,6 +10,9 @@ import { VFX } from '../GlobalEffects.js';
 /** @type {PlayerDebuff[]} */
 let active = [];
 
+/** Wall-clock ms; while active, move multiplier is 0 (boss charge stun). */
+let stunUntilMs = 0;
+
 const DEBUFF_DEF = {
     burn: { duration: 3.2, tickDamage: 3, tickInterval: 0.55 },
     poison: { duration: 4.5, tickDamage: 2, tickInterval: 0.65 },
@@ -40,8 +43,18 @@ export function applyEliteHitDebuff(eliteType) {
     });
 }
 
+/**
+ * Boss charge hit — 100% movement slow for `durationSec`.
+ * @param {number} durationSec
+ */
+export function applyBossChargeStun(durationSec) {
+    stunUntilMs = Math.max(stunUntilMs, performance.now() + durationSec * 1000);
+}
+
 /** @returns {number} Move speed multiplier (0–1]. */
 export function getPlayerDebuffMoveMul() {
+    if (performance.now() < stunUntilMs) return 0;
+
     let slow = 0;
     for (const d of active) {
         if (d.type === 'freeze' && d.slow) {
@@ -87,4 +100,5 @@ export function tickPlayerDebuffs(dt, playerLoc) {
 
 export function clearPlayerDebuffs() {
     active = [];
+    stunUntilMs = 0;
 }

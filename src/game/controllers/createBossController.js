@@ -2,12 +2,19 @@ import { Container, Graphics } from 'pixi.js';
 import {
     BOSS_SHOOT_INTERVAL,
     BOSS_RADIUS,
+    PLAYER_RADIUS,
     BIOME_COLORS,
     frameScale,
     GROUND_WARN_FAST,
     GROUND_WARN_NORMAL,
     GROUND_WARN_SLOW,
 } from '../constants.js';
+import { applyBossChargeStun } from '../combat/playerDebuffs.js';
+import {
+    trySpawnBossTotemNearPlayer,
+    destroyBossTotemsForOwner,
+} from './bossTotem.js';
+import { BOSS_AGGRO_STICK_MS, isCombatAggroLocked } from '../combat/combatAggro.js';
 import { applyBossDifficulty, scaleBossDamage } from '../difficultyScaling.js';
 import { createEnemyProj } from './createProjectileController.js';
 import { resolveVsColliders } from '../world/collision.js';
@@ -22,6 +29,18 @@ import { getWorldContentScales } from '../world/worldProgression.js';
 const BOSS_AGGRO_RADIUS = 520;
 const BOSS_LEASH_RADIUS = 720;
 const BOSS_HOME_RADIUS = 36;
+
+const BOSS_CHARGE_INTERVAL = 240;
+const BOSS_CHARGE_INTERVAL_ENRAGED = 170;
+const BOSS_CHARGE_WINDUP = 42;
+const BOSS_CHARGE_ACTIVE_MAX = 50;
+const BOSS_CHARGE_SPEED_MULT = 5.2;
+const BOSS_CHARGE_MAX_DIST = 440;
+const BOSS_CHARGE_HIT_RADIUS = BOSS_RADIUS + PLAYER_RADIUS + 4;
+const BOSS_CHARGE_STUN_SEC = 1.35;
+
+const BOSS_TOTEM_INTERVAL = 400;
+const BOSS_TOTEM_INTERVAL_ENRAGED = 280;
 
 const GROUND_PATTERN_INTERVAL = 360;
 const GROUND_PATTERN_INTERVAL_ENRAGED = 260;
@@ -233,9 +252,19 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
         lastPlayerX: x,
         lastPlayerY: y,
         groundAttacks, // Store reference
+        chargeCooldownTimer: 80,
+        chargePhase: null,
+        chargeWindupLeft: 0,
+        chargeDashLeft: 0,
+        chargeTargetX: x,
+        chargeTargetY: y,
+        chargeStartX: x,
+        chargeStartY: y,
+        chargeHitApplied: false,
+        totemSpawnTimer: 120,
 
 
-        update({ px, py, colliders, openWorld, enemyProjs, playerState, dt }) {
+        update({ px, py, colliders, openWorld, enemyProjs, playerState, dt, bossTotems = [] }) {
             if (this.dead) return;
 
             const fs = frameScale(dt);
@@ -277,26 +306,88 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
             const dyHome = spawnCenterY - this.y;
             const distHome = Math.hypot(dxHome, dyHome);
 
-            if (state === 'GUARD' && distToPlayer < BOSS_AGGRO_RADIUS) {
+            if (state === 'GUARD' && (distToPlayer < BOSS_AGGRO_RADIUS || isCombatAggroLocked(this))) {
                 state = 'CHASE';
             }
-            if (state === 'CHASE' && distToPlayer > BOSS_LEASH_RADIUS) {
+            if (state === 'CHASE' && distToPlayer > BOSS_LEASH_RADIUS && !isCombatAggroLocked(this)) {
                 state = 'RETURN';
             }
             if (state === 'RETURN' && distHome < BOSS_HOME_RADIUS) {
                 state = 'GUARD';
             }
-            if (state === 'RETURN' && distToPlayer < BOSS_AGGRO_RADIUS * 0.9) {
+            if (
+                state === 'RETURN' &&
+                (distToPlayer < BOSS_AGGRO_RADIUS * 0.9 || isCombatAggroLocked(this))
+            ) {
                 state = 'CHASE';
             }
+
+            const enraged = this.hp < this.maxHp * 0.4;
+            const isChasing = state === 'CHASE';
+            const atkMul = this.attackSpeedMul ?? 1;
 
             let moveX = 0;
             let moveY = 0;
 
-            if (state === 'CHASE') {
+            if (this.chargePhase === 'windup') {
+                this.chargeWindupLeft -= fs;
+                if (this.chargeWindupLeft <= 0) {
+                    this.chargePhase = 'dash';
+                    this.chargeDashLeft = BOSS_CHARGE_ACTIVE_MAX;
+                    this.chargeStartX = this.x;
+                    this.chargeStartY = this.y;
+                    this.chargeHitApplied = false;
+                }
+            } else if (this.chargePhase === 'dash') {
+                const cdx = this.chargeTargetX - this.x;
+                const cdy = this.chargeTargetY - this.y;
+                const clen = Math.hypot(cdx, cdy) || 1;
+                const chargeSpeed = this.speed * BOSS_CHARGE_SPEED_MULT;
+                moveX = (cdx / clen) * chargeSpeed;
+                moveY = (cdy / clen) * chargeSpeed;
+
+                this.chargeDashLeft -= fs;
+
+                const chargeTravel = Math.hypot(this.x - this.chargeStartX, this.y - this.chargeStartY);
+                const hitPlayer =
+                    !this.chargeHitApplied &&
+                    distToPlayer < BOSS_CHARGE_HIT_RADIUS;
+
+                if (hitPlayer && playerState) {
+                    this.chargeHitApplied = true;
+                    const dmg = scaleBossDamage(enraged ? 42 : 28, this.damageScale);
+                    useGameStore.getState().damagePlayer(dmg, 'boss charge');
+                    applyBossChargeStun(BOSS_CHARGE_STUN_SEC);
+                    this.chargePhase = null;
+                    this.chargeCooldownTimer = 0;
+                    moveX = 0;
+                    moveY = 0;
+                } else if (
+                    this.chargeDashLeft <= 0 ||
+                    chargeTravel >= BOSS_CHARGE_MAX_DIST ||
+                    clen < 12
+                ) {
+                    this.chargePhase = null;
+                    moveX = 0;
+                    moveY = 0;
+                }
+            } else if (isChasing) {
                 const len = distToPlayer || 1;
                 moveX = (dxPlayer / len) * this.speed;
                 moveY = (dyPlayer / len) * this.speed;
+
+                this.chargeCooldownTimer += fs;
+                const chargeInterval =
+                    (enraged ? BOSS_CHARGE_INTERVAL_ENRAGED : BOSS_CHARGE_INTERVAL) / atkMul;
+                if (this.chargeCooldownTimer >= chargeInterval && distToPlayer < BOSS_LEASH_RADIUS) {
+                    this.chargeCooldownTimer = 0;
+                    this.chargePhase = 'windup';
+                    this.chargeWindupLeft = BOSS_CHARGE_WINDUP;
+                    this.chargeTargetX = px;
+                    this.chargeTargetY = py;
+                    moveX = 0;
+                    moveY = 0;
+                }
             } else if (state === 'RETURN' || state === 'GUARD') {
                 if (distHome > BOSS_HOME_RADIUS) {
                     const len = distHome || 1;
@@ -320,14 +411,10 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
             this.c.x = this.x;
             this.c.y = this.y;
 
-            const enraged = this.hp < this.maxHp * 0.4;
-            const isChasing = state === 'CHASE';
-
-            // Projectile shoot — only while chasing the player
+            // Projectile shoot — only while chasing (not during charge windup/dash)
             this.shootTimer += fs;
-            const atkMul = this.attackSpeedMul ?? 1;
             const shootInterval = (enraged ? this.shootInterval * 0.6 : this.shootInterval) / atkMul;
-            if (isChasing && this.shootTimer >= shootInterval) {
+            if (isChasing && !this.chargePhase && this.shootTimer >= shootInterval) {
                 this.shootTimer = 0;
                 const mainDmg = scaleBossDamage(enraged ? 40 : 14, this.damageScale);
                 const sideDmg = scaleBossDamage(10, this.damageScale);
@@ -341,16 +428,33 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
 
             this.groundAttackCircleTimer += fs;
             const circleInterval = (enraged ? GROUND_CIRCLE_INTERVAL_ENRAGED : GROUND_CIRCLE_INTERVAL) / atkMul;
-            if (isChasing && this.groundAttackCircleTimer >= circleInterval) {
+            if (isChasing && !this.chargePhase && this.groundAttackCircleTimer >= circleInterval) {
                 this.groundAttackCircleTimer = 0;
                 patternPlayerCircle(this, px, py, groundFx, enraged);
             }
 
             this.groundAttackTimer += fs;
             const patternInterval = (enraged ? GROUND_PATTERN_INTERVAL_ENRAGED : GROUND_PATTERN_INTERVAL) / atkMul;
-            if (isChasing && this.groundAttackTimer >= patternInterval) {
+            if (isChasing && !this.chargePhase && this.groundAttackTimer >= patternInterval) {
                 this.groundAttackTimer = 0;
                 runBossGroundPattern(this, px, py, groundFx, enraged);
+            }
+
+            if (isChasing && !this.chargePhase) {
+                this.totemSpawnTimer += fs;
+                const totemInterval =
+                    (enraged ? BOSS_TOTEM_INTERVAL_ENRAGED : BOSS_TOTEM_INTERVAL) / atkMul;
+                if (this.totemSpawnTimer >= totemInterval) {
+                    this.totemSpawnTimer = 0;
+                    trySpawnBossTotemNearPlayer(
+                        this,
+                        px,
+                        py,
+                        openWorld,
+                        bossTotems,
+                        this.difficulty ?? 1
+                    );
+                }
             }
 
             // Update all ground attacks
@@ -360,14 +464,21 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
                 }
             }, dt);
 
-            applyEntityOutlineFilter(this.body, this, state === 'CHASE');
+            const outlineAggro =
+                state === 'CHASE' || this.chargePhase === 'windup' || this.chargePhase === 'dash';
+            applyEntityOutlineFilter(this.body, this, outlineAggro);
             updateBossBar(this);
         },
 
         getState: () => state,
         isAggro: () => state === 'CHASE',
 
-        destroy() {
+        forceChase() {
+            state = 'CHASE';
+            boss.aggroPlayerUntil = performance.now() + BOSS_AGGRO_STICK_MS;
+        },
+
+        destroy(bossTotems = []) {
             for (const id of this._groundTimeouts ?? []) {
                 clearTimeout(id);
             }
@@ -375,6 +486,7 @@ export function spawnBoss(world, type, x, y, visualScale = 1, difficulty = 1) {
             if (this.groundAttacks) {
                 this.groundAttacks.clear();
             }
+            destroyBossTotemsForOwner(this, bossTotems);
         },
     };
 

@@ -24,6 +24,7 @@ import {
     damagePlayerFromMob,
     ELITE_SIZE_MULT,
 } from '../elite/eliteMobs.js';
+import { isCombatAggroLocked } from '../combat/combatAggro.js';
 
 /** Deterministic [0,1) from integer seed (matches world `seededRandom` style). */
 export function mobSeededUnit(seed) {
@@ -101,11 +102,11 @@ export function createMobController(mob, entityLayer) {
 
             // ====================== STATE MACHINE ======================
             if (state === 'PATROL') {
-                if (distToPlayer < AGGRO_RADIUS) {
+                if (distToPlayer < AGGRO_RADIUS || isCombatAggroLocked(m)) {
                     state = 'CHASE';
                 }
             } else if (state === 'CHASE') {
-                if (distToPlayer > RETURN_RADIUS) {
+                if (distToPlayer > RETURN_RADIUS && !isCombatAggroLocked(m)) {
                     state = 'PATROL';
                     patrolTargetX = m.x;
                     patrolTargetY = m.y;

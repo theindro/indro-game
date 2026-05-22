@@ -21,6 +21,7 @@ import {ChunkMonitor} from "./world/ChunkMonitor.js";
 import {createLightingController} from "./controllers/createLightingController.js";
 import {audioManager} from "./utils/audioManager.js";
 import { tickPlayerDebuffs, getPlayerDebuffMoveMul, clearPlayerDebuffs } from './combat/playerDebuffs.js';
+import { updateBossTotems } from './controllers/bossTotem.js';
 import {
     applyDefaultGameCursor,
     applySystemCursor,
@@ -62,6 +63,7 @@ export async function createGame() {
     const entities = {
         mobs: [],
         bosses: [],
+        bossTotems: [],
         arrows: [],
         enemyProjs: [],
         drops: [],
@@ -262,7 +264,17 @@ export async function createGame() {
         openWorld.propManager.updatePlayerOcclusion(pCont.x, pCont.y, pCont.zIndex);
 
         // boss updates
-        updateBosses(entities.bosses, px, py, colliders, openWorld, entities.enemyProjs, playerState, dt);
+        updateBosses(
+            entities.bosses,
+            entities.bossTotems,
+            px,
+            py,
+            colliders,
+            openWorld,
+            entities.enemyProjs,
+            playerState,
+            dt
+        );
         syncBossEncounterUi(openWorld, px, py);
 
         // Combat updates
@@ -481,14 +493,16 @@ function updatePlayerVisuals(pCont, pGlow, px, py, moving, pBobT) {
     pGlow.alpha = 0.12 + 0.06 * Math.sin(pBobT * 2);
 }
 
-function updateBosses(bosses, px, py, colliders, openWorld, enemyProjs, playerState, dt) {
+function updateBosses(bosses, bossTotems, px, py, colliders, openWorld, enemyProjs, playerState, dt) {
     for (const boss of bosses) {
         boss.update({
             px, py, colliders, openWorld,
             enemyProjs, playerState,
-            dt
+            dt,
+            bossTotems,
         });
     }
+    updateBossTotems(bossTotems, dt, enemyProjs, openWorld);
 }
 
 function updateCamera(camX, camY, px, py, world, app, openWorld, dt) { // Remove shakeRef parameter

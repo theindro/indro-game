@@ -3,6 +3,7 @@ import {Container, Graphics} from 'pixi.js';
 import {useGameStore} from '../../stores/gameStore.js';
 import {applyStatusEffect, createFreezeEffect, STATUS_COLORS_RGBA} from "../statusEffects.js";
 import {VFX} from "../GlobalEffects.js";
+import { applyMobCombatAggro, applyBossCombatAggro } from '../combat/combatAggro.js';
 
 export function useFrostArrow(ctx, targetX, targetY) {
     const {mobs, bosses, openWorld} = ctx;
@@ -206,6 +207,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
             const dist = Math.hypot(mob.x - x, mob.y - y);
             if (dist < explosionRadius) {
                 mob.hp -= damage;
+                applyMobCombatAggro(mob);
                 VFX.addFloat(`❄️ ${Math.floor(damage)}`,mob.x, mob.y - 30, '#fff');
 
                 applyStatusEffect(mob, createFreezeEffect(freezeDuration, slowAmount));
@@ -226,6 +228,7 @@ export function useFrostArrow(ctx, targetX, targetY) {
             const dist = Math.hypot(boss.x - x, boss.y - y);
             if (dist < explosionRadius) {
                 boss.hp -= damage;
+                applyBossCombatAggro(boss);
 
                 VFX.addFloat(`❄️ ${Math.floor(damage)}`, boss.x, boss.y - 60, '#fff');
 

@@ -8,8 +8,10 @@ import {
 
 /** @typedef {import('./lakeGen.js').LakeInstance} LakeInstance */
 
+const LAKE_COLOR_LAVA = '#fc5c00';
+const LAKE_COLOR_ICE = '#def6ff';
+const LAKE_COLOR_DESERT = '#62b2cf';
 const LAKE_COLOR = '#62b2cf';
-const LAKE_SHORE_COLOR = '#eab47a';
 
 /** @type {Set<{ sprite: import('pixi.js').TilingSprite }>} */
 const lakeAnimators = new Set();
@@ -62,18 +64,16 @@ export async function renderLakesIntoChunk(chunkContainer, lakes, chunkX, chunkZ
         lakeRoot.scale.y = LAKE_VISUAL_SQUASH_Y;
 
         const outerGlow = new Graphics();
-        outerGlow.poly(scalePoly(smoothed, 1.2)).fill({ color: LAKE_COLOR, alpha: 0.35 });
+        outerGlow.poly(scalePoly(smoothed, 1.2)).fill({ color: LAKE_COLOR, alpha: 0.15 });
         lakeRoot.addChild(outerGlow);
 
         const shoreBand = new Graphics();
-        shoreBand.poly(scalePoly(smoothed, 1.15)).fill({ color: LAKE_COLOR, alpha: 0.45 });
+        shoreBand.poly(scalePoly(smoothed, 1.15)).fill({ color: LAKE_COLOR, alpha: 0.20 });
         lakeRoot.addChild(shoreBand);
 
         const shoreFade = new Graphics();
-        shoreFade.poly(scalePoly(smoothed, 1.1)).fill({ color: LAKE_COLOR, alpha: 0.55 });
+        shoreFade.poly(scalePoly(smoothed, 1.1)).fill({ color: LAKE_COLOR, alpha: 0.45 });
         lakeRoot.addChild(shoreFade);
-
-        const fill = new Graphics();
 
         const mask = new Graphics();
         mask.poly(smoothed).fill({ color: 0xffffff });
@@ -85,7 +85,7 @@ export async function renderLakesIntoChunk(chunkContainer, lakes, chunkX, chunkZ
         });
         water.anchor.set(0.5, 0.5);
         water.position.set(bounds.cx, bounds.cz);
-        water.alpha = 0.2;
+        water.alpha = 0.05;
         water.scale.y = LAKE_VISUAL_SQUASH_Y;
         water.blendMode = 'overlay';
         water.mask = mask;
