@@ -13,6 +13,7 @@ import {
     usesArenaLayout,
 } from './chunkProfile.js';
 import { samplePropPosition } from './chunkPlacement.js';
+import { isPointInLake } from './lakes/lakeGen.js';
 import { computePropColliderBounds, shouldCreatePropCollider } from './propCollider.js';
 import { PLAYER_RADIUS } from '../constants.js';
 
@@ -461,6 +462,9 @@ export class PropManager {
                 }
             }
             if (!ok) continue;
+
+            const chunkLakes = landscapeContext?.lakes ?? [];
+            if (isPointInLake(x, z, chunkLakes)) continue;
 
             const assetId = pickVariantAssetId(profile, propType, baseSeed + i * 29);
 

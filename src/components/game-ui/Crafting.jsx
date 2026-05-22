@@ -192,7 +192,7 @@ function CraftingTab() {
                         flexDirection: 'column',
                         gap: 4,
                         flexShrink: 0,
-                        maxHeight: 500
+                        maxHeight: '80vh'
                     }}
                 >
                     <SectionLabel>Recipes</SectionLabel>

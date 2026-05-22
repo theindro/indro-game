@@ -88,6 +88,7 @@ export function createArrowSystem(ctx) {
 
         for (const collider of colliders) {
             if (!collider.collision) continue;
+            if (collider.type === 'lake' || collider.blocksProjectiles === false) continue;
 
             const halfW = collider.width * 0.5;
             const halfH = collider.height * 0.5;

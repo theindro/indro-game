@@ -8,6 +8,13 @@ import {WorldObjectManager} from './WorldObjectManager.js';
 
 import { WorldEditorController } from '../devtools/WorldEditorController.js';
 import { pickChunkProfile, computeLayoutAnchors } from './chunkProfile.js';
+import { generateLakesForChunk, isPointInLake } from './lakes/lakeGen.js';
+import { buildLakeRenderShape, getLakeShapeBounds } from './lakes/lakeGeometry.js';
+import {
+    clearLakeAnimatorsForChunk,
+    renderLakesIntoChunk,
+    tickLakeWaterAnimations,
+} from './lakes/lakeRenderer.js';
 import { sampleMobPackCenter } from './chunkPlacement.js';
 import {editorBridge} from "../../components/devtools/editorBridge.js";
 import { loadBossChunkContent } from './bossChunkContent.js';
@@ -187,6 +194,15 @@ export class OpenWorldManager {
             chunkSizeWorld
         );
 
+        const lakes = generateLakesForChunk(
+            chunkX,
+            chunkZ,
+            this.worldSeed,
+            landscapeProfile,
+            this.chunkSize,
+            this.tileSize
+        );
+
         const difficulty = getChunkDifficulty(chunkX, chunkZ);
         const contentScales = getWorldContentScales(difficulty);
 
@@ -228,6 +244,7 @@ export class OpenWorldManager {
             poi: null,
             landscapeProfile,
             layoutAnchors,
+            lakes,
         };
 
         // Generate encounters
@@ -447,7 +464,7 @@ export class OpenWorldManager {
         return biomeData?.base || 0x333333;
     }
 
-    async generateChunk(chunkX, chunkZ) {
+    async generateChunk(chunkX, chunkZ, chunkData = null) {
         const chunkContainer = new Container();
 
         const startX = chunkX * this.chunkSize * this.tileSize;
@@ -529,14 +546,61 @@ export class OpenWorldManager {
             chunkContainer.addChild(overlay);
         }
 
-        //
-        // OPTIONAL:
-        // Macro tint variation per chunk
-        // Huge visual improvement
-        //
+        const lakes =
+            chunkData?.lakes ??
+            this.chunkData.get(`${chunkX},${chunkZ}`)?.lakes ??
+            [];
 
+        if (lakes.length > 0) {
+            await renderLakesIntoChunk(
+                chunkContainer,
+                lakes,
+                chunkX,
+                chunkZ,
+                this.tileSize,
+                this.chunkSize
+            );
+        }
 
         return chunkContainer;
+    }
+
+    /**
+     * @param {string} chunkKey
+     * @param {import('./lakes/lakeGen.js').LakeInstance[]} lakes
+     */
+    registerLakeColliders(chunkKey, lakes) {
+        if (!lakes?.length) return;
+
+        for (const lake of lakes) {
+            const shape = buildLakeRenderShape(lake);
+            const bounds = getLakeShapeBounds(shape);
+
+            this.colliders.push({
+                x: lake.x,
+                y: lake.z,
+                z: lake.z,
+                width: bounds.width,
+                height: bounds.height,
+                rotation: lake.rotation,
+                shape,
+                collision: true,
+                blocksMovement: true,
+                blocksProjectiles: false,
+                type: 'lake',
+                chunkKey,
+                isLakePolygon: true,
+            });
+        }
+    }
+
+    removeLakeCollidersForChunk(chunkKey) {
+        for (let i = this.colliders.length - 1; i >= 0; i--) {
+            const c = this.colliders[i];
+            if (c.chunkKey === chunkKey && c.type === 'lake') {
+                this.colliders.splice(i, 1);
+            }
+        }
     }
 
     getBiomeAtChunk(chunkX, chunkZ) {
@@ -632,7 +696,7 @@ export class OpenWorldManager {
 
                 // Check if collision is ok for spawn
                 const isBlocked = this.worldObjects.colliders.some(c => {
-                    if (!c.collision) return false;
+                    if (!c.collision || c.type === 'lake') return false;
 
                     const dx = c.x - x;
                     const dy = c.y - z;
@@ -645,6 +709,9 @@ export class OpenWorldManager {
                 });
 
                 if (isBlocked) continue;
+
+                const chunkLakes = chunkData.lakes ?? [];
+                if (isPointInLake(x, z, chunkLakes)) continue;
 
                 const mob = this.worldObjects.spawnMob(
                     x,
@@ -833,6 +900,8 @@ export class OpenWorldManager {
 
         // Interactable props
         this.interactablePropManager.update(playerX, playerZ, dt ?? 0);
+
+        tickLakeWaterAnimations(dt ?? 0);
     }
 
     async unloadChunk(key) {
@@ -843,6 +912,7 @@ export class OpenWorldManager {
         if (chunk.parent) {
             this.groundLayer.removeChild(chunk);
         }
+        clearLakeAnimatorsForChunk(chunk);
         chunk.destroy({children: true});
 
         // Unload props (this is handled correctly)
@@ -850,6 +920,8 @@ export class OpenWorldManager {
 
         // Unload interactable props
         this.interactablePropManager.unloadChunkProps(key);
+
+        this.removeLakeCollidersForChunk(key);
 
         const entities = this.spawnedEntities.get(key);
         if (entities?.boss && !entities.boss.dead) {
@@ -965,16 +1037,19 @@ export class OpenWorldManager {
     }
 
     async loadProceduralChunk(chunkX, chunkZ, playerX, playerZ) {
-        const chunk = await this.generateChunk(chunkX, chunkZ);
+        const key = `${chunkX},${chunkZ}`;
         const chunkData = this.generateChunkData(chunkX, chunkZ);
+        const chunk = await this.generateChunk(chunkX, chunkZ, chunkData);
 
         this.groundLayer.addChild(chunk);
+        this.registerLakeColliders(key, chunkData.lakes ?? []);
 
         const landscapeContext = {
             profile: chunkData.landscapeProfile,
             anchors: chunkData.layoutAnchors,
             difficulty: chunkData.difficulty,
             contentScales: chunkData.contentScales,
+            lakes: chunkData.lakes ?? [],
         };
 
         await this.propManager.generateChunkProps(
@@ -1003,7 +1078,7 @@ export class OpenWorldManager {
             await this.spawnMobsInChunk(chunkX, chunkZ, playerX, playerZ, chunkData);
         }
 
-        this.loadedChunks.set(`${chunkX},${chunkZ}`, chunk);
+        this.loadedChunks.set(key, chunk);
     }
 
     async loadEditorChunk(chunkX, chunkZ, data) {

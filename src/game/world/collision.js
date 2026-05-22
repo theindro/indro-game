@@ -1,13 +1,69 @@
 import {Graphics} from 'pixi.js';
 import {useGameStore} from "../../stores/gameStore.js";
+import { resolveCircleVsLake } from './lakes/lakeGeometry.js';
 
-// SIMPLE RECTANGLE COLLISION ONLY
+/**
+ * Push circle out of a rotated ellipse collider (lakes).
+ */
+function resolveVsEllipse(rx, ry, radius, col) {
+    const halfW = col.width * 0.5;
+    const halfH = col.height * 0.5;
+    const rot = col.rotation ?? 0;
+    const cos = Math.cos(-rot);
+    const sin = Math.sin(-rot);
+
+    const dx = rx - col.x;
+    const dy = ry - col.y;
+    const lx = dx * cos - dy * sin;
+    const lz = dx * sin + dy * cos;
+
+    const nx = halfW > 0 ? lx / halfW : 0;
+    const nz = halfH > 0 ? lz / halfH : 0;
+    const ellDist = Math.sqrt(nx * nx + nz * nz);
+
+    const target = 1 + radius / Math.max(halfW, halfH, 1);
+
+    if (ellDist >= target || ellDist < 0.0001) {
+        return { x: rx, y: ry };
+    }
+
+    const scale = target / ellDist;
+    const plx = lx * scale;
+    const plz = lz * scale;
+    const cosF = Math.cos(rot);
+    const sinF = Math.sin(rot);
+    const wx = col.x + plx * cosF - plz * sinF;
+    const wy = col.y + plx * sinF + plz * cosF;
+
+    return { x: wx, y: wy };
+}
+
 export function resolveVsColliders(nx, ny, radius, colliders) {
     let rx = nx;
     let ry = ny;
 
     for (const col of colliders) {
         if (!col || !col.collision) continue;
+        if (col.blocksMovement === false) continue;
+
+        if (col.isLakePolygon && col.shape) {
+            const out = resolveCircleVsLake(rx, ry, radius, {
+                x: col.x,
+                z: col.z ?? col.y,
+                rotation: col.rotation,
+                shape: col.shape,
+            });
+            rx = out.x;
+            ry = out.z;
+            continue;
+        }
+
+        if (col.isEllipse) {
+            const out = resolveVsEllipse(rx, ry, radius, col);
+            rx = out.x;
+            ry = out.y;
+            continue;
+        }
 
         const halfW = col.width * 0.5;
         const halfH = col.height * 0.5;
@@ -17,7 +73,6 @@ export function resolveVsColliders(nx, ny, radius, colliders) {
         const top = col.y - halfH;
         const bottom = col.y + halfH;
 
-        // closest point on AABB
         const closestX = Math.max(left, Math.min(rx, right));
         const closestY = Math.max(top, Math.min(ry, bottom));
 
@@ -29,9 +84,7 @@ export function resolveVsColliders(nx, ny, radius, colliders) {
 
         if (distSq < minDist * minDist) {
             const dist = Math.sqrt(distSq) || 0.0001;
-
             const push = (minDist - dist) / dist;
-
             rx += dx * push;
             ry += dy * push;
         }

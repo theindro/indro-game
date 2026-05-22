@@ -19,6 +19,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { getGatheringModifiers } from '../skills/skillEffects.js';
 import { scaleInteractableIntensity } from './chunkProfile.js';
 import { sampleInteractablePosition, RESOURCE_YARD_LAYOUTS } from './chunkPlacement.js';
+import { isPointInLake } from './lakes/lakeGen.js';
 import { INTERACTABLE_HOVER_FILTER } from '../utils/highlightFilters.js';
 import { CURSOR_GAME_GRAB } from '../utils/gameCursor.js';
 import { computeFootSortZ } from './sortDepth.js';
@@ -209,6 +210,9 @@ export class InteractablePropManager {
                     }
                 }
                 if (!ok) continue;
+
+                const chunkLakes = landscapeContext?.lakes ?? [];
+                if (isPointInLake(x, z, chunkLakes)) continue;
 
                 const radius = propDef.radius || 20;
                 if (this._isColliding(x, z, radius)) continue;

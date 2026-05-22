@@ -32,6 +32,7 @@ import {BOSS_ARENA_PLACEMENT, DESERT_BOSS_ARENA_PLACEMENT, ICE_BOSS_ARENA_PLACEM
  * @property {boolean} [skipInteractables]
  * @property {'mob_pack'|'dense_pack'} [forceChunkType]
  * @property {Record<string, number>} [interactableMaxMul]
+ * @property {Array<{ radiusMin: number, radiusMax: number, count: number }>} [lakes]
  */
 
 /** @type {Record<string, ChunkLandscapeProfile[]>} */
@@ -55,6 +56,7 @@ export const BIOME_CHUNK_PROFILES = {
             interactableMaxMul: { wood: 3, container: 2.5 },
             mobPackBonus: 0.58,
             mobPackCountMul: 1.12,
+            lakes: [],
         },
         {
             id: 'forest_mine',
@@ -74,6 +76,7 @@ export const BIOME_CHUNK_PROFILES = {
             interactableMaxMul: { metal: 3.5 },
             mobPackBonus: 0.55,
             mobPackCountMul: 1.1,
+            lakes: [],
         },
         {
             id: 'dense_forest',
@@ -93,6 +96,7 @@ export const BIOME_CHUNK_PROFILES = {
             interactableScale: { wood: 1.2, herb: 0.9, metal: 0.7, container: 0.8 },
             mobPackBonus: 0.22,
             mobPackCountMul: 1.25,
+            lakes: [],
         },
         {
             id: 'light_forest',
@@ -110,6 +114,7 @@ export const BIOME_CHUNK_PROFILES = {
             interactableScale: { wood: 0.7, herb: 1.1, chest: 0.9 },
             mobPackBonus: 0.16,
             mobPackCountMul: 1.08,
+            lakes: [{ radiusMin: 180, radiusMax: 340, count: 1 }],
         },
         {
             id: 'ancient_grove',
@@ -130,6 +135,7 @@ export const BIOME_CHUNK_PROFILES = {
             interactableScale: { herb: 1.35, wood: 1.1, chest: 1.2, metal: 0.5 },
             mobPackBonus: 0.18,
             mobPackCountMul: 1.1,
+            lakes: [],
         },
         {
             id: 'rocky_forest',
@@ -149,6 +155,7 @@ export const BIOME_CHUNK_PROFILES = {
             interactableScale: { metal: 1.45, wood: 0.6, herb: 0.7 },
             mobPackBonus: 0.2,
             mobPackCountMul: 1.08,
+            lakes: [{ radiusMin: 160, radiusMax: 300, count: 1 }],
         },
         {
             id: 'swamp_forest',
@@ -166,6 +173,7 @@ export const BIOME_CHUNK_PROFILES = {
             interactableScale: { herb: 1.5, wood: 1.25, container: 1.2, metal: 0.4 },
             mobPackBonus: 0.24,
             mobPackCountMul: 1.18,
+            lakes: [],
         },
         {
             id: 'tree_grove_boss',
@@ -199,6 +207,7 @@ export const BIOME_CHUNK_PROFILES = {
             interactableScale: { herb: 1.6, wood: 0.5, chest: 0.85, container: 0.9 },
             mobPackBonus: 0.14,
             mobPackCountMul: 1.05,
+            lakes: [{ radiusMin: 200, radiusMax: 320, count: 1 }],
         },
     ],
 
@@ -325,6 +334,7 @@ export const BIOME_CHUNK_PROFILES = {
             spacingScale: { CACTUS: 0.42, DESERT_TREE: 0.45, DESERT_BUSH: 0.65 },
             interactableScale: { metal: 1.35, chest: 1.0 },
             mobPackBonus: 0.11,
+            lakes: [{ radiusMin: 180, radiusMax: 340, count: 1 }],
         },
         {
             id: 'sand_titan_arena',
@@ -387,6 +397,7 @@ export const BIOME_CHUNK_PROFILES = {
             spacingScale: { SNOW_STONE: 0.36 },
             interactableScale: { metal: 1.4, chest: 1.2, herb: 0.5 },
             mobPackBonus: 0.11,
+            lakes: [{ radiusMin: 200, radiusMax: 320, count: 1 }],
         },
         {
             id: 'frozen_expanse',
@@ -568,4 +579,5 @@ export const DEFAULT_CHUNK_PROFILE = {
         { type: 'TREE', weight: 35 },
         { type: 'BUSH', weight: 25 },
     ],
+    lakes: [],
 };

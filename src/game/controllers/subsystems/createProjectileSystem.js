@@ -67,6 +67,7 @@ export function createProjectileSystem(ctx) {
             if (ctx.colliders?.length && ep?.c && ep.c.parent) {
                 for (const collider of ctx.colliders) {
                     if (!collider?.collision || !collider.width || !collider.height) continue;
+                    if (collider.type === 'lake' || collider.blocksProjectiles === false) continue;
 
                     const hit =
                         ep.c.x >= collider.x - collider.width / 2 &&

@@ -20,5 +20,5 @@ export default defineConfig({
       interval: 100,
     },
   },
-  assetsInclude: ['**/*.png'], // Ensure PNG files are treated as assets
+  assetsInclude: ['**/*.png', '**/*.avif'],
 })
