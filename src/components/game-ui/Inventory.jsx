@@ -247,23 +247,12 @@ export default function Inventory({ isOpen, setIsOpen }) {
                                     </Text>
                                 </Space>
                                 <Space size={4}>
-                                    <div
-                                        className="inventory-quick-slot-drop"
-                                        title="Drop consumable for Q quick slot"
-                                        onDragOver={quickSlotDrop.handleDragOver}
-                                        onDragEnter={quickSlotDrop.handleDragEnter}
-                                        onDragLeave={quickSlotDrop.handleDragLeave}
-                                        onDrop={quickSlotDrop.handleDrop}
-                                    >
-                                        Q slot
-                                    </div>
                                     <Tooltip title="Sort by rarity" overlayStyle={{zIndex: 10001}}>
                                         <Button
                                             size="small"
                                             type="text"
                                             icon={<SortAscendingOutlined />}
                                             onClick={handleSort}
-                                            style={{ color: 'rgba(255,255,255,0.65)' }}
                                         />
                                     </Tooltip>
                                     <Popconfirm

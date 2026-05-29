@@ -191,7 +191,6 @@ const BottomRightMenu = () => {
                                             height: 42,
                                             borderRadius: 10,
                                             fontSize: 22,
-                                            opacity: 0.5
                                         }}
                                     />
                                 );

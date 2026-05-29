@@ -27,19 +27,11 @@ function QuestCard({ quest, progressMap, completed, locked }) {
         .join(', ');
 
     return (
-        <div
-            style={{
-                padding: 12,
-                borderRadius: 10,
-                border: `1px solid ${completed ? 'rgba(68,255,136,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                background: 'linear-gradient(145deg, rgb(176, 144, 106), rgb(152, 112, 80))',
-                opacity: locked ? 0.55 : 1,
-            }}
-        >
+        <Card>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span>{getQuestTypeIcon(quest)}</span>
-                    <Text strong style={{ color: '#fff', fontSize: 13 }}>
+                    <Text strong>
                         {quest.title}
                     </Text>
                     {quest.category === 'main' && (
@@ -49,17 +41,17 @@ function QuestCard({ quest, progressMap, completed, locked }) {
                     )}
                 </div>
                 {completed && <CheckCircleOutlined style={{ color: '#44ff88', fontSize: 16 }} />}
-                {locked && <LockOutlined style={{ color: 'rgba(255,255,255,0.35)' }} />}
+                {locked && <LockOutlined style={{ color: 'rgba(0,0,0,0.35)' }} />}
             </div>
 
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, display: 'block', marginBottom: 4 }}>
+            <Text style={{ color: 'rgba(0,0,0,0.6)', fontSize: 12, display: 'block', marginBottom: 4 }}>
                 {locked
                     ? `Requires: ${prereqLabel}`
                     : getQuestLabel(quest, progressMap)}
             </Text>
 
             {itemHint && !locked && !completed && (
-                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, display: 'block', marginBottom: 6 }}>
+                <Text style={{ color: 'rgba(0,0,0,0.4)', fontSize: 11, display: 'block', marginBottom: 6 }}>
                     Target: {itemHint}
                 </Text>
             )}
@@ -69,16 +61,16 @@ function QuestCard({ quest, progressMap, completed, locked }) {
                     percent={pct}
                     size="small"
                     format={() => `${Math.min(current, quest.target)} / ${quest.target}`}
-                    strokeColor={{ from: '#733cca', to: '#8845ea' }}
+                    strokeColor={{ from: '#f7892f', to: '#ffa974' }}
                     strokeWidth={8}
-                    trailColor="rgba(255,255,255,0.1)"
+                    trailColor="rgba(0,0,0,0.1)"
                 />
             )}
 
-            <Text style={{ color: '#e8a825', fontSize: 11, marginTop: 8, display: 'block' }}>
+            <Text style={{ fontSize: 11, marginTop: 8, display: 'block' }}>
                 Reward: {getQuestRewardsText(quest)}
             </Text>
-        </div>
+        </Card>
     );
 }
 
@@ -105,19 +97,19 @@ export default function QuestPanel({ isOpen }) {
             className="bottom-right-float-card quest-panel-card"
             styles={{ body: { padding: 0 }, header: { display: 'none' } }}
         >
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <Title level={5} style={{ margin: 0, color: '#fff' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                <Title level={5} style={{ margin: 0 }}>
                     Quest Log
                 </Title>
-                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
+                <Text style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
                     Complete objectives for gold and experience
                 </Text>
             </div>
 
-            <div style={{ padding: 14, maxHeight: 'calc(70vh - 100px)', overflowY: 'auto' }}>
+            <div style={{ padding: 14, maxHeight: 'calc(70vh - 160px)', overflowY: 'auto' }}>
                 {unlocked.length > 0 && (
                     <>
-                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700 }}>
+                        <Text style={{ color: 'rgba(0,0,0,0.5)', fontSize: 11, fontWeight: 700 }}>
                             ACTIVE
                         </Text>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8, marginBottom: 16 }}>
@@ -136,7 +128,7 @@ export default function QuestPanel({ isOpen }) {
 
                 {locked.length > 0 && (
                     <>
-                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700 }}>
+                        <Text style={{ color: 'rgba(0,0,0,0.5)', fontSize: 11, fontWeight: 700 }}>
                             LOCKED
                         </Text>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8, marginBottom: 16 }}>
@@ -155,7 +147,7 @@ export default function QuestPanel({ isOpen }) {
 
                 {completed.length > 0 && (
                     <>
-                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700 }}>
+                        <Text style={{ color: 'rgba(0,0,0,0.5)', fontSize: 11, fontWeight: 700 }}>
                             COMPLETED
                         </Text>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import {Card, Row, Col, Typography, Tabs, Button, Progress, message, Drawer} from 'antd';
+import {Card, Row, Col, Typography, Tabs, Button, Progress, message, Drawer, Modal} from 'antd';
 import { useGameStore, ENCHANT_BONUS_PER_LEVEL } from '../../stores/gameStore.js';
 import {
     ItemDatabase,
@@ -36,7 +36,7 @@ const enchantEssenceCost = (level) => Math.floor(5 * Math.pow(1.5, level));
 const enchantSuccessChance = (level) => Math.max(20, 100 - level * 8);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const rarityColor = (rarity) => rarity?.color || 'rgba(255,255,255,0.4)';
+const rarityColor = (rarity) => rarity?.color || 'rgba(0,0,0,0.4)';
 
 function MaterialIcon({ itemId, size = 24 }) {
     if (itemId === 'void_essence') {
@@ -74,7 +74,7 @@ function SectionLabel({ children }) {
                 fontSize: 10,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'rgba(0,0,0,0.35)',
                 fontWeight: 600,
                 display: 'block',
                 marginBottom: 8,
@@ -219,8 +219,8 @@ function CraftingTab() {
                                     alignItems: 'center',
                                     gap: 8,
                                     background: isSelected
-                                        ? 'rgba(255,255,255,0.08)'
-                                        : 'rgba(255,255,255,0.02)',
+                                        ? 'rgba(0,0,0,0.08)'
+                                        : 'rgba(0,0,0,0.02)',
                                     border: isSelected
                                         ? `1px solid ${rarityColor(db.rarity)}44`
                                         : '1px solid transparent',
@@ -250,7 +250,7 @@ function CraftingTab() {
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+                <div style={{ width: 1, background: 'rgba(0,0,0,0.07)', flexShrink: 0 }} />
 
                 {/* Recipe detail */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -261,7 +261,7 @@ function CraftingTab() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: 'rgba(255,255,255,0.2)',
+                                color: 'rgba(0,0,0,0.2)',
                                 fontSize: 12,
                                 letterSpacing: '0.08em',
                             }}
@@ -279,7 +279,7 @@ function CraftingTab() {
                                             width: 48,
                                             height: 48,
                                             borderRadius: 10,
-                                            background: 'rgba(255,255,255,0.05)',
+                                            background: 'rgba(0,0,0,0.05)',
                                             border: `1px solid ${rarityColor(resultItem.rarity)}66`,
                                             display: 'flex',
                                             alignItems: 'center',
@@ -294,7 +294,7 @@ function CraftingTab() {
                                         <div style={{ fontSize: 11, color: rarityColor(resultItem.rarity) }}>
                                             {resultItem.rarity?.name} · {resultItem.type}
                                         </div>
-                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                                        <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginTop: 2 }}>
                                             {resultItem.description}
                                         </div>
                                     </div>
@@ -311,7 +311,7 @@ function CraftingTab() {
                                         }}
                                     >
                                         {Object.entries(resultItem.stats).map(([k, v]) => (
-                                            <span key={k} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
+                                            <span key={k} style={{ fontSize: 11, color: 'rgba(0,0,0,0.6)' }}>
                                                 <span style={{ color: '#e8a825', fontWeight: 600 }}>+{v}</span> {k}
                                             </span>
                                         ))}
@@ -562,7 +562,7 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                 <div style={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <SectionLabel>Your inventory</SectionLabel>
                     {enchantableSlots.length === 0 && (
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', padding: '6px 2px' }}>
+                        <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.25)', padding: '6px 2px' }}>
                             No equippable items
                         </div>
                     )}
@@ -582,8 +582,8 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                     alignItems: 'center',
                                     gap: 8,
                                     background: isSelected
-                                        ? 'rgba(255,255,255,0.08)'
-                                        : 'rgba(255,255,255,0.02)',
+                                        ? 'rgba(0,0,0,0.08)'
+                                        : 'rgba(0,0,0,0.02)',
                                     border: isSelected
                                         ? `1px solid ${rarityColor(db.rarity)}44`
                                         : '1px solid transparent',
@@ -622,7 +622,7 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+                <div style={{ width: 1, background: 'rgba(0,0,0,0.07)', flexShrink: 0 }} />
 
                 {/* Enchant detail */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -633,7 +633,7 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: 'rgba(255,255,255,0.2)',
+                                color: 'rgba(0,0,0,0.2)',
                                 fontSize: 12,
                                 letterSpacing: '0.08em',
                             }}
@@ -651,7 +651,7 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                             width: 48,
                                             height: 48,
                                             borderRadius: 10,
-                                            background: 'rgba(255,255,255,0.05)',
+                                            background: 'rgba(0,0,0,0.05)',
                                             border: `1px solid ${rarityColor(selectedDb.rarity)}66`,
                                             display: 'flex',
                                             alignItems: 'center',
@@ -720,9 +720,9 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                                     background: filled
                                                         ? enchantLevelColor(idx + 1)
                                                         : isNext
-                                                            ? 'rgba(255,255,255,0.1)'
-                                                            : 'rgba(255,255,255,0.05)',
-                                                    border: isNext ? '1px solid rgba(255,255,255,0.2)' : 'none',
+                                                            ? 'rgba(0,0,0,0.1)'
+                                                            : 'rgba(0,0,0,0.05)',
+                                                    border: isNext ? '1px solid rgba(0,0,0,0.2)' : 'none',
                                                     transition: 'background 0.3s',
                                                 }}
                                             />
@@ -730,8 +730,8 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                     })}
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                                    <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>+0</Text>
-                                    <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>+{ENCHANT_LEVELS}</Text>
+                                    <Text style={{ fontSize: 10, color: 'rgba(0,0,0,0.3)' }}>+0</Text>
+                                    <Text style={{ fontSize: 10, color: 'rgba(0,0,0,0.3)' }}>+{ENCHANT_LEVELS}</Text>
                                 </div>
                             </div>
 
@@ -752,10 +752,10 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                                         justifyContent: 'space-between',
                                                         fontSize: 11,
                                                         padding: '3px 0',
-                                                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                                        borderBottom: '1px solid rgba(0,0,0,0.04)',
                                                     }}
                                                 >
-                                                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>{k}</span>
+                                                    <span style={{ color: 'rgba(0,0,0,0.5)' }}>{k}</span>
                                                     <span>
                                                         <span style={{ color: '#e8a825', fontWeight: 600 }}>
                                                             +{current}
@@ -820,7 +820,7 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                                 marginBottom: 4,
                                             }}
                                         >
-                                            <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+                                            <Text style={{ fontSize: 10, color: 'rgba(0,0,0,0.35)' }}>
                                                 SUCCESS CHANCE
                                             </Text>
                                             <Text
@@ -849,7 +849,7 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                                         ? '#e8a825'
                                                         : '#e06b6b'
                                             }
-                                            trailColor="rgba(255,255,255,0.06)"
+                                            trailColor="rgba(0,0,0,0.06)"
                                         />
                                     </div>
                                 </div>
@@ -863,8 +863,8 @@ function EnchantmentTab({ initialSlotIndex = null }) {
                                             textAlign: 'center',
                                             padding: '10px',
                                             borderRadius: 8,
-                                            background: 'rgba(255,170,68,0.08)',
-                                            border: '1px solid rgba(255,170,68,0.3)',
+                                            background: 'rgba(0,170,68,0.08)',
+                                            border: '1px solid rgba(0,170,68,0.3)',
                                             fontSize: 13,
                                             fontWeight: 700,
                                             color: '#ffaa44',
@@ -927,16 +927,17 @@ export default function CraftingPanel({ isOpen, onClose }) {
     if (!isOpen) return null;
 
     return (
-        <Drawer
+        <Modal
+            footer={null}
             width={1000}
             open={isOpen}
-            close={onClose}
+            onCancel={onClose}
         >
             {/* Header */}
             <div
                 style={{
                     padding: '14px 20px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    borderBottom: '1px solid rgba(0,0,0,0.08)',
                 }}
             >
                 <div style={{ display: 'flex', gap: 20 }}>
@@ -953,11 +954,11 @@ export default function CraftingPanel({ isOpen, onClose }) {
                                 fontWeight: activeTab === tab.key ? 700 : 400,
                                 color:
                                     activeTab === tab.key
-                                        ? '#fff'
-                                        : 'rgba(255,255,255,0.4)',
+                                        ? '#262626'
+                                        : 'rgba(0,0,0,0.4)',
                                 borderBottom:
                                     activeTab === tab.key
-                                        ? '2px solid #7b2ff7'
+                                        ? '2px solid #262626'
                                         : '2px solid transparent',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s',
@@ -978,6 +979,6 @@ export default function CraftingPanel({ isOpen, onClose }) {
                     <EnchantmentTab initialSlotIndex={enchantFocusSlotIndex} />
                 )}
             </div>
-        </Drawer>
+        </Modal>
     );
 }

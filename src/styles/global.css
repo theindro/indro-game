@@ -213,7 +213,7 @@ html.inventory-dragging .inventory-quick-slot-drop {
     position: relative;
     overflow: hidden!important;
     align-items: center;
-    background: linear-gradient(145deg, rgb(176, 144, 106), rgb(152, 112, 80));
+    background: rgba(0, 0, 0, 0.12);
     color: rgba(255, 255, 255, 0.08);
 }
 
@@ -333,8 +333,7 @@ html.inventory-dragging .inventory-quick-slot-drop {
     right: 24px;
     width: 700px;
     z-index: 10000;
-    background: linear-gradient(rgb(200, 176, 144) 0%, rgb(184, 152, 112) 100%);
-    border: 2px solid rgb(138, 104, 64);
+    border: solid 2px #b09384;
 }
 
 * {

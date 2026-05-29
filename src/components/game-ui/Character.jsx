@@ -90,7 +90,7 @@ const Character = ({isOpen, setIsOpen}) => {
                     {/* Stats Column */}
                     <Col span={8} style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}>
                         <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                            <Text strong style={{ fontSize: 15, color: '#ddd' }}>
+                            <Text strong style={{ fontSize: 15 }}>
                                 Level {playerLevel || 1}
                             </Text>
                         </div>

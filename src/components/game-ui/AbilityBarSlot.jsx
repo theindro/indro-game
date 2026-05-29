@@ -80,20 +80,14 @@ export default function AbilityBarSlot({ barIndex, ability, hotkeyLabel }) {
     const tooltipContent = (
         <div style={{ minWidth: 160 }}>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>{ability.name}</div>
-            <div style={{ fontSize: 12, color: '#bbb', lineHeight: 1.4, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, lineHeight: 1.4, marginBottom: 8 }}>
                 {ability.description}
             </div>
             <div style={{ fontSize: 12, color: '#888' }}>
-                Hotkey {hotkeyLabel} · CD {Number(ability.maxCooldown ?? 0).toFixed(1)}s
+                CD {Number(ability.maxCooldown ?? 0).toFixed(1)}s
                 {ability.damageMultiplier
                     ? ` · Dmg ${Math.round(playerDmg * ability.damageMultiplier)}`
                     : ''}
-            </div>
-            <div style={{ fontSize: 11, color: '#777', marginTop: 6 }}>
-                Aim with preview · LMB cast · RMB cancel
-            </div>
-            <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
-                Drag to another slot to reorder
             </div>
         </div>
     );
@@ -150,7 +144,7 @@ export function EmptyAbilityBarSlot({ barIndex, hotkeyLabel }) {
     const tooltipContent = (
         <div style={{ minWidth: 140 }}>
             <div style={{ fontWeight: 600 }}>Empty slot</div>
-            <div style={{ fontSize: 12, color: '#bbb', marginTop: 4 }}>
+            <div style={{ fontSize: 12, marginTop: 4 }}>
                 Hotkey {hotkeyLabel} — equip abilities in Skills (O)
             </div>
             <div style={{ fontSize: 11, color: '#777', marginTop: 6 }}>

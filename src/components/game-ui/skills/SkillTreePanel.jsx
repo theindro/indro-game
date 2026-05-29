@@ -127,7 +127,7 @@ function SkillTooltipContent({ node, rank, level, ranks, available }) {
 
     return (
         <div style={{ maxWidth: 280 }}>
-            <Text strong style={{ color: '#fff', fontSize: 13 }}>
+            <Text strong style={{ fontSize: 13 }}>
                 {node.name}
             </Text>
             <div style={{ marginTop: 4 }}>
@@ -140,11 +140,11 @@ function SkillTooltipContent({ node, rank, level, ranks, available }) {
                     </Tag>
                 )}
             </div>
-            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, display: 'block', marginTop: 8 }}>
+            <Text style={{ color: 'rgba(0,0,0,0.75)', fontSize: 12, display: 'block', marginTop: 8 }}>
                 {node.description}
             </Text>
             {(node.requires?.length ?? 0) > 0 && (
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, display: 'block', marginTop: 8 }}>
+                <Text style={{ color: 'rgba(0,0,0,0.5)', fontSize: 11, display: 'block', marginTop: 8 }}>
                     Requires:{' '}
                     {(node.requires ?? [])
                         .map((id) => {
@@ -170,7 +170,7 @@ function SkillTooltipContent({ node, rank, level, ranks, available }) {
                     {dealloc.reason}
                 </Text>
             )}
-            <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, display: 'block', marginTop: 10 }}>
+            <Text style={{ color: 'rgba(0,0,0,0.35)', fontSize: 10, display: 'block', marginTop: 10 }}>
                 Left-click: add point · Right-click: remove point
             </Text>
         </div>
@@ -195,13 +195,13 @@ function SkillTreeNode({
     const Icon = NODE_ICONS[node.id] ?? FireOutlined;
     const r = NODE_SIZE / 2;
 
-    let border = 'rgba(255,255,255,0.2)';
+    let border = 'rgba(0,0,0,0.2)';
     let bg = 'rgba(0,0,0,0.5)';
     let iconColor = branch?.color ?? '#fff';
 
     if (maxed) {
-        border = 'rgba(68,255,136,0.7)';
-        bg = 'rgba(68,255,136,0.15)';
+        border = 'rgba(68,0,136,0.7)';
+        bg = 'rgba(68,0,136,0.15)';
     } else if (rank > 0) {
         border = `${branch?.color ?? '#b674ff'}99`;
         bg = 'rgba(0,0,0,0.65)';
@@ -209,9 +209,9 @@ function SkillTreeNode({
         border = `${branch?.color ?? '#b674ff'}cc`;
         bg = 'rgba(0,0,0,0.55)';
     } else if (locked) {
-        border = 'rgba(255,255,255,0.12)';
+        border = 'rgba(0,0,0,0.12)';
         bg = 'rgba(0,0,0,0.35)';
-        iconColor = 'rgba(255,255,255,0.35)';
+        iconColor = 'rgba(0,0,0,0.35)';
     }
 
     const handleClick = (e) => {
@@ -288,7 +288,7 @@ function SkillTreeNode({
                             right: 2,
                             bottom: 2,
                             fontSize: 12,
-                            color: 'rgba(255,255,255,0.55)',
+                            color: 'rgba(0,0,0,0.55)',
                         }}
                     />
                 )}
@@ -331,7 +331,7 @@ function ConnectionLines({ positions, ranks }) {
                         key={ln.key}
                         d={d}
                         fill="none"
-                        stroke={ln.active ? 'rgba(180,120,255,0.55)' : 'rgba(255,255,255,0.12)'}
+                        stroke={ln.active ? 'rgba(180,120,0,0.55)' : 'rgba(0,0,0,0.12)'}
                         strokeWidth={ln.active ? 2 : 1.5}
                     />
                 );
@@ -409,13 +409,14 @@ export default function SkillTreePanel({ isOpen, onClose }) {
     return (
         <>
             {contextHolder}
-            <Drawer
-                onClose={onClose}
+            <Modal
+                footer={null}
+                onCancel={onClose}
                 width={LAYOUT.width}
                 open={isOpen}
                 title={
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Title level={4} style={{ margin: 0, color: '#fff' }}>
+                        <Title level={4} style={{ margin: 0 }}>
                             Skill Tree
                         </Title>
                         <Tag color="purple">
@@ -455,7 +456,7 @@ export default function SkillTreePanel({ isOpen, onClose }) {
                     })}
                 </div>
                 <AbilityBarManager />
-            </Drawer>
+            </Modal>
         </>
     );
 }

@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
-import { Progress, Space, Divider, Tooltip } from 'antd';
-import { useGameStore, INITIAL_ABILITIES } from '../../stores/gameStore.js';
-import { ItemDatabase } from '../../game/items.js';
-import { normalizeAbilityBarLayout } from '../../game/abilities/abilityBarLayout.js';
-import { useQuickSlotDropHandlers } from './useQuickSlotDropHandlers.js';
-import AbilityBarSlot, { EmptyAbilityBarSlot } from './AbilityBarSlot.jsx';
+import React, {useMemo} from 'react';
+import {Progress, Space, Divider, Tooltip} from 'antd';
+import {useGameStore, INITIAL_ABILITIES} from '../../stores/gameStore.js';
+import {ItemDatabase} from '../../game/items.js';
+import {normalizeAbilityBarLayout} from '../../game/abilities/abilityBarLayout.js';
+import {useQuickSlotDropHandlers} from './useQuickSlotDropHandlers.js';
+import AbilityBarSlot, {EmptyAbilityBarSlot} from './AbilityBarSlot.jsx';
 import BuffDebuffBar from './BuffDebuffBar.jsx';
 
 const HOTKEYS = ['1', '2', '3', '4', '5', '6'];
@@ -30,7 +30,7 @@ const styles = {
     },
 };
 
-function DashCooldownOverlay({ cooldownEnd }) {
+function DashCooldownOverlay({cooldownEnd}) {
     const [now, setNow] = React.useState(() => performance.now());
 
     React.useEffect(() => {
@@ -69,14 +69,14 @@ function DashCooldownOverlay({ cooldownEnd }) {
 
 /** LMB / Space — not part of the 1–6 loadout. */
 function UtilitySlot({
-    icon,
-    name,
-    description,
-    hotkeyLabel,
-    onCooldown,
-    cooldownEnd,
-    maxCooldown,
-}) {
+                         icon,
+                         name,
+                         description,
+                         hotkeyLabel,
+                         onCooldown,
+                         cooldownEnd,
+                         maxCooldown,
+                     }) {
     const ready = !onCooldown;
 
     return (
@@ -89,11 +89,11 @@ function UtilitySlot({
         >
             <Tooltip
                 title={
-                    <div style={{ minWidth: 140 }}>
-                        <div style={{ fontWeight: 600 }}>{name}</div>
-                        <div style={{ fontSize: 12, color: '#bbb', marginTop: 4 }}>{description}</div>
+                    <div style={{minWidth: 140}}>
+                        <div style={{fontWeight: 600}}>{name}</div>
+                        <div style={{fontSize: 12, marginTop: 4}}>{description}</div>
                         {maxCooldown != null && (
-                            <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+                            <div style={{fontSize: 12, color: '#888', marginTop: 6}}>
                                 CD {Number(maxCooldown).toFixed(1)}s
                             </div>
                         )}
@@ -101,7 +101,7 @@ function UtilitySlot({
                 }
                 placement="top"
                 arrow={false}
-                overlayStyle={{ zIndex: 10001 }}
+                overlayStyle={{zIndex: 10001}}
                 mouseEnterDelay={0.15}
             >
                 <div
@@ -120,9 +120,9 @@ function UtilitySlot({
                         width={42}
                         height={42}
                         draggable={false}
-                        style={{ filter: ready ? 'none' : 'grayscale(0.6)', pointerEvents: 'none' }}
+                        style={{filter: ready ? 'none' : 'grayscale(0.6)', pointerEvents: 'none'}}
                     />
-                    {!ready && <DashCooldownOverlay cooldownEnd={cooldownEnd} />}
+                    {!ready && <DashCooldownOverlay cooldownEnd={cooldownEnd}/>}
                     <div
                         style={{
                             position: 'absolute',
@@ -176,7 +176,7 @@ export default function AbilityBar() {
             const ability = abilityKey
                 ? abilities?.[abilityKey] ?? INITIAL_ABILITIES[abilityKey]
                 : null;
-            return { barIndex, hotkey, abilityKey, ability };
+            return {barIndex, hotkey, abilityKey, ability};
         });
     }, [abilities, skillUnlocks, abilityBarLayout]);
 
@@ -184,8 +184,8 @@ export default function AbilityBar() {
 
     return (
         <div className="ability-bar-hud" style={styles.root}>
-                <BuffDebuffBar />
-            <div style={{ flex: 1, position: 'relative', marginBottom: 8 }}>
+            <BuffDebuffBar/>
+            <div style={{flex: 1, position: 'relative', marginBottom: 8}}>
 
                 <div
                     style={{
@@ -218,6 +218,7 @@ export default function AbilityBar() {
                     padding: '8px',
                     border: 'solid 2px #b09384',
                     borderRadius: '6px',
+                    height: 42
                 }}
             >
                 <Space size={8} wrap>
@@ -237,11 +238,9 @@ export default function AbilityBar() {
                             />
                         )
                     )}
-                </Space>
 
-                <Divider type="vertical" style={{ height: 24, background: 'rgba(255,255,255,0.1)' }} />
+                    <Divider type="vertical" style={{height: 24, background: 'rgba(255,255,255,0.1)'}}/>
 
-                <Space size={8}>
                     <UtilitySlot
                         icon="/icons/attack.png"
                         name="Basic Attack"
@@ -264,8 +263,10 @@ export default function AbilityBar() {
                         cooldownEnd={dashCooldownEnd}
                         maxCooldown={dashCooldownStat}
                     />
-                    <QuickSlotCell />
+                    <QuickSlotCell/>
                 </Space>
+
+
             </div>
 
             <div
@@ -293,7 +294,7 @@ export default function AbilityBar() {
                 >
                     {playerLevel}
                 </div>
-                <div style={{ flex: 1, position: 'relative' }}>
+                <div style={{flex: 1, position: 'relative'}}>
                     <div
                         style={{
                             position: 'absolute',
@@ -328,7 +329,7 @@ function QuickSlotCell() {
     const consumableCooldownUntil = useGameStore((s) => s.player?.consumableCooldownUntil ?? 0);
     const clearQuickSlot1 = useGameStore((s) => s.clearQuickSlot1);
     const useQuickSlot1 = useGameStore((s) => s.useQuickSlot1);
-    const { handleDragOver, handleDragEnter, handleDragLeave, handleDrop } =
+    const {handleDragOver, handleDragEnter, handleDragLeave, handleDrop} =
         useQuickSlotDropHandlers();
 
     const [now, setNow] = React.useState(() => Date.now());
@@ -387,10 +388,10 @@ function QuickSlotCell() {
                         alt={dbItem.name}
                         width={28}
                         height={28}
-                        style={{ filter: onCooldown ? 'grayscale(0.65)' : 'none' }}
+                        style={{filter: onCooldown ? 'grayscale(0.65)' : 'none'}}
                     />
                 ) : (
-                    <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)' }}>+</span>
+                    <span style={{fontSize: 18, color: 'rgba(255,255,255,0.35)'}}>+</span>
                 )}
                 {onCooldown && (
                     <div

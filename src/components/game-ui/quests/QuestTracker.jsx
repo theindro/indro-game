@@ -1,5 +1,5 @@
 import React from 'react';
-import { Progress, Tag, Typography } from 'antd';
+import {Button, Card, Progress, Tag, Typography} from 'antd';
 import { useGameStore } from '../../../stores/gameStore.js';
 import { getActiveMainQuests } from '../../../game/quests/questDefinitions.js';
 import {
@@ -13,23 +13,7 @@ const TEMP_EVENT_STROKE = { from: '#ff7700', to: '#ffbb44' };
 
 function TemporaryEventRow({ event, onOpenQuests }) {
     return (
-        <button
-            type="button"
-            onClick={onOpenQuests}
-            style={{
-                display: 'block',
-                width: '100%',
-                margin: 0,
-                marginBottom: 8,
-                padding: '8px 10px',
-                border: '1px solid rgba(255, 140, 0, 0.45)',
-                borderRadius: 8,
-                background: 'rgba(255, 100, 0, 0.12)',
-                cursor: 'pointer',
-                textAlign: 'left',
-                boxShadow: '0 0 12px rgba(255, 120, 0, 0.15)',
-            }}
-        >
+        <Card>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: 700 }} ellipsis>
                     {event.title}
@@ -51,7 +35,7 @@ function TemporaryEventRow({ event, onOpenQuests }) {
                 strokeColor={TEMP_EVENT_STROKE}
                 trailColor="rgba(255, 255, 255, 0.12)"
             />
-        </button>
+        </Card>
     );
 }
 
@@ -59,37 +43,23 @@ function QuestRow({ quest, progressMap, onOpenQuests }) {
     const pct = getQuestProgressPercent(quest, progressMap);
 
     return (
-        <button
-            type="button"
-            onClick={onOpenQuests}
-            style={{
-                display: 'block',
-                width: '100%',
-                margin: 0,
-                padding: '8px 10px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 8,
-                background: 'rgba(0,0,0,0.35)',
-                cursor: 'pointer',
-                textAlign: 'left',
-            }}
-        >
+        <Card bodyStyle={{padding: 12}} style={{borderRadius: 12, border: 'solid 2px #b09384'}}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: 700 }} ellipsis>
+                <Text style={{ fontSize: 12, fontWeight: 700 }} ellipsis>
                     {quest.title}
                 </Text>
             </div>
-            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, display: 'block', marginBottom: 6 }}>
+            <Text style={{ color: 'rgba(0,0,0,0.55)', fontSize: 11, display: 'block', marginBottom: 6 }}>
                 {getQuestLabel(quest, progressMap)}
             </Text>
             <Progress
                 percent={pct}
                 size="small"
                 showInfo={false}
-                strokeColor={{ from: '#7b2ff7', to: '#b674ff' }}
+                strokeColor={{ from: '#f7892f', to: '#ffa974' }}
                 trailColor="rgba(255,255,255,0.1)"
             />
-        </button>
+        </Card>
     );
 }
 
@@ -118,25 +88,20 @@ export default function QuestTracker({ onOpenQuests }) {
                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>
                     QUESTS
                 </Text>
-                <button
-                    type="button"
+                <Button
+                    type="text"
+                    size="small"
                     onClick={onOpenQuests}
-                    style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'rgba(255,255,255,0.5)',
-                        fontSize: 10,
-                        cursor: 'pointer',
-                        padding: 0,
-                    }}
+                    style={{color: "#fff"}}
                 >
                     View all (P)
-                </button>
+                </Button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {hasTemp && (
                     <TemporaryEventRow event={temporaryEvent} onOpenQuests={onOpenQuests} />
                 )}
+
                 {mainQuests.map((quest) => (
                     <QuestRow
                         key={quest.id}
