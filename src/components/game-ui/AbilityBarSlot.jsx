@@ -49,8 +49,8 @@ function CooldownOverlay({ cooldownEnd }) {
 }
 
 const slotStyle = {
-    width: 52,
-    height: 52,
+    width: 42,
+    height: 42,
     borderRadius: 4,
     display: 'flex',
     alignItems: 'center',

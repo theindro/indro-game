@@ -39,8 +39,8 @@ const styles = {
         padding: "0 16px",
     },
     abilitySlot: {
-        width: 52,
-        height: 52,
+        width: 42,
+        height: 42,
         borderRadius: 0,
         display: "flex",
         alignItems: "center",
@@ -145,7 +145,7 @@ export default function AbilityBar() {
                     <div
                         style={{
                             position: 'absolute',
-                            top: 4,
+                            top: 2,
                             left: '50%',
                             transform: 'translateX(-50%)',
                             fontSize: 12,
@@ -163,7 +163,7 @@ export default function AbilityBar() {
                     <Progress
                         percent={((playerHp ?? 0) / (playerMaxHp ?? 100)) * 100}
                         showInfo={false}
-                        strokeWidth={22}
+                        strokeWidth={20}
                         strokeColor="#64b022"
                     />
                 </div>
@@ -197,7 +197,7 @@ export default function AbilityBar() {
                         ))}
                     </Space>
 
-                    <Divider type="vertical" style={{height: 34, background: "rgba(255,255,255,0.1)"}}/>
+                    <Divider type="vertical" style={{height: 24, background: "rgba(255,255,255,0.1)"}}/>
 
                     {/* Basic Attack + Dash */}
                     <Space size={8}>
@@ -256,7 +256,7 @@ export default function AbilityBar() {
                     <div
                         style={{
                             position: 'absolute',
-                            top: 4,
+                            top: 2,
                             left: '50%',
                             transform: 'translateX(-50%)',
                             fontSize: 12,
@@ -272,7 +272,7 @@ export default function AbilityBar() {
                     <Progress
                         percent={((playerXp ?? 0) / (playerXpNext ?? 100)) * 100}
                         showInfo={false}
-                        strokeWidth={22}
+                        strokeWidth={20}
                         strokeColor="#733cca"
                         trailColor="#3f3934"
                     />

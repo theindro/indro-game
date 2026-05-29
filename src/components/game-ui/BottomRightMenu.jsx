@@ -187,11 +187,11 @@ const BottomRightMenu = () => {
                                                  alt=""/> : item.icon}
                                         onClick={() => togglePanel(item.key)}
                                         style={{
-                                            width: 52,
-                                            height: 52,
+                                            width: 42,
+                                            height: 42,
                                             borderRadius: 10,
                                             fontSize: 22,
-                                            opacity: 1
+                                            opacity: 0.5
                                         }}
                                     />
                                 );
