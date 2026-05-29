@@ -2,8 +2,6 @@
 import {Container, Graphics} from 'pixi.js';
 import {ARROW_SPEED, DEFAULT_ATTACK_RANGE} from '../constants.js';
 import {VFX} from "../GlobalEffects.js";
-import {GlowFilter} from "pixi-filters";
-
 /* ── player arrow ── */
 
 // Arrow type configurations
@@ -19,12 +17,12 @@ export const ARROW_TYPES = {
     },
     BURN: {
         name: 'burn',
-        shaftColor: 0xcc6600,
-        tipColor: 0xff4400,
-        trailColor: 0xff6600,
-        glowColor: 0xff4400,
-        particleColor: 0xff6600,
-        trailAlpha: 0.6
+        shaftColor: 0xffaa66,
+        tipColor: 0xfff0dd,
+        trailColor: 0xff8844,
+        glowColor: 0xff6622,
+        particleColor: 0xffcc88,
+        trailAlpha: 0.35
     },
     POISON: {
         name: 'poison',
@@ -56,6 +54,73 @@ export const ARROW_TYPES = {
 };
 
 /**
+ * Empower / ignite arrow — soft additive halo, hot core, wisp embers (no blob circles).
+ * @param {import('pixi.js').Container} c
+ */
+function buildBurnArrowVisual(c) {
+    const glowLayer = new Container();
+    glowLayer.zIndex = 0;
+    glowLayer.blendMode = 'add';
+
+    const outer = new Graphics();
+    outer.ellipse(2, 0, 22, 10).fill({ color: 0xff4400, alpha: 0.07 });
+    const mid = new Graphics();
+    mid.ellipse(2, 0, 15, 7).fill({ color: 0xff6622, alpha: 0.14 });
+    const hot = new Graphics();
+    hot.ellipse(7, 0, 10, 5).fill({ color: 0xffdd99, alpha: 0.2 });
+    glowLayer.addChild(outer, mid, hot);
+
+    const trailGlow = new Graphics();
+    trailGlow.moveTo(-20, 0).lineTo(5, 0);
+    trailGlow.stroke({ color: 0xff7733, width: 5, alpha: 0.22, cap: 'round' });
+    trailGlow.blendMode = 'add';
+
+    const trailCore = new Graphics();
+    trailCore.moveTo(-15, 0).lineTo(8, 0);
+    trailCore.stroke({ color: 0xffeecc, width: 1.5, alpha: 0.5, cap: 'round' });
+
+    const shaft = new Graphics();
+    shaft.roundRect(-1, -1.2, 13, 2.4, 1).fill({ color: 0xdd6622 });
+    shaft.roundRect(0, -0.55, 11, 1.1, 0.5).fill({ color: 0xfff0dd, alpha: 0.9 });
+
+    const tip = new Graphics();
+    tip.moveTo(12, 0).lineTo(5, -2.8).lineTo(5, 2.8).closePath().fill({ color: 0xfff8ee });
+    tip.moveTo(11, 0).lineTo(6.5, -1.6).lineTo(6.5, 1.6).closePath().fill({ color: 0xffaa55, alpha: 0.85 });
+
+    c.addChild(glowLayer);
+    c.addChild(trailGlow);
+    c.addChild(trailCore);
+    c.addChild(shaft);
+    c.addChild(tip);
+
+    const embers = [];
+    for (let i = 0; i < 2; i++) {
+        const ember = new Graphics();
+        ember.moveTo(0, 1).lineTo(0, -3 - Math.random() * 2);
+        ember.stroke({ color: 0xffcc77, width: 1.1, alpha: 0.5, cap: 'round' });
+        ember.blendMode = 'add';
+        ember.x = 1 + i * 6;
+        ember.y = (Math.random() - 0.5) * 2.5;
+        ember.rotation = (Math.random() - 0.5) * 0.45;
+        c.addChild(ember);
+        embers.push({
+            graphics: ember,
+            baseX: ember.x,
+            baseY: ember.y,
+            phase: Math.random() * Math.PI * 2,
+            drift: 0.6 + Math.random() * 0.5,
+        });
+    }
+
+    c.userData = {
+        arrowType: ARROW_TYPES.BURN,
+        burnGlowLayer: glowLayer,
+        embers,
+        time: 0,
+    };
+}
+
+/**
  * @param {object} [trajectory]
  * @param {number} [trajectory.maxRange] Max travel distance from spawn (px), from player stats / gear.
  * @param {number} [trajectory.speedScale] Multiplier on {@link ARROW_SPEED} only (does not change max range).
@@ -73,80 +138,78 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
     const angle = Math.atan2(dy, dx) + angleOffset;
     const maxRange = trajectory.maxRange ?? DEFAULT_ATTACK_RANGE;
 
-    // Elemental glow effect
+    let vfxGlow = null;
 
-    if (arrowType.name !== 'normal') {
-
-        const glow = new Graphics();
-        glow.circle(0, 0, 12).fill({color: arrowType.glowColor, alpha: 0.1});
-        c.addChild(glow);
-    }
-
-
-    // Arrow trail (elemental color)
-    const trail = new Graphics();
-    trail.rect(-14, -1.5, 14, 3).fill({color: arrowType.trailColor, alpha: arrowType.trailAlpha});
-    c.addChild(trail);
-
-    // Arrow shaft
-    const shaft = new Graphics();
-    shaft.rect(-2, -1, 14, 2).fill(arrowType.shaftColor);
-    c.addChild(shaft);
-
-    // Arrow tip
-    const tip = new Graphics();
-    tip.moveTo(12, 0).lineTo(6, -3).lineTo(6, 3).closePath().fill(arrowType.tipColor);
-    c.addChild(tip);
-
-    // Elemental particles attached to arrow
-    const particleContainer = new Container();
-    c.addChild(particleContainer);
-
-    // Create floating particles based on arrow type
-    const particles = [];
-    const particleCount = arrowType === ARROW_TYPES.NORMAL ? 0 : 3;
-
-    for (let i = 0; i < particleCount; i++) {
-        const particle = new Graphics();
-        const size = 4 + Math.random() * 3;
-
-        switch (arrowType.name) {
-            case 'burn':
-                particle.circle(0, 0, size).fill({color: 0xff6600, alpha: 0.7});
-                break;
-            case 'poison':
-                particle.circle(0, 0, size).fill({color: 0x44ff44, alpha: 0.6});
-                break;
-            case 'lightning':
-                particle.circle(0, 0, size).fill({color: 0x88ccff, alpha: 0.7});
-                break;
+    if (arrowType.name === 'burn') {
+        buildBurnArrowVisual(c);
+        vfxGlow = VFX.addGlow(0, 0, {
+            color: 0xff7722,
+            alpha: 0.18,
+            scale: 0.28,
+            texture: 'glow2',
+        }, c);
+    } else {
+        if (arrowType.name !== 'normal') {
+            const glow = new Graphics();
+            glow.circle(0, 0, 10).fill({ color: arrowType.glowColor, alpha: 0.08 });
+            glow.blendMode = 'add';
+            c.addChild(glow);
         }
 
-        particle.x = (Math.random() - 0.5) * 20;
-        particle.y = (Math.random() - 0.5) * 10 - 5;
-        particleContainer.addChild(particle);
-        particles.push({
-            graphics: particle,
-            offsetX: particle.x,
-            offsetY: particle.y,
-            phase: Math.random() * Math.PI * 2
-        });
+        const trail = new Graphics();
+        trail.rect(-14, -1.5, 14, 3).fill({ color: arrowType.trailColor, alpha: arrowType.trailAlpha });
+        c.addChild(trail);
+
+        const shaft = new Graphics();
+        shaft.rect(-2, -1, 14, 2).fill(arrowType.shaftColor);
+        c.addChild(shaft);
+
+        const tip = new Graphics();
+        tip.moveTo(12, 0).lineTo(6, -3).lineTo(6, 3).closePath().fill(arrowType.tipColor);
+        c.addChild(tip);
+
+        const particleContainer = new Container();
+        c.addChild(particleContainer);
+
+        const particles = [];
+        const particleCount = arrowType === ARROW_TYPES.NORMAL ? 0 : 2;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new Graphics();
+            const size = 2 + Math.random() * 2;
+
+            switch (arrowType.name) {
+                case 'poison':
+                    particle.circle(0, 0, size).fill({ color: 0x66ff88, alpha: 0.45 });
+                    break;
+                case 'lightning':
+                    particle.circle(0, 0, size).fill({ color: 0x99ddff, alpha: 0.55 });
+                    break;
+                default:
+                    break;
+            }
+
+            particle.x = (Math.random() - 0.5) * 14;
+            particle.y = (Math.random() - 0.5) * 8 - 4;
+            particleContainer.addChild(particle);
+            particles.push({
+                graphics: particle,
+                offsetX: particle.x,
+                offsetY: particle.y,
+                phase: Math.random() * Math.PI * 2,
+            });
+        }
+
+        c.userData = {
+            particles,
+            arrowType,
+            particleContainer,
+            time: 0,
+        };
     }
-
-    // weapon glow
-
-
 
     c.rotation = angle;
     world.addChild(c);
-
-    // Store particle animation data
-    c.userData = {
-        particles,
-        arrowType,
-        particleContainer,
-        time: 0
-    };
 
     return {
         c,
@@ -160,32 +223,46 @@ export function createArrow(world, px, py, tx, ty, angleOffset = 0, chainData = 
         chainHitMobs: chainData?.chainHitMobs ?? new Set(),
         damage: chainData?.damage ?? 0,
         arrowType: arrowType,
-        elementalEffect: arrowType.name
+        elementalEffect: arrowType.name,
+        vfxGlow,
     };
 }
 
-// Update projectile animation in your createCombatController.js
+/** Subtle motion on elemental / empower arrow attachments. */
 export function updateArrowParticleAnimation(arrow, dtSec = 1 / 60) {
-    if (!arrow.c.userData?.particles) return;
+    const data = arrow.c?.userData;
+    if (!data) return;
 
-    const data = arrow.c.userData;
-    // ~same visual rate as old frame-based `deltaTime * 0.1` at 60fps when dtSec ≈ 1/60
-    data.time += dtSec * 6;
+    data.time += dtSec * 7;
+
+    if (data.arrowType?.name === 'burn' || data.burnGlowLayer) {
+        const pulse = 0.92 + Math.sin(data.time * 5) * 0.08;
+        if (data.burnGlowLayer && !data.burnGlowLayer.destroyed) {
+            data.burnGlowLayer.scale.set(pulse);
+            data.burnGlowLayer.alpha = 0.88 + Math.sin(data.time * 7) * 0.12;
+        }
+        for (const e of data.embers ?? []) {
+            if (e.graphics.destroyed) continue;
+            e.graphics.alpha = 0.3 + Math.sin(data.time * 6 + e.phase) * 0.22;
+            e.graphics.x = e.baseX + Math.sin(data.time * 4 + e.phase) * e.drift;
+            e.graphics.y = e.baseY + Math.cos(data.time * 5 + e.phase) * e.drift * 0.45;
+        }
+        return;
+    }
+
+    if (!data.particles?.length) return;
 
     for (let i = 0; i < data.particles.length; i++) {
         const p = data.particles[i];
-        const offset = Math.sin(data.time * 3 + p.phase) * 3;
+        const offset = Math.sin(data.time * 3 + p.phase) * 2;
 
-        if (data.arrowType.name === 'burn') {
-            p.graphics.x = p.offsetX + offset;
-            p.graphics.alpha = 0.5 + Math.sin(data.time * 5) * 0.3;
-        } else if (data.arrowType.name === 'poison') {
+        if (data.arrowType.name === 'poison') {
             p.graphics.y = p.offsetY + offset;
-            p.graphics.alpha = 0.4 + Math.sin(data.time * 4) * 0.2;
+            p.graphics.alpha = 0.35 + Math.sin(data.time * 4) * 0.18;
         } else if (data.arrowType.name === 'lightning') {
-            p.graphics.x = p.offsetX + Math.sin(data.time * 8) * 5;
-            p.graphics.y = p.offsetY + Math.cos(data.time * 6) * 3;
-            p.graphics.alpha = 0.6 + Math.sin(data.time * 10) * 0.3;
+            p.graphics.x = p.offsetX + Math.sin(data.time * 8) * 4;
+            p.graphics.y = p.offsetY + Math.cos(data.time * 6) * 2.5;
+            p.graphics.alpha = 0.45 + Math.sin(data.time * 10) * 0.25;
         }
     }
 }

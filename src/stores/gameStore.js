@@ -24,9 +24,21 @@ import {
     getDismantleEssenceYield,
 } from '../game/itemDismantle.js';
 import {
-    DEFAULT_ABILITY_BAR_LAYOUT,
+    ALL_ABILITY_KEYS,
+    STARTER_ABILITY_BAR_LAYOUT,
     normalizeAbilityBarLayout,
+    syncAbilityBarWithUnlocks,
+    equipAbilityToFirstFreeSlot,
+    unequipAbilityFromBar,
+    isAbilityEquipped,
+    countEquippedAbilities,
 } from '../game/abilities/abilityBarLayout.js';
+import {
+    INITIAL_ABILITIES,
+    cloneDefaultAbilities,
+} from '../game/abilities/initialAbilities.js';
+
+export { INITIAL_ABILITIES, cloneDefaultAbilities };
 
 // How much each enchant level multiplies base stats (12% per level)
 export const ENCHANT_BONUS_PER_LEVEL = 0.08;
@@ -41,83 +53,6 @@ export function getEnchantedStatValue(slotOrEquip, statKey, baseValue) {
 
 const STORAGE_KEY = 'voidhunt-game-v1';
 const STORAGE_VERSION = 1;
-
-export const INITIAL_ABILITIES = {
-    ability1: {
-        name: 'Arrow Barrage',
-        icon: '/icons/ability1.png',
-        cooldownEnd: 0,
-        maxCooldown: 5,
-        level: 1,
-        description: 'Shoots 10 arrows in cone front of player',
-        arrowCount: 10,
-        arrowSpread: 0.15,
-        damageMultiplier: 3,
-    },
-    ability2: {
-        name: 'Rapid Fire',
-        icon: '/icons/ability2.png',
-        cooldownEnd: 0,
-        maxCooldown: 2,
-        level: 1,
-        description: 'Rapidly fires 10 arrows at the nearest enemy',
-        arrowCount: 6,
-        damageMultiplier: 0.6,
-        fireDelay: 0.1,
-    },
-    ability3: {
-        name: 'Empower',
-        icon: '/icons/ability3.png',
-        cooldownEnd: 0,
-        maxCooldown: 15,
-        level: 1,
-        buffDuration: 6,
-        description: '6s: fire aura — your arrows ignite enemies (burn)',
-    },
-    ability4: {
-        name: 'Frost Arrow',
-        icon: '/icons/ability4.png',
-        cooldownEnd: 0,
-        maxCooldown: 10,
-        level: 1,
-        description: 'Launches a massive frost arrow that explodes and freezes enemies',
-        damageMultiplier: 2.5,
-        explosionRadius: 180,
-        freezeDuration: 3,
-        slowAmount: 0.6,
-        arrowCount: 1,
-        projectileSpeed: 8,
-    },
-    ability5: {
-        name: 'Venom Nova',
-        icon: '/icons/ability2.png',
-        cooldownEnd: 0,
-        maxCooldown: 12,
-        level: 1,
-        description: 'Poison explosion at target location',
-        explosionRadius: 140,
-        poisonDamage: 3,
-        poisonDuration: 5,
-        damageMultiplier: 1.2,
-    },
-    ability6: {
-        name: 'Spinshot',
-        icon: '/icons/ability1.png',
-        cooldownEnd: 0,
-        maxCooldown: 44,
-        level: 1,
-        description: 'Spin and fire arrows in all directions for 2s. Uses chain & pierce.',
-        spinDuration: 2,
-        fireInterval: 0.09,
-        arrowsPerWave: 6,
-        rotationSpeed: 3.2,
-        damageMultiplier: 0.5,
-    },
-};
-
-export function cloneDefaultAbilities() {
-    return /** @type {typeof INITIAL_ABILITIES} */ (JSON.parse(JSON.stringify(INITIAL_ABILITIES)));
-}
 
 /** 31-bit positive int for procedural world (biomes, chunk rolls, props, mob layout). */
 export function generateWorldSeed() {
@@ -226,7 +161,14 @@ function createGameStoreSlice(set, get) {
             ability4: false,
             ability5: false,
             ability6: false,
+            ability7: false,
         },
+
+        /** Applied next frame by the game loop (world coords). */
+        pendingPlayerTeleport: null,
+
+        /** Fire Slam impact at landing (world coords), after teleport. */
+        pendingFireSlam: null,
 
         // Inventory System
         inventory: {
@@ -289,12 +231,12 @@ function createGameStoreSlice(set, get) {
         },
 
         basicAttack: {cooldownEnd: 0},
-        dash: {cooldownEnd: 0},
+        dash: { cooldownEnd: 0, charges: 1, nextRechargeAt: 0 },
 
         abilities: cloneDefaultAbilities(),
 
         /** Which ability id sits on hotkeys 1–6 (swap via drag on ability bar). */
-        abilityBarLayout: [...DEFAULT_ABILITY_BAR_LAYOUT],
+        abilityBarLayout: [...STARTER_ABILITY_BAR_LAYOUT],
 
         /** Empower buff end time (`performance.now()` ms). */
         empowerBuff: { endsAt: 0 },
@@ -362,13 +304,114 @@ function createGameStoreSlice(set, get) {
                 return { ok: false, reason: 'invalid_index' };
             }
 
-            const layout = normalizeAbilityBarLayout(get().abilityBarLayout);
+            const unlocks = get().skillUnlocks;
+            const layout = normalizeAbilityBarLayout(get().abilityBarLayout, unlocks);
             const next = [...layout];
             const tmp = next[fromIndex];
             next[fromIndex] = next[toIndex];
             next[toIndex] = tmp;
-            set({ abilityBarLayout: next });
+            set({ abilityBarLayout: normalizeAbilityBarLayout(next, unlocks) });
             return { ok: true };
+        },
+
+        /**
+         * Place an unlocked ability on a hotkey slot (1–6). Clears it from any other slot.
+         * @param {number} barIndex 0–5
+         * @param {string} abilityKey e.g. ability7
+         */
+        assignAbilityToBarSlot: (barIndex, abilityKey) => {
+            if (
+                !Number.isInteger(barIndex) ||
+                barIndex < 0 ||
+                barIndex > 5 ||
+                !ALL_ABILITY_KEYS.includes(abilityKey)
+            ) {
+                return { ok: false, reason: 'invalid' };
+            }
+            if (!get().skillUnlocks?.[abilityKey]) {
+                return { ok: false, reason: 'locked' };
+            }
+
+            const layout = normalizeAbilityBarLayout(
+                get().abilityBarLayout,
+                get().skillUnlocks
+            );
+            const next = [...layout];
+            for (let i = 0; i < next.length; i++) {
+                if (next[i] === abilityKey) next[i] = null;
+            }
+            next[barIndex] = abilityKey;
+            set({
+                abilityBarLayout: normalizeAbilityBarLayout(next, get().skillUnlocks),
+            });
+            return { ok: true };
+        },
+
+        /**
+         * Equip / unequip an unlocked ability on the 6-slot bar (skill tree toggles).
+         * @param {string} abilityKey
+         */
+        toggleAbilityEquipped: (abilityKey) => {
+            if (!ALL_ABILITY_KEYS.includes(abilityKey)) {
+                return { ok: false, reason: 'invalid' };
+            }
+            if (!get().skillUnlocks?.[abilityKey]) {
+                return { ok: false, reason: 'locked' };
+            }
+
+            const layout = normalizeAbilityBarLayout(
+                get().abilityBarLayout,
+                get().skillUnlocks
+            );
+
+            if (isAbilityEquipped(layout, abilityKey)) {
+                set({
+                    abilityBarLayout: unequipAbilityFromBar(layout, abilityKey),
+                });
+                return { ok: true, equipped: false };
+            }
+
+            if (countEquippedAbilities(layout) >= 6) {
+                return { ok: false, reason: 'bar_full' };
+            }
+
+            set({
+                abilityBarLayout: equipAbilityToFirstFreeSlot(layout, abilityKey),
+            });
+            return { ok: true, equipped: true };
+        },
+
+        /** @param {number} barIndex 0–5 */
+        clearAbilityBarSlot: (barIndex) => {
+            if (!Number.isInteger(barIndex) || barIndex < 0 || barIndex > 5) {
+                return { ok: false, reason: 'invalid' };
+            }
+            const unlocks = get().skillUnlocks;
+            const layout = normalizeAbilityBarLayout(get().abilityBarLayout, unlocks);
+            const next = [...layout];
+            next[barIndex] = null;
+            set({ abilityBarLayout: normalizeAbilityBarLayout(next, unlocks) });
+            return { ok: true };
+        },
+
+        queuePlayerTeleport: (x, y) => {
+            set({ pendingPlayerTeleport: { x, y } });
+        },
+
+        consumePendingPlayerTeleport: () => {
+            const t = get().pendingPlayerTeleport;
+            if (t) set({ pendingPlayerTeleport: null });
+            return t;
+        },
+
+        setPendingFireSlam: (x, y) => {
+            set({ pendingFireSlam: { x, y } });
+        },
+
+        consumePendingFireSlam: () => {
+            const s = get().pendingFireSlam;
+            if (s) set({ pendingFireSlam: null });
+            return s;
         },
 
         allocateSkillPoint: (nodeId) => {
@@ -425,24 +468,79 @@ function createGameStoreSlice(set, get) {
             return true;
         },
 
+        tickDashRecharge: (now = performance.now()) => {
+            const state = get();
+            const max = Math.max(1, state.player.stats.dashMaxCharges ?? 1);
+            let { charges, cooldownEnd, nextRechargeAt } = state.dash ?? {};
+            if (charges == null) charges = max;
+
+            const cdSec = Number.isFinite(state.player.stats.dashCooldown)
+                ? state.player.stats.dashCooldown
+                : 2;
+            const cdMs = Math.max(400, cdSec * 1000);
+
+            while (charges < max && nextRechargeAt > 0 && now >= nextRechargeAt) {
+                charges++;
+                if (charges < max) {
+                    nextRechargeAt += cdMs;
+                    cooldownEnd = nextRechargeAt;
+                } else {
+                    nextRechargeAt = 0;
+                    cooldownEnd = 0;
+                }
+            }
+
+            if (charges !== state.dash?.charges || cooldownEnd !== state.dash?.cooldownEnd) {
+                set({ dash: { charges, cooldownEnd, nextRechargeAt } });
+            }
+        },
+
         useDash: () => {
             const state = get();
             const now = performance.now();
-            if (now < state.dash.cooldownEnd) return false;
-            const cooldownMs = state.player.stats.dashCooldown * 1000;
-            set({dash: {cooldownEnd: now + cooldownMs}});
+            get().tickDashRecharge(now);
+
+            const max = Math.max(1, state.player.stats.dashMaxCharges ?? 1);
+            let { charges, cooldownEnd, nextRechargeAt } = get().dash ?? {};
+            if (charges == null) charges = max;
+
+            if (charges <= 0) return false;
+
+            charges--;
+            const cdSec = Number.isFinite(get().player.stats.dashCooldown)
+                ? get().player.stats.dashCooldown
+                : 2;
+            const cdMs = Math.max(400, cdSec * 1000);
+            if (charges < max) {
+                if (!nextRechargeAt || nextRechargeAt <= now) {
+                    nextRechargeAt = now + cdMs;
+                }
+                cooldownEnd = nextRechargeAt;
+            } else {
+                nextRechargeAt = 0;
+                cooldownEnd = 0;
+            }
+
+            set({ dash: { charges, cooldownEnd, nextRechargeAt } });
             return true;
         },
 
         useAbility: (abilityNumber, currentTime) => {
+            return get().useAbilityByKey(`ability${abilityNumber}`, currentTime);
+        },
+
+        useAbilityByKey: (abilityKey, currentTime) => {
             const state = get();
-            const abilityKey = `ability${abilityNumber}`;
             const ability = state.abilities[abilityKey];
-            if (currentTime < ability.cooldownEnd) return false;
-            set((state) => ({
+            if (!ability || currentTime < ability.cooldownEnd) return false;
+            const cdMs = Math.max(0, (ability.maxCooldown ?? 0) * 1000);
+            set((s) => ({
                 abilities: {
-                    ...state.abilities,
-                    [abilityKey]: {...ability, cooldownEnd: currentTime + ability.maxCooldown * 1000},
+                    ...s.abilities,
+                    [abilityKey]: {
+                        ...ability,
+                        cooldownEnd: currentTime + cdMs,
+                    },
                 },
             }));
             return true;
@@ -804,10 +902,44 @@ function createGameStoreSlice(set, get) {
                 base.maxHp + bonus.health + (skillMods.health ?? 0);
 
             const mergedAbilities = applyAbilitySkillDeltas(state.abilities, skillMods);
+            const nextUnlocks = { ...skillMods.unlockedAbilities };
+            const syncedLayout = syncAbilityBarWithUnlocks(
+                state.abilityBarLayout,
+                state.skillUnlocks,
+                nextUnlocks
+            );
+
+            const dashMax = Math.min(3, 1 + (skillMods.dashMaxCharges ?? 0));
+            const prevDash = state.dash ?? { charges: 1, cooldownEnd: 0, nextRechargeAt: 0 };
+            const prevMax = state.player.stats.dashMaxCharges ?? 1;
+            let dashCharges = Math.min(
+                dashMax,
+                Number.isFinite(prevDash.charges) ? prevDash.charges : dashMax
+            );
+            if (dashMax > prevMax) {
+                dashCharges = Math.min(dashMax, dashCharges + (dashMax - prevMax));
+            }
+
+            const dashCdSec =
+                Math.max(
+                    0.55,
+                    (getScaledStats(level).dashCooldown ?? 2) *
+                        (1 - (skillMods.dashCooldownPct ?? 0) / 100)
+                ) || 2;
 
             set({
                 abilities: mergedAbilities,
-                skillUnlocks: { ...skillMods.unlockedAbilities },
+                skillUnlocks: nextUnlocks,
+                abilityBarLayout: syncedLayout,
+                dash: {
+                    charges: dashCharges,
+                    cooldownEnd: Number.isFinite(prevDash.cooldownEnd)
+                        ? prevDash.cooldownEnd
+                        : 0,
+                    nextRechargeAt: Number.isFinite(prevDash.nextRechargeAt)
+                        ? prevDash.nextRechargeAt
+                        : 0,
+                },
                 player: {
                     ...state.player,
                     maxHp: newMaxHp,
@@ -826,7 +958,14 @@ function createGameStoreSlice(set, get) {
                             base.projectileSpeed *
                                 (1 + (bonus.projectileSpeed + skillMods.projectileSpeed) / 100)
                         ),
-                        moveSpeed: base.moveSpeed + bonus.moveSpeed * 100,
+                        moveSpeed:
+                            (base.moveSpeed + bonus.moveSpeed * 100) *
+                            (1 + (skillMods.moveSpeedPct ?? 0) / 100),
+                        dashMaxCharges: Math.min(
+                            3,
+                            1 + (skillMods.dashMaxCharges ?? 0)
+                        ),
+                        dashCooldown: dashCdSec,
                         critChance: base.critChance + bonus.critChance + skillMods.critChance,
                         critDamage:
                             base.critDamage + bonus.critDamage + skillMods.critDamage,
@@ -838,7 +977,6 @@ function createGameStoreSlice(set, get) {
                         dashSpeed: state.player.stats.dashSpeed,
                         dashRange: state.player.stats.dashRange,
                         dashDuration: state.player.stats.dashDuration,
-                        dashCooldown: state.player.stats.dashCooldown,
                         chainEnabled: skillMods.chainEnabled,
                         chainRange: 350 + skillMods.chainRange,
                         chainDamage: 0.5 + skillMods.chainDamage,
@@ -1194,7 +1332,7 @@ function getDefaultProgressPayload() {
         /** @type {{ itemId: string } | null} Bound consumable for Q (quick slot 1). */
         quickSlot1: null,
         abilities: cloneDefaultAbilities(),
-        abilityBarLayout: [...DEFAULT_ABILITY_BAR_LAYOUT],
+        abilityBarLayout: [...STARTER_ABILITY_BAR_LAYOUT],
 
         /** Empower buff end time (`performance.now()` ms). */
         empowerBuff: { endsAt: 0 },
@@ -1217,13 +1355,15 @@ function getDefaultProgressPayload() {
             refreshTimer: 0,
         },
         basicAttack: {cooldownEnd: 0},
-        dash: {cooldownEnd: 0},
+        dash: { cooldownEnd: 0, charges: 1, nextRechargeAt: 0 },
         quests: {
             progress: {},
             completed: [],
             recentComplete: null,
             temporaryEvent: null,
         },
+        pendingPlayerTeleport: null,
+        pendingFireSlam: null,
     };
 }
 
@@ -1247,7 +1387,8 @@ function mergePersistedState(persisted, current) {
         quickSlot1: p.quickSlot1 ?? current.quickSlot1 ?? null,
         abilities: mergeAbilitiesForLoad(p.abilities, current.abilities),
         abilityBarLayout: normalizeAbilityBarLayout(
-            p.abilityBarLayout ?? current.abilityBarLayout
+            p.abilityBarLayout ?? current.abilityBarLayout,
+            current.skillUnlocks
         ),
         kills: typeof p.kills === 'number' ? p.kills : current.kills,
         worldSeed: (() => {
@@ -1352,5 +1493,9 @@ function getScaledStats(level) {
         critDamage: 100,
         projectiles: 1,
         chainCount: 0,
+        dashCooldown: 2,
+        dashRange: 320,
+        dashDuration: 0.2,
+        dashSpeed: 100,
     };
 }

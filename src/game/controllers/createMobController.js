@@ -173,6 +173,11 @@ export function createMobController(mob, entityLayer) {
             moveX *= staggerMul;
             moveY *= staggerMul;
 
+            if (m.isStunned) {
+                moveX = 0;
+                moveY = 0;
+            }
+
             if (moveX !== 0 || moveY !== 0) {
                 const slow = m.statusSlow || 0;
                 const speedMult = 1 - slow;

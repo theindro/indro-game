@@ -1,4 +1,4 @@
-/** @typedef {'marksmanship'|'chain'|'elemental'|'abilities'|'gathering'} SkillBranch */
+/** @typedef {'marksmanship'|'chain'|'elemental'|'abilities'|'movement'|'gathering'} SkillBranch */
 
 /**
  * @typedef {object} SkillNodeEffect
@@ -224,7 +224,7 @@ export const SKILL_NODES = [
     {
         id: 'unlock_barrage',
         name: 'Arrow Barrage',
-        description: 'Unlock ability: Arrow Barrage (key 1)',
+        description: 'Unlock ability: Arrow Barrage',
         branch: 'abilities',
         tier: 1,
         column: 0,
@@ -248,7 +248,7 @@ export const SKILL_NODES = [
     {
         id: 'unlock_rapid',
         name: 'Rapid Fire',
-        description: 'Unlock ability: Rapid Fire (key 2)',
+        description: 'Unlock ability: Rapid Fire',
         branch: 'abilities',
         tier: 1,
         column: 1,
@@ -273,7 +273,7 @@ export const SKILL_NODES = [
     {
         id: 'unlock_empower',
         name: 'Empower',
-        description: 'Unlock ability: Empower (key 3)',
+        description: 'Unlock ability: Empower',
         branch: 'abilities',
         tier: 1,
         column: 2,
@@ -284,7 +284,7 @@ export const SKILL_NODES = [
     {
         id: 'unlock_frost',
         name: 'Frost Arrow',
-        description: 'Unlock ability: Frost Arrow (key 4)',
+        description: 'Unlock ability: Frost Arrow',
         branch: 'abilities',
         tier: 2,
         column: 2,
@@ -309,7 +309,7 @@ export const SKILL_NODES = [
     {
         id: 'unlock_venom',
         name: 'Venom Nova',
-        description: 'Unlock ability: Venom Nova (key 5)',
+        description: 'Unlock ability: Venom Nova',
         branch: 'abilities',
         tier: 3,
         column: 0,
@@ -334,7 +334,7 @@ export const SKILL_NODES = [
     {
         id: 'unlock_spin',
         name: 'Spinshot',
-        description: 'Unlock ability: Spinshot (key 6) — 360° arrow spin for 2s',
+        description: 'Unlock ability: Spinshot — 360° arrow spin for 2s',
         branch: 'abilities',
         tier: 3,
         column: 1,
@@ -357,6 +357,88 @@ export const SKILL_NODES = [
             { ability: 'ability6', field: 'damageMultiplier', perRank: 0.1 },
             { ability: 'ability6', field: 'fireInterval', perRank: -0.008 },
         ],
+    },
+
+    // ── Movement ──────────────────────────────────────────────────────────
+    {
+        id: 'unlock_void_leap',
+        name: 'Fire Slam',
+        description: 'Unlock Fire Slam — teleport to cursor, fire shockwave, damage, stun & burn',
+        branch: 'movement',
+        tier: 1,
+        column: 1,
+        maxRank: 1,
+        requires: ['unlock_barrage'],
+        effects: [{ unlock: 'ability7' }],
+    },
+    {
+        id: 'void_leap_mastery',
+        name: 'Slam Mastery',
+        description: '+35 slam range, +15% damage, -1s cooldown per rank',
+        branch: 'movement',
+        tier: 2,
+        column: 1,
+        maxRank: 3,
+        requires: ['unlock_void_leap'],
+        effects: [
+            { ability: 'ability7', field: 'leapRange', perRank: 35 },
+            { ability: 'ability7', field: 'damageMultiplier', perRank: 0.15 },
+            { ability: 'ability7', field: 'maxCooldown', perRank: -1 },
+        ],
+    },
+    {
+        id: 'swift_stride',
+        name: 'Swift Stride',
+        description: '+4% move speed per rank',
+        branch: 'movement',
+        tier: 1,
+        column: 0,
+        maxRank: 3,
+        effects: [{ stat: 'moveSpeedPct', perRank: 4 }],
+    },
+    {
+        id: 'fleet_footwork',
+        name: 'Fleet Footwork',
+        description: '+6% move speed per rank',
+        branch: 'movement',
+        tier: 2,
+        column: 0,
+        maxRank: 2,
+        requires: ['swift_stride'],
+        effects: [{ stat: 'moveSpeedPct', perRank: 6 }],
+    },
+    {
+        id: 'dash_recovery',
+        name: 'Dash Recovery',
+        description: '-8% dash cooldown per rank',
+        branch: 'movement',
+        tier: 2,
+        column: 2,
+        maxRank: 3,
+        requires: ['unlock_void_leap'],
+        effects: [{ stat: 'dashCooldownPct', perRank: 8 }],
+    },
+    {
+        id: 'extra_dash_charge',
+        name: 'Twin Dash',
+        description: '+1 dash charge per rank (max 3 total)',
+        branch: 'movement',
+        tier: 3,
+        column: 2,
+        maxRank: 2,
+        requires: ['dash_recovery'],
+        effects: [{ stat: 'dashMaxCharges', perRank: 1 }],
+    },
+    {
+        id: 'momentum',
+        name: 'Momentum',
+        description: '+5% move speed per rank',
+        branch: 'movement',
+        tier: 3,
+        column: 0,
+        maxRank: 2,
+        requires: ['fleet_footwork', 'void_leap_mastery'],
+        effects: [{ stat: 'moveSpeedPct', perRank: 5 }],
     },
 
     // ── Gathering ─────────────────────────────────────────────────────────
@@ -440,6 +522,7 @@ export const SKILL_BRANCHES = [
     { id: 'marksmanship', label: 'Marksmanship', color: '#ff3535' },
     { id: 'elemental', label: 'Elemental', color: '#44ff88' },
     { id: 'abilities', label: 'Abilities', color: '#b674ff' },
+    { id: 'movement', label: 'Movement', color: '#e8b84d' },
     { id: 'chain', label: 'Chain', color: '#88ccff' },
     { id: 'gathering', label: 'Gathering', color: '#d4a84b' },
 ];

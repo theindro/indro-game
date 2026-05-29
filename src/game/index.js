@@ -5,6 +5,7 @@ import {tickFloats} from './utils/floatText.js';
 import {createInputManager} from './controllers/createInputController.js';
 import {createDebugColliderToggle, resolveVsColliders} from './world/collision.js';
 import {createCombatController} from './controllers/createCombatController.js';
+import {createAbilityCastController} from './controllers/createAbilityCastController.js';
 import {GS, PLAYER_SPEED, PLAYER_RADIUS, CAM_SMOOTH, frameScale} from './constants.js';
 import {createDashAbility} from './abilities/Dash.js';
 import {createDashAfterimageEffect} from './vfx/dashAfterimageEffect.js';
@@ -21,6 +22,10 @@ import {ChunkMonitor} from "./world/ChunkMonitor.js";
 import {createLightingController} from "./controllers/createLightingController.js";
 import {audioManager} from "./utils/audioManager.js";
 import { tickPlayerDebuffs, getPlayerDebuffMoveMul, clearPlayerDebuffs } from './combat/playerDebuffs.js';
+import { executeFireSlamImpact } from './abilities/FireSlam.js';
+import { tickFireSlamGroundAttacks } from './abilities/fireSlamVfx.js';
+import { tickFrostGroundAttacks } from './abilities/frostArrowVfx.js';
+import { tickVenomGroundAttacks } from './abilities/venomNovaVfx.js';
 import { updateBossTotems } from './controllers/bossTotem.js';
 import {
     applyDefaultGameCursor,
@@ -135,6 +140,15 @@ export async function createGame() {
 
     openWorld.killMob = (mob, mobIndex) => combat.killMob(mob, mobIndex);
 
+    const abilityCast = createAbilityCastController({
+        combat,
+        input,
+        openWorld,
+        colliders,
+        getMouseWorld: () => mouseWorld,
+        getPlayerPos: () => ({ x: px, y: py }),
+    });
+
     // ==================== ABILITIES ====================
     const dash = createDashAbility({input});
 
@@ -142,7 +156,7 @@ export async function createGame() {
     const minimap = new MinimapManager(app, openWorld, {x: px, y: py, rotation: 0}, entities);
 
     // ==================== SETUP ====================
-    setupEventListeners(input, dash, combat, playerState.stats, mouseWorld);
+    setupEventListeners(input, dash, abilityCast, mouseWorld);
     setupChunkChangeHandler(openWorld, weatherSystem);
 
     // Initial player position
@@ -231,9 +245,25 @@ export async function createGame() {
         if (combat.updateFreezeTimers) combat.updateFreezeTimers(dt);
 
         tickPlayerDebuffs(dt, { x: px, y: py });
+        store.tickDashRecharge(performance.now());
 
-        // Shooting
-        shootCooldown = handleShooting(input, combat, px, py, world, shootCooldown, playerState.stats);
+        const teleport = store.consumePendingPlayerTeleport();
+        if (teleport) {
+            px = teleport.x;
+            py = teleport.y;
+            playDashAnim();
+
+            const slam = store.consumePendingFireSlam();
+            if (slam) {
+                executeFireSlamImpact({ openWorld, entities }, slam.x, slam.y);
+            }
+        }
+
+        tickFireSlamGroundAttacks(px, py, dt);
+        tickFrostGroundAttacks(px, py, dt);
+        tickVenomGroundAttacks(px, py, dt);
+
+        syncMouseWorld(input, world, mouseWorld);
 
         // Player movement
         // Movement penalty — use dt-scaled lerp so framerate doesn't matter
@@ -254,6 +284,10 @@ export async function createGame() {
         px = movement.x;
         py = movement.y;
         pBobT += (movement.moving ? 0.075 : 0.04) * dt * 60;
+
+        // Ability aim before shooting (confirm/cancel must not leak into basic attack)
+        abilityCast.tick(px, py);
+        shootCooldown = handleShooting(input, combat, abilityCast, px, py, world, shootCooldown, playerState.stats);
 
         const stepDx = px - prevPx;
         const stepDy = py - prevPy;
@@ -418,8 +452,13 @@ function initWeatherSystem(app, world) {
     return new CreateWeatherController(app, world);
 }
 
+function syncMouseWorld(input, world, mouseWorld) {
+    mouseWorld.x = (input.mouseX - world.x) / world.scale.x;
+    mouseWorld.y = (input.mouseY - world.y) / world.scale.y;
+}
+
 // Key listeners
-function setupEventListeners(input, dash, combat, stats, mouseWorld) {
+function setupEventListeners(input, dash, abilityCast, mouseWorld) {
     window.addEventListener('keydown', (e) => {
         if (
             e.target instanceof HTMLInputElement ||
@@ -433,6 +472,11 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld) {
 
         if (e.code === 'Space') dash.tryDash();
 
+        if (key === 'Escape') {
+            abilityCast.onEscape();
+            return;
+        }
+
         switch (key) {
             case '1':
             case '2':
@@ -441,9 +485,7 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld) {
             case '5':
             case '6': {
                 const barIndex = Number(key) - 1;
-                if (!combat.isAbilityUnlockedAtBarSlot(barIndex)) break;
-                const abilityKey = combat.getAbilityKeyAtBarSlot(barIndex);
-                combat.useAbilityByKey(abilityKey, mouseWorld.x, mouseWorld.y);
+                abilityCast.onAbilityHotkey(barIndex);
                 break;
             }
             case 'q':
@@ -456,7 +498,7 @@ function setupEventListeners(input, dash, combat, stats, mouseWorld) {
                 } else if (res.reason === 'cooldown') {
                     VFX.addFloat(`${res.remainingSec}s`, pl.x, pl.y - 36, '#ffcc66', { opacity: 0.9 });
                 } else if (res.reason === 'empty' || res.reason === 'no_item') {
-                    VFX.addFloat('No quick item', pl.x, pl.y - 36, '#cccccc', { opacity: 0.85 });
+                    //VFX.addFloat('No quick item', pl.x, pl.y - 36, '#cccccc', { opacity: 0.85 });
                 } else if (res.reason === 'full_hp') {
                     VFX.addFloat('Full HP', pl.x, pl.y - 36, '#aaccff', { opacity: 0.85 });
                 }
@@ -476,8 +518,12 @@ function setupChunkChangeHandler(openWorld, weatherSystem) {
     };
 }
 
-function handleShooting(input, combat, px, py, world, shootCooldown, stats) {
-    if (input.mouseDown && shootCooldown <= 0) {
+function handleShooting(input, combat, abilityCast, px, py, world, shootCooldown, stats) {
+    if (abilityCast.hasPendingCast()) {
+        return shootCooldown;
+    }
+
+    if (input.canPrimaryFire() && shootCooldown <= 0) {
         // Sync to store so AbilityBar can read it
         useGameStore.getState().useBasicAttack();
 
@@ -589,8 +635,7 @@ function updateMinimap(minimap, px, py, input, world, mouseWorld) {
     minimap.playerRef.x = px;
     minimap.playerRef.y = py;
 
-    mouseWorld.x = (input.mouseX - world.x) / world.scale.x;
-    mouseWorld.y = (input.mouseY - world.y) / world.scale.y;
+    syncMouseWorld(input, world, mouseWorld);
 
     let angleToMouse = Math.atan2(mouseWorld.y - py, mouseWorld.x - px);
     angleToMouse += Math.PI / 2;

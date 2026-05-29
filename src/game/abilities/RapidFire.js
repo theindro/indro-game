@@ -6,11 +6,10 @@ import {VFX} from "../GlobalEffects.js";
 import {STATUS_COLORS_RGBA} from "../statusEffects.js";
 
 export function useRapidFire(ctx, targetX, targetY) {
-    const { world, arrows, openWorld} = ctx;
+    const { arrows, openWorld } = ctx;
     const store = useGameStore.getState();
     const stats = store.player.stats;
     const ability = store.abilities.ability2;
-    const {x: px, y: py} = store.player.location;
 
     const now = performance.now();
 
@@ -28,20 +27,6 @@ export function useRapidFire(ctx, targetX, targetY) {
     const damageMult = ability.damageMultiplier + (ability.level * 0.05);
     const fireDelaySec = ability.fireDelay ?? 0.1;
 
-    // Visual effect - muzzle flash at player position
-    VFX.burst(px, py, STATUS_COLORS_RGBA.poison);
-
-    // Additive skill glow on each bolt (cleaned up when arrow is destroyed in arrow system)
-    const skillGlowOpts = {
-        color: 0x66ffaa,
-        alpha: 0.12,
-        scale: 0.15,
-        texture: 'glow2',
-    };
-
-    // Calculate angle to target
-    const angleToTarget = Math.atan2(targetY - py, targetX - px);
-
     // Track how many arrows have been fired
     let arrowsFired = 0;
 
@@ -49,7 +34,15 @@ export function useRapidFire(ctx, targetX, targetY) {
     function fireNextArrow() {
         if (arrowsFired >= arrowCount) return;
 
-        const i = arrowsFired;
+        const live = useGameStore.getState();
+        if (live.gameState?.dead || live.gameState?.paused) return;
+
+        const { x: px, y: py } = live.player.location;
+        const angleToTarget = Math.atan2(targetY - py, targetX - px);
+
+        if (arrowsFired === 0) {
+            VFX.burst(px, py, STATUS_COLORS_RGBA.poison);
+        }
 
         // Small random spread for rapid fire (less accurate than barrage)
         const spread = 0.08;
@@ -63,7 +56,7 @@ export function useRapidFire(ctx, targetX, targetY) {
             isRapidFireArrow: true
         };
 
-        // Calculate start position (slightly in front of player)
+        // Spawn from current player position (updates if you move during the volley)
         const startX = px + Math.cos(angleToTarget) * 20 + (Math.random() - 0.5) * 15;
         const startY = py + Math.sin(angleToTarget) * 20 + (Math.random() - 0.5) * 15;
         const aimX = startX + Math.cos(angle) * 120;
@@ -75,8 +68,6 @@ export function useRapidFire(ctx, targetX, targetY) {
         };
 
         const arrow = createArrow(openWorld.entityLayer, startX, startY, aimX, aimY, 0, chainData, getEmpoweredArrowType(), trajectory);
-
-        //arrow.vfxGlow = VFX.addGlow(0, 0, skillGlowOpts, arrow.c);
 
         arrows.push(arrow);
 

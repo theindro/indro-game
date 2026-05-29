@@ -11,6 +11,7 @@ import { useFrostArrow } from "../abilities/FrostArrow.js";
 import { useVenomNova } from "../abilities/VenomNova.js";
 import { useSpinshot, updateSpinshot } from "../abilities/Spinshot.js";
 import { useEmpower } from "../abilities/Empower.js";
+import { useFireSlam } from "../abilities/FireSlam.js";
 import { getEmpoweredArrowType } from "../abilities/empowerBuff.js";
 import {audioManager} from "../utils/audioManager.js";
 
@@ -119,13 +120,19 @@ export function createCombatController(ctx) {
         return useSpinshot({ ...ctx, arrows });
     }
 
+    function useFireSlamWrapper(targetX, targetY) {
+        return useFireSlam({ ...ctx, entities }, targetX, targetY);
+    }
+
     function getAbilityKeyAtBarSlot(barIndex) {
         const layout = useGameStore.getState().abilityBarLayout;
-        return layout?.[barIndex] ?? `ability${barIndex + 1}`;
+        const key = layout?.[barIndex];
+        return key || null;
     }
 
     function isAbilityUnlockedAtBarSlot(barIndex) {
         const key = getAbilityKeyAtBarSlot(barIndex);
+        if (!key) return false;
         return !!useGameStore.getState().skillUnlocks?.[key];
     }
 
@@ -135,6 +142,7 @@ export function createCombatController(ctx) {
     }
 
     function useAbilityByKey(abilityKey, targetX, targetY) {
+        if (!abilityKey) return false;
         switch (abilityKey) {
             case 'ability1':
                 return useArrowBarrageWrapper(targetX, targetY);
@@ -148,8 +156,10 @@ export function createCombatController(ctx) {
                 return useVenomNovaWrapper(targetX, targetY);
             case 'ability6':
                 return useSpinshotWrapper();
+            case 'ability7':
+                return useFireSlamWrapper(targetX, targetY);
             default:
-                return undefined;
+                return false;
         }
     }
 

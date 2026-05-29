@@ -30,6 +30,7 @@ import {
     getSkillPointsEarned,
     getTotalSkillPointsSpent,
 } from '../../../game/skills/skillEffects.js';
+import AbilityBarManager from './AbilityBarManager.jsx';
 
 const { Text, Title } = Typography;
 
@@ -70,6 +71,13 @@ const NODE_ICONS = {
     venom_mastery: BugOutlined,
     unlock_spin: SyncOutlined,
     spin_mastery: SyncOutlined,
+    unlock_void_leap: FireOutlined,
+    void_leap_mastery: FireOutlined,
+    swift_stride: ThunderboltOutlined,
+    fleet_footwork: ThunderboltOutlined,
+    dash_recovery: ThunderboltOutlined,
+    extra_dash_charge: ThunderboltOutlined,
+    momentum: ThunderboltOutlined,
     nimble_hands: ThunderboltOutlined,
     bounty: GoldOutlined,
     fleet_fingers: ThunderboltOutlined,
@@ -446,6 +454,7 @@ export default function SkillTreePanel({ isOpen, onClose }) {
                         );
                     })}
                 </div>
+                <AbilityBarManager />
             </Drawer>
         </>
     );

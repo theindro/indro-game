@@ -102,3 +102,31 @@ export function clearPlayerDebuffs() {
     active = [];
     stunUntilMs = 0;
 }
+
+/**
+ * Snapshot for React HUD (remaining time in seconds).
+ * @returns {{ id: string, remainingSec: number }[]}
+ */
+export function getActivePlayerDebuffsForUI() {
+    const now = performance.now();
+    /** @type {{ id: string, remainingSec: number }[]} */
+    const out = [];
+
+    if (now < stunUntilMs) {
+        out.push({
+            id: 'stun',
+            remainingSec: (stunUntilMs - now) / 1000,
+        });
+    }
+
+    for (const d of active) {
+        if (d.duration > 0) {
+            out.push({
+                id: d.type,
+                remainingSec: d.duration,
+            });
+        }
+    }
+
+    return out;
+}

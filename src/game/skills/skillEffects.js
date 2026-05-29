@@ -1,4 +1,4 @@
-import { INITIAL_ABILITIES } from '../../stores/gameStore.js';
+import { INITIAL_ABILITIES } from '../abilities/initialAbilities.js';
 import { getSkillNode, SKILL_NODES } from './skillTreeDefinitions.js';
 
 function cloneAbilities(source) {
@@ -41,6 +41,9 @@ export function createEmptySkillModifiers() {
         basicPoisonChance: 0,
         basicFreezeChance: 0,
         burnTickDamage: 0,
+        moveSpeedPct: 0,
+        dashCooldownPct: 0,
+        dashMaxCharges: 0,
         gatherSpeedPct: 0,
         gatherYieldPct: 0,
         unlockedAbilities: {
@@ -50,6 +53,7 @@ export function createEmptySkillModifiers() {
             ability4: false,
             ability5: false,
             ability6: false,
+            ability7: false,
         },
         abilityDeltas: {
             ability1: {},
@@ -58,6 +62,7 @@ export function createEmptySkillModifiers() {
             ability4: {},
             ability5: {},
             ability6: {},
+            ability7: {},
         },
     };
 }
@@ -114,13 +119,13 @@ export function getGatheringModifiers(ranks = {}) {
 }
 
 /**
- * @param {typeof import('../../stores/gameStore.js').INITIAL_ABILITIES} baseAbilities
+ * @param {typeof import('../abilities/initialAbilities.js').INITIAL_ABILITIES} baseAbilities
  * @param {ReturnType<typeof computeSkillModifiers>} mods
  */
 export function applyAbilitySkillDeltas(currentAbilities, mods) {
     const out = cloneAbilities(currentAbilities ?? INITIAL_ABILITIES);
 
-    for (const key of ['ability5', 'ability6']) {
+    for (const key of ['ability5', 'ability6', 'ability7']) {
         if (!out[key] && mods.unlockedAbilities[key]) {
             out[key] = cloneAbilities({ [key]: INITIAL_ABILITIES[key] })[key];
         }
@@ -138,7 +143,11 @@ export function applyAbilitySkillDeltas(currentAbilities, mods) {
         for (const [field, delta] of Object.entries(deltas)) {
             const baseVal = base[field];
             if (typeof baseVal === 'number' && typeof delta === 'number') {
-                out[abilityKey][field] = baseVal + delta;
+                let next = baseVal + delta;
+                if (field === 'maxCooldown') {
+                    next = Math.max(4, next);
+                }
+                out[abilityKey][field] = next;
             }
         }
     }

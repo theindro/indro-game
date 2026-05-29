@@ -251,10 +251,14 @@ export function createArrowSystem(ctx) {
     }
 
     function applyHitEffects(x, y, damage, isCrit, isBoss = false, elementalType = 'normal') {
-        const burstColor = 'black';
         const damageText = isCrit ? `${parseInt(damage)}` : `${parseInt(damage)}`;
 
-        VFX.burst(x, y, burstColor);
+        if (elementalType === 'burn') {
+            VFX.burst(x, y, 0xff6622);
+            VFX.burst(x, y - 4, 0xffcc88);
+        } else {
+            VFX.burst(x, y, 'black');
+        }
 
         if (isCrit) {
             VFX.addFloat(damageText, x, y, '#ffff00', { fontSize: 24 });

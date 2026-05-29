@@ -1,32 +1,24 @@
 import React from 'react';
 import { Tooltip } from 'antd';
-import { LockOutlined } from '@ant-design/icons';
-import {
-    beginAbilityBarDragSession,
-    buildAbilityBarDragPayload,
-    endAbilityBarDragSession,
-    isAbilityBarDragActive,
-    parseAbilityBarDragPayload,
-    ABILITY_BAR_DRAG_MIME,
-} from '../../game/inventory/abilityBarDrag.js';
 import { useGameStore } from '../../stores/gameStore.js';
+import { useAbilityBarSlotDnD } from './useAbilityBarSlotDnD.js';
 
 function CooldownOverlay({ cooldownEnd }) {
     const [now, setNow] = React.useState(() => performance.now());
 
     React.useEffect(() => {
         let frame;
-        const update = () => {
+        const tick = () => {
             setNow(performance.now());
-            frame = requestAnimationFrame(update);
+            frame = requestAnimationFrame(tick);
         };
-        frame = requestAnimationFrame(update);
+        frame = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frame);
     }, []);
 
-    if (now >= cooldownEnd) return null;
+    if (!Number.isFinite(cooldownEnd) || now >= cooldownEnd) return null;
 
-    const remaining = (cooldownEnd - now) / 1000;
+    const remaining = Math.max(0, (cooldownEnd - now) / 1000);
 
     return (
         <div
@@ -41,6 +33,7 @@ function CooldownOverlay({ cooldownEnd }) {
                 fontWeight: 700,
                 color: '#fff',
                 borderRadius: 4,
+                pointerEvents: 'none',
             }}
         >
             {remaining.toFixed(1)}
@@ -56,117 +49,73 @@ const slotStyle = {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    transition: 'box-shadow 0.12s ease, background 0.12s ease',
+    cursor: 'grab',
+    background: '#9c7f6e',
+    border: '1px solid #8f7773',
+};
+
+const hotkeyBadgeStyle = {
+    position: 'absolute',
+    fontSize: 10,
+    fontWeight: 600,
+    bottom: 0,
+    left: 0,
+    padding: 6,
+    lineHeight: '8px',
+    color: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 4,
+    background: '#0000004d',
+    pointerEvents: 'none',
 };
 
 /**
- * One hotkey slot on the ability bar (1–6). Unlocked abilities can be dragged to swap positions.
+ * One of six hotkey slots — shows whichever ability is equipped here.
  */
-export default function AbilityBarSlot({
-    barIndex,
-    ability,
-    hotkeyLabel,
-    isLocked,
-    lockHint,
-    slotStyle: slotStyleOverride,
-}) {
-    const playerDmg = useGameStore((s) => s.player?.stats?.damage);
-    const swapAbilityBarSlots = useGameStore((s) => s.swapAbilityBarSlots);
+export default function AbilityBarSlot({ barIndex, ability, hotkeyLabel }) {
+    const playerDmg = useGameStore((s) => s.player?.stats?.damage ?? 0);
+    const dnd = useAbilityBarSlotDnD(barIndex);
 
-    const isReady =
-        !isLocked &&
-        performance.now() >= (ability?.cooldownEnd ?? 0);
+    const isReady = performance.now() >= (ability?.cooldownEnd ?? 0);
 
-    const canDrag = !isLocked;
-
-    const handleDragStart = (e) => {
-        if (!canDrag) return;
-        beginAbilityBarDragSession();
-        const payload = buildAbilityBarDragPayload(barIndex);
-        e.dataTransfer.setData(ABILITY_BAR_DRAG_MIME, payload);
-        e.dataTransfer.setData('text/plain', payload);
-        e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragEnd = () => {
-        endAbilityBarDragSession();
-    };
-
-    const handleDragOver = (e) => {
-        if (!isAbilityBarDragActive(e.dataTransfer)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleDragEnter = (e) => {
-        handleDragOver(e);
-        e.currentTarget.classList.add('ability-bar-slot-drop-active');
-    };
-
-    const handleDragLeave = (e) => {
-        e.currentTarget.classList.remove('ability-bar-slot-drop-active');
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.currentTarget.classList.remove('ability-bar-slot-drop-active');
-
-        const payload = parseAbilityBarDragPayload(e.dataTransfer);
-        if (!payload || payload.barIndex === barIndex) return;
-
-        swapAbilityBarSlots(payload.barIndex, barIndex);
-    };
-
-    const tooltipContent = isLocked ? (
-        <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>{ability.name}</div>
-            <div style={{ color: '#aaa', fontSize: 12 }}>
-                {lockHint ?? 'Unlock in Skill Tree (O)'}
-            </div>
-        </div>
-    ) : (
+    const tooltipContent = (
         <div style={{ minWidth: 160 }}>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>{ability.name}</div>
             <div style={{ fontSize: 12, color: '#bbb', lineHeight: 1.4, marginBottom: 8 }}>
                 {ability.description}
             </div>
             <div style={{ fontSize: 12, color: '#888' }}>
-                Lv {ability.level} · CD {Number(ability.maxCooldown ?? 0).toFixed(1)}s
+                Hotkey {hotkeyLabel} · CD {Number(ability.maxCooldown ?? 0).toFixed(1)}s
                 {ability.damageMultiplier
                     ? ` · Dmg ${Math.round(playerDmg * ability.damageMultiplier)}`
                     : ''}
             </div>
-            {!isLocked && (
-                <div style={{ fontSize: 11, color: '#777', marginTop: 6 }}>
-                    Drag to another slot to reorder
-                </div>
-            )}
+            <div style={{ fontSize: 11, color: '#777', marginTop: 6 }}>
+                Aim with preview · LMB cast · RMB cancel
+            </div>
+            <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
+                Drag to another slot to reorder
+            </div>
         </div>
     );
 
-    const mergedStyle = { ...slotStyle, ...slotStyleOverride };
-
     return (
         <div
-            className={
-                'ability-bar-slot' + (canDrag ? ' ability-bar-slot--draggable' : '')
-            }
-            draggable={canDrag}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            style={mergedStyle}
+            className="ability-bar-slot ability-bar-slot--draggable"
+            draggable
+            onDragStart={dnd.handleDragStart}
+            onDragEnd={dnd.handleDragEnd}
+            onDragOver={dnd.handleDragOver}
+            onDragEnter={dnd.handleDragEnter}
+            onDragLeave={dnd.handleDragLeave}
+            onDrop={dnd.handleDrop}
+            style={slotStyle}
         >
             <Tooltip
                 title={tooltipContent}
                 placement="top"
                 arrow={false}
                 overlayStyle={{ zIndex: 10001 }}
+                mouseEnterDelay={0.15}
             >
                 <div
                     style={{
@@ -178,41 +127,72 @@ export default function AbilityBarSlot({
                         position: 'relative',
                     }}
                 >
-                    {isLocked ? (
-                        <LockOutlined style={{ fontSize: 20, color: '#555' }} />
-                    ) : (
-                        <img
-                            src={ability.icon}
-                            alt={ability.name}
-                            width={28}
-                            height={28}
-                            draggable={false}
-                            style={{ filter: isReady ? 'none' : 'grayscale(0.6)' }}
-                        />
-                    )}
+                    <img
+                        src={ability.icon}
+                        alt={ability.name}
+                        width={42}
+                        height={42}
+                        draggable={false}
+                        style={{ filter: isReady ? 'none' : 'grayscale(0.6)', pointerEvents: 'none' }}
+                    />
+                    {!isReady && <CooldownOverlay cooldownEnd={ability.cooldownEnd} />}
+                    <div style={hotkeyBadgeStyle}>{hotkeyLabel}</div>
+                </div>
+            </Tooltip>
+        </div>
+    );
+}
 
-                    {!isLocked && !isReady && (
-                        <CooldownOverlay cooldownEnd={ability.cooldownEnd} />
-                    )}
+/** Empty hotkey slot — accepts drops when reordering abilities. */
+export function EmptyAbilityBarSlot({ barIndex, hotkeyLabel }) {
+    const dnd = useAbilityBarSlotDnD(barIndex);
 
-                    {!isLocked && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                fontSize: 10,
-                                fontWeight: 600,
-                                bottom: 0,
-                                left: 0,
-                                padding: 6,
-                                lineHeight: '8px',
-                                color: 'rgba(255, 255, 255, 0.4)',
-                                borderRadius: 4,
-                                background: '#0000004d',
-                            }}
-                        >
-                            {hotkeyLabel}
-                        </div>
-                    )}
+    const tooltipContent = (
+        <div style={{ minWidth: 140 }}>
+            <div style={{ fontWeight: 600 }}>Empty slot</div>
+            <div style={{ fontSize: 12, color: '#bbb', marginTop: 4 }}>
+                Hotkey {hotkeyLabel} — equip abilities in Skills (O)
+            </div>
+            <div style={{ fontSize: 11, color: '#777', marginTop: 6 }}>
+                Drag an ability here to assign
+            </div>
+        </div>
+    );
+
+    return (
+        <div
+            className="ability-bar-slot ability-bar-slot--empty"
+            onDragOver={dnd.handleDragOver}
+            onDragEnter={dnd.handleDragEnter}
+            onDragLeave={dnd.handleDragLeave}
+            onDrop={dnd.handleDrop}
+            style={{
+                ...slotStyle,
+                cursor: 'default',
+                background: 'rgba(0,0,0,0.2)',
+                border: '1px dashed rgba(255,255,255,0.2)',
+                opacity: 0.85,
+            }}
+        >
+            <Tooltip
+                title={tooltipContent}
+                placement="top"
+                arrow={false}
+                overlayStyle={{ zIndex: 10001 }}
+                mouseEnterDelay={0.15}
+            >
+                <div
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative',
+                    }}
+                >
+                    <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }}>+</span>
+                    <div style={hotkeyBadgeStyle}>{hotkeyLabel}</div>
                 </div>
             </Tooltip>
         </div>

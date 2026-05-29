@@ -6,7 +6,8 @@ export const STATUS_TYPES = {
     POISON: 'poison',
     FREEZE: 'freeze',
     BLEED: 'bleed',
-    SLOW: 'slow'
+    SLOW: 'slow',
+    STUN: 'stun',
 };
 
 export const STATUS_COLORS_RGBA = {
@@ -114,6 +115,50 @@ export function updateStatusEffects(target, deltaTime, now, onDamage) {
     return lethal;
 }
 
+/** Full movement lock for `duration` seconds (mobs check `isStunned`). */
+export function createStunEffect(duration) {
+    return {
+        type: STATUS_TYPES.STUN,
+        duration,
+        tickDamage: 0,
+        slow: 0,
+
+        onApply: (target) => {
+            target.isStunned = true;
+        },
+
+        onUpdate: (target) => {
+            if (!target.stunGraphics && target.c) {
+                const g = new Graphics();
+                target.stunGraphics = g;
+                target.c.addChild(g);
+            }
+            const g = target.stunGraphics;
+            if (!g) return;
+            g.clear();
+            const r = target.size ?? 14;
+            const spin = performance.now() * 0.005;
+            g.circle(0, -r * 0.5, 4 + Math.sin(spin) * 1.5).fill({ color: 0xffee88, alpha: 0.9 });
+            g.circle(-r * 0.55, 0, 3).fill({ color: 0xffee88, alpha: 0.85 });
+            g.circle(r * 0.55, 0, 3).fill({ color: 0xffee88, alpha: 0.85 });
+            g.circle(0, 0, r).stroke({ color: 0xffee88, width: 2, alpha: 0.7 });
+        },
+
+        onRemove: (target) => {
+            target.isStunned = false;
+            if (target.stunGraphics) {
+                try {
+                    target.c?.removeChild(target.stunGraphics);
+                } catch {
+                    /* destroyed */
+                }
+                target.stunGraphics.destroy();
+                target.stunGraphics = null;
+            }
+        },
+    };
+}
+
 export function createFreezeEffect(duration, slow) {
     return {
         type: STATUS_TYPES.FREEZE,
@@ -179,8 +224,6 @@ export function createBurnEffect(duration, tickDamage, tickInterval = 0.5) {
         slow: 0, // No slow effect
 
         onApply: (target) => {
-            console.log(`🔥 Burn applied to ${target.archetype || 'boss'} for ${duration}ms, dealing ${tickDamage} damage every ${tickInterval}ms`);
-
             // Create burn visual overlay
             if (!target.burnGraphics) {
                 const g = new Graphics();
@@ -195,49 +238,25 @@ export function createBurnEffect(duration, tickDamage, tickInterval = 0.5) {
             const g = target.burnGraphics;
             g.clear();
 
-            // Animated fire particles
-            const time = Date.now() / 100;
-            const radius = (target.size || 15) + 5;
+            const time = Date.now() / 280;
+            const radius = (target.radius || target.size || 15) + 4;
+            const pulse = 0.75 + Math.sin(time * 8) * 0.25;
 
-            // Flickering flame effect
-            for (let i = 0; i < 5; i++) {
-                const angle = (i / 5) * Math.PI * 2 + time;
-                const offset = Math.sin(time * 2 + i) * 3;
-                const x = Math.cos(angle) * (radius - 2 + offset);
-                const y = Math.sin(angle) * (radius - 2 + offset) - 5;
+            g.ellipse(0, 2, radius * 1.1, radius * 0.55)
+                .fill({ color: 0xff4400, alpha: 0.1 * pulse });
 
-                // Flame shape
-                g.moveTo(x, y);
-                g.lineTo(x - 4, y - 8);
-                g.lineTo(x, y - 12);
-                g.lineTo(x + 4, y - 8);
-                g.closePath();
-                g.fill({ color: 0xff4400, alpha: 0.7 });
+            g.ellipse(0, 0, radius * 0.75, radius * 0.38)
+                .fill({ color: 0xff6622, alpha: 0.14 * pulse });
 
-                // Inner flame
-                g.moveTo(x, y - 2);
-                g.lineTo(x - 2, y - 6);
-                g.lineTo(x, y - 9);
-                g.lineTo(x + 2, y - 6);
-                g.closePath();
-                g.fill({ color: 0xffaa00, alpha: 0.8 });
-            }
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2 + time * 1.4;
+                const dist = radius * 0.55 + Math.sin(time * 3 + i) * 2;
+                const fx = Math.cos(angle) * dist;
+                const fy = Math.sin(angle) * dist * 0.5 - 4;
 
-            // Fire glow
-            g.circle(0, 0, radius).fill({ color: 0xff4400, alpha: 0.15 });
-
-            // Pulse the mob's body color
-            if (target.body && target._originalBodyColor) {
-                const pulse = Math.sin(time * 10) * 0.3 + 0.7;
-                target.body.clear();
-                // You'll need to recreate the body with the tinted color
-                // This is a simplified version - adjust based on your mob rendering
-                if (target.body.circle) {
-                    target.body.circle(0, 0, target.radius || 15).fill({
-                        color: 0xff6600,
-                        alpha: pulse * 0.5
-                    });
-                }
+                g.moveTo(fx, fy + 2);
+                g.lineTo(fx, fy - 5 - Math.sin(time * 4 + i));
+                g.stroke({ color: 0xffaa44, width: 1.8, alpha: 0.45 * pulse, cap: 'round' });
             }
         },
 

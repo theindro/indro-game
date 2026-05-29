@@ -1,23 +1,44 @@
-import { INITIAL_ABILITIES } from '../../stores/gameStore.js';
+import { ALL_ABILITY_KEYS } from './initialAbilities.js';
+import {
+    ABILITY_SLOT_COUNT,
+    STARTER_ABILITY_BAR_LAYOUT,
+    normalizeAbilityBarLayout,
+    equipAbilityToFirstFreeSlot,
+    unequipAbilityFromBar,
+    isAbilityEquipped,
+    countEquippedAbilities,
+    syncAbilityBarWithUnlocks,
+    getAbilityKeyForUnlockNode,
+    UNLOCK_NODE_TO_ABILITY,
+} from './abilityLoadout.js';
 
-export const ABILITY_KEYS = Object.freeze(
-    /** @type {const} */ (['ability1', 'ability2', 'ability3', 'ability4', 'ability5', 'ability6'])
-);
+export {
+    ABILITY_SLOT_COUNT,
+    ALL_ABILITY_KEYS,
+    STARTER_ABILITY_BAR_LAYOUT,
+    normalizeAbilityBarLayout,
+    equipAbilityToFirstFreeSlot,
+    unequipAbilityFromBar,
+    isAbilityEquipped,
+    countEquippedAbilities,
+    syncAbilityBarWithUnlocks,
+    getAbilityKeyForUnlockNode,
+    UNLOCK_NODE_TO_ABILITY,
+};
 
-export const DEFAULT_ABILITY_BAR_LAYOUT = Object.freeze([...ABILITY_KEYS]);
+/** @deprecated use STARTER_ABILITY_BAR_LAYOUT */
+export const DEFAULT_ABILITY_BAR_LAYOUT = STARTER_ABILITY_BAR_LAYOUT;
+
+/** @deprecated use ALL_ABILITY_KEYS */
+export const ABILITY_KEYS = ALL_ABILITY_KEYS;
 
 /**
- * @param {unknown} layout
- * @returns {typeof DEFAULT_ABILITY_BAR_LAYOUT}
+ * Unlocked abilities not on the 6-slot bar.
+ * @param {string[] | null | undefined} layout
+ * @param {Record<string, boolean> | null | undefined} skillUnlocks
  */
-export function normalizeAbilityBarLayout(layout) {
-    if (!Array.isArray(layout) || layout.length !== ABILITY_KEYS.length) {
-        return [...DEFAULT_ABILITY_BAR_LAYOUT];
-    }
-    const valid = layout.every((k) => ABILITY_KEYS.includes(k));
-    const unique = new Set(layout).size === ABILITY_KEYS.length;
-    if (!valid || !unique) {
-        return [...DEFAULT_ABILITY_BAR_LAYOUT];
-    }
-    return [...layout];
+export function getUnassignedUnlockedAbilities(layout, skillUnlocks) {
+    const normalized = normalizeAbilityBarLayout(layout, skillUnlocks);
+    const onBar = new Set(normalized.filter(Boolean));
+    return ALL_ABILITY_KEYS.filter((key) => skillUnlocks?.[key] && !onBar.has(key));
 }
