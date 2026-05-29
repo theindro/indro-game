@@ -53,6 +53,9 @@ export async function createGame() {
 
     let mouseWorld = {x: 0, y: 0};
     let pBobT = 0;
+    let wasDashing = false;
+    let lastMoveDirX = 0;
+    let lastMoveDirY = -1;
     let saveTimer = 0;
     let shootCooldown = 0;
     let movePenalty = 1.0;
@@ -79,7 +82,10 @@ export async function createGame() {
     createDevTool(useGameStore);
 
     // ==================== PLAYER ====================
-    const {pCont, pGlow, pBody, hpBar, hpBg, pShadow, tickAnimations, playWeaponShoot} = createPlayerEntity(world);
+    const {
+        pCont, pGlow, pBody, hpBar, hpBg, pShadow,
+        tickAnimations, playWeaponShoot, playHitAnim, playDashAnim,
+    } = createPlayerEntity(world);
     const startLoc = useGameStore.getState().player?.location ?? {x: 0, y: 0};
     let px = typeof startLoc.x === 'number' ? startLoc.x : 0;
     let py = typeof startLoc.y === 'number' ? startLoc.y : 0;
@@ -87,7 +93,7 @@ export async function createGame() {
     let camY = py;
 
     const playerController = createPlayerController({
-        pBody, hpBar, world
+        pBody, hpBar, world, playHitAnim,
     });
 
     const playerState = useGameStore.getState().player;
@@ -243,16 +249,37 @@ export async function createGame() {
             movePenalty * getPlayerDebuffMoveMul()
         );
 
+        const prevPx = px;
+        const prevPy = py;
         px = movement.x;
         py = movement.y;
-        pBobT += 0.055 * dt * 60;
+        pBobT += (movement.moving ? 0.075 : 0.04) * dt * 60;
+
+        const stepDx = px - prevPx;
+        const stepDy = py - prevPy;
+        const moveSpeed = Math.hypot(stepDx, stepDy) / Math.max(dt, 0.0001);
+        if (moveSpeed > 8) {
+            lastMoveDirX = stepDx / moveSpeed;
+            lastMoveDirY = stepDy / moveSpeed;
+        }
+
+        if (movement.dashing && !wasDashing) {
+            playDashAnim();
+        }
+        wasDashing = movement.dashing;
 
         // Update visuals
         updatePlayerVisuals(pCont, pGlow, px, py, movement.moving, pBobT);
 
         const mxRel = mouseWorld.x - px;
         const myRel = mouseWorld.y - py;
-        tickAnimations(pBobT, mxRel, myRel);
+        tickAnimations(pBobT, mxRel, myRel, dt, {
+            moving: movement.moving,
+            dashing: movement.dashing,
+            speed: moveSpeed,
+            moveDirX: lastMoveDirX,
+            moveDirY: lastMoveDirY,
+        });
 
         dashAfterimages.update(dt, pCont.x, pCont.y, movement.dashing);
 
@@ -501,8 +528,12 @@ function handlePlayerMovement(input, px, py, stats, dash, openWorld, colliders, 
 
 function updatePlayerVisuals(pCont, pGlow, px, py, moving, pBobT) {
     pCont.x = px;
-    pCont.y = py + Math.sin(pBobT) * (moving ? 1.5 : 0.5);
-    pGlow.alpha = 0.12 + 0.06 * Math.sin(pBobT * 2);
+    const bobAmp = moving ? 2.4 : 0.65;
+    pCont.y = py + Math.sin(pBobT) * bobAmp;
+    if (pGlow) {
+        pGlow.alpha = 0.1 + 0.07 * Math.sin(pBobT * 2) + (moving ? 0.04 : 0);
+        pGlow.scale.set(1 + Math.sin(pBobT) * 0.06, 1 - Math.sin(pBobT) * 0.04);
+    }
 }
 
 function updateBosses(bosses, bossTotems, px, py, colliders, openWorld, enemyProjs, playerState, dt) {

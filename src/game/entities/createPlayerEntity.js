@@ -3,6 +3,13 @@ import {GlowFilter} from "pixi-filters";
 import {assetManager} from "../utils/assetManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import {ItemDatabase} from "../items.js";
+import {
+    createPlayerAnimationState,
+    tickPlayerBodyAnimation,
+    triggerPlayerAttackAnim,
+    triggerPlayerHitAnim,
+    triggerPlayerDashAnim,
+} from "./playerAnimations.js";
 
 function hexToGlowColor(hex) {
     if (!hex) return 0xffffff;
@@ -33,7 +40,11 @@ function createWeaponRarityGlow(rarity) {
 export function createPlayerEntity(world) {
     const pCont = new Container();
     const visual = new Container();
+    visual.pivot.y = 15;
+    visual.y = 15;
     pCont.addChild(visual);
+
+    const animState = createPlayerAnimationState();
 
     // Shadow
     const pShadow = new Graphics();
@@ -49,7 +60,9 @@ export function createPlayerEntity(world) {
     });
 
     const pGlow = new Graphics();
-    visual.addChild(pGlow);
+    pGlow.circle(0, 4, 19).fill({ color: 0x67c3ff, alpha: 0.14 });
+    pGlow.circle(0, 4, 12).fill({ color: 0xa8e8ff, alpha: 0.1 });
+    visual.addChildAt(pGlow, 0);
 
     const empowerAura = new Graphics();
     empowerAura.visible = false;
@@ -174,7 +187,39 @@ export function createPlayerEntity(world) {
         }
     }
 
-    function tickAnimations(t, mx = 0, my = 0) {
+    /**
+     * @param {number} t bob phase
+     * @param {number} mx aim relative x
+     * @param {number} my aim relative y
+     * @param {number} dt delta seconds
+     * @param {{
+     *   moving?: boolean,
+     *   dashing?: boolean,
+     *   speed?: number,
+     *   moveDirX?: number,
+     *   moveDirY?: number,
+     * }} motion
+     */
+    function tickAnimations(t, mx = 0, my = 0, dt = 1 / 60, motion = {}) {
+        const body = tickPlayerBodyAnimation(animState, dt, {
+            bobT: t,
+            moving: !!motion.moving,
+            dashing: !!motion.dashing,
+            speed: motion.speed ?? 0,
+            moveDirX: motion.moveDirX ?? 0,
+            moveDirY: motion.moveDirY ?? -1,
+            aimX: mx,
+            aimY: my,
+        });
+
+        visual.scale.set(body.scaleX, body.scaleY);
+        visual.skew.x = body.skewX;
+        visual.rotation = body.rotation;
+        visual.y = 15 + body.offsetY;
+
+        pShadow.scale.set(body.shadowScaleX, body.shadowScaleY);
+        pShadow.alpha = body.shadowAlpha;
+
         drawEmpowerAura(t);
         blinkTimer++;
 
@@ -238,11 +283,30 @@ export function createPlayerEntity(world) {
 
     function playWeaponShoot() {
         shootAnim = 1.5;
+        triggerPlayerAttackAnim(animState, 1.15);
+    }
+
+    function playHitAnim(strength = 1) {
+        triggerPlayerHitAnim(animState, strength);
+    }
+
+    function playDashAnim() {
+        triggerPlayerDashAnim(animState);
     }
 
     return {
-        pCont, pGlow, pBody, pShadow, hpBar, hpBg,
-        leftEye, rightEye,
-        tickAnimations, playWeaponShoot
+        pCont,
+        visual,
+        pGlow,
+        pBody,
+        pShadow,
+        hpBar,
+        hpBg,
+        leftEye,
+        rightEye,
+        tickAnimations,
+        playWeaponShoot,
+        playHitAnim,
+        playDashAnim,
     };
 }

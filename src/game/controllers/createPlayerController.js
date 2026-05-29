@@ -2,7 +2,7 @@ import {useGameStore} from "../../stores/gameStore.js";
 import {audioManager} from "../utils/audioManager.js";
 import {VFX} from "../GlobalEffects.js";
 
-export function createPlayerController({hpBar, pBody, world}) {
+export function createPlayerController({ hpBar, pBody, world, playHitAnim }) {
     let hitTimeout = null;
     let lastHp = null; // Track previous HP to detect damage
 
@@ -30,13 +30,17 @@ export function createPlayerController({hpBar, pBody, world}) {
         const playerX = player.location.x;
         const playerY = player.location.y;
 
-        // Flash red
+        if (playHitAnim) {
+            playHitAnim(Math.min(1.25, 0.55 + damage * 0.025));
+        }
+
+        // Brief hit flash
         if (pBody) {
-            pBody.tint = '#0f75ff';
+            pBody.tint = 0xff6688;
             if (hitTimeout) clearTimeout(hitTimeout);
             hitTimeout = setTimeout(() => {
                 if (pBody) pBody.tint = 0xffffff;
-            }, 250);
+            }, 180);
         }
 
         // Screen shake

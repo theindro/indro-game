@@ -15,6 +15,7 @@ import { killMob } from '../../combat/killMob.js';
 import { destroyBossTotem, TOTEM_RADIUS } from '../bossTotem.js';
 import { applyMobCombatAggro, applyBossCombatAggro } from '../../combat/combatAggro.js';
 import { getBossHitRadius, getMobHitRadius } from '../../combat/mobHitbox.js';
+import { applyArrowHitKnockback } from '../../combat/mobKnockback.js';
 
 // Constants
 const COLLISION_RADIUS = 16;
@@ -330,6 +331,7 @@ export function createArrowSystem(ctx) {
                 const {damage: finalDamage, isCrit} = calculateArrowDamage(arrow, stats, store);
                 mob.hp -= finalDamage;
                 applyMobCombatAggro(mob);
+                applyArrowHitKnockback(mob, arrow, finalDamage);
 
                 // Apply hit effects
                 applyHitEffects(mob.x, mob.y, finalDamage, isCrit, false, arrow.elementalEffect);

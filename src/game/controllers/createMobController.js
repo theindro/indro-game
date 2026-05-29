@@ -25,6 +25,7 @@ import {
     ELITE_SIZE_MULT,
 } from '../elite/eliteMobs.js';
 import { isCombatAggroLocked } from '../combat/combatAggro.js';
+import { getMobStaggerMoveMul, tickMobKnockback } from '../combat/mobKnockback.js';
 
 /** Deterministic [0,1) from integer seed (matches world `seededRandom` style). */
 export function mobSeededUnit(seed) {
@@ -97,6 +98,8 @@ export function createMobController(mob, entityLayer) {
                 updateEliteAura(m, dt);
             }
 
+            tickMobKnockback(m, dt, { colliders, openWorld, mobs });
+
             let moveX = 0, moveY = 0;
             let attackOverride = false;
 
@@ -166,6 +169,10 @@ export function createMobController(mob, entityLayer) {
             }
 
             // ====================== APPLY MOVEMENT ======================
+            const staggerMul = getMobStaggerMoveMul(m);
+            moveX *= staggerMul;
+            moveY *= staggerMul;
+
             if (moveX !== 0 || moveY !== 0) {
                 const slow = m.statusSlow || 0;
                 const speedMult = 1 - slow;
@@ -346,8 +353,14 @@ export function applyBreathing(mob, globalTime) {
     const breath = Math.sin(globalTime + offset) * 0.5;
     const facing = bodyC.scale.x < 0 ? -1 : 1;
 
-    bodyC.scale.x = facing * (1 + breath * 0.15);
-    bodyC.scale.y = 1 - breath * 0.08;
+    let hitSquash = mob._hitSquash ?? 0;
+    if (hitSquash > 0) {
+        mob._hitSquash = Math.max(0, hitSquash - 0.11);
+        hitSquash = mob._hitSquash;
+    }
+
+    bodyC.scale.x = facing * (1 + breath * 0.15 + hitSquash * 0.18);
+    bodyC.scale.y = 1 - breath * 0.08 - hitSquash * 0.14;
 }
 
 export function setFacingDirection(mob, vx) {
