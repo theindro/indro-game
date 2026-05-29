@@ -32,11 +32,7 @@ function QuestCard({ quest, progressMap, completed, locked }) {
                 padding: 12,
                 borderRadius: 10,
                 border: `1px solid ${completed ? 'rgba(68,255,136,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                background: completed
-                    ? 'rgba(68,255,136,0.08)'
-                    : locked
-                        ? 'rgba(0,0,0,0.25)'
-                        : 'rgba(0,0,0,0.35)',
+                background: 'linear-gradient(145deg, rgb(176, 144, 106), rgb(152, 112, 80))',
                 opacity: locked ? 0.55 : 1,
             }}
         >
@@ -73,7 +69,8 @@ function QuestCard({ quest, progressMap, completed, locked }) {
                     percent={pct}
                     size="small"
                     format={() => `${Math.min(current, quest.target)} / ${quest.target}`}
-                    strokeColor={{ from: '#7b2ff7', to: '#b674ff' }}
+                    strokeColor={{ from: '#733cca', to: '#8845ea' }}
+                    strokeWidth={8}
                     trailColor="rgba(255,255,255,0.1)"
                 />
             )}
@@ -117,7 +114,7 @@ export default function QuestPanel({ isOpen }) {
                 </Text>
             </div>
 
-            <div style={{ padding: 14, maxHeight: 'calc(70vh - 80px)', overflowY: 'auto' }}>
+            <div style={{ padding: 14, maxHeight: 'calc(70vh - 100px)', overflowY: 'auto' }}>
                 {unlocked.length > 0 && (
                     <>
                         <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700 }}>

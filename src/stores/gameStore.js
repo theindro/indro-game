@@ -23,6 +23,10 @@ import {
     compareInventorySlots,
     getDismantleEssenceYield,
 } from '../game/itemDismantle.js';
+import {
+    DEFAULT_ABILITY_BAR_LAYOUT,
+    normalizeAbilityBarLayout,
+} from '../game/abilities/abilityBarLayout.js';
 
 // How much each enchant level multiplies base stats (12% per level)
 export const ENCHANT_BONUS_PER_LEVEL = 0.08;
@@ -238,6 +242,9 @@ function createGameStoreSlice(set, get) {
             void_essence: 0,
         },
 
+        /** @type {{ itemId: string } | null} Bound consumable for Q (quick slot 1). */
+        quickSlot1: null,
+
         // Shop State
         shop: {
             isOpen: false,
@@ -271,6 +278,9 @@ function createGameStoreSlice(set, get) {
         damageNumbers: [],
         levelUpEffect: false,
 
+        /** Loot pickup toasts queued by `addItem` (not persisted). */
+        pendingLootNotifications: [],
+
         // ===== AUDIO SETTINGS =====
         audio: {
             isMuted: false,
@@ -282,6 +292,9 @@ function createGameStoreSlice(set, get) {
         dash: {cooldownEnd: 0},
 
         abilities: cloneDefaultAbilities(),
+
+        /** Which ability id sits on hotkeys 1–6 (swap via drag on ability bar). */
+        abilityBarLayout: [...DEFAULT_ABILITY_BAR_LAYOUT],
 
         /** Empower buff end time (`performance.now()` ms). */
         empowerBuff: { endsAt: 0 },
@@ -325,6 +338,37 @@ function createGameStoreSlice(set, get) {
                     levelUpEffect: true,
                 }));
             }
+        },
+
+        clearLevelUpEffect: () => set({ levelUpEffect: false }),
+
+        clearLootNotifications: () => set({ pendingLootNotifications: [] }),
+
+        /**
+         * Swap two ability bar positions (hotkeys stay 1–6; abilities move).
+         * @param {number} fromIndex 0–5
+         * @param {number} toIndex 0–5
+         */
+        swapAbilityBarSlots: (fromIndex, toIndex) => {
+            if (fromIndex === toIndex) return { ok: false, reason: 'same_slot' };
+            if (
+                !Number.isInteger(fromIndex) ||
+                !Number.isInteger(toIndex) ||
+                fromIndex < 0 ||
+                fromIndex > 5 ||
+                toIndex < 0 ||
+                toIndex > 5
+            ) {
+                return { ok: false, reason: 'invalid_index' };
+            }
+
+            const layout = normalizeAbilityBarLayout(get().abilityBarLayout);
+            const next = [...layout];
+            const tmp = next[fromIndex];
+            next[fromIndex] = next[toIndex];
+            next[toIndex] = tmp;
+            set({ abilityBarLayout: next });
+            return { ok: true };
         },
 
         allocateSkillPoint: (nodeId) => {
@@ -491,6 +535,13 @@ function createGameStoreSlice(set, get) {
 
             const enchantLevel = options.enchantLevel ?? 0;
             const newSlots = [...state.inventory.slots];
+            const silent = options.silent === true;
+            const lootToast = silent
+                ? (state.pendingLootNotifications ?? [])
+                : [
+                      ...(state.pendingLootNotifications ?? []),
+                      { itemId, quantity },
+                  ];
 
             const existingSlot = newSlots.findIndex((s) => s && s.id === itemId && dbItem.stackable);
 
@@ -499,7 +550,10 @@ function createGameStoreSlice(set, get) {
                     ...newSlots[existingSlot],
                     quantity: (newSlots[existingSlot].quantity || 1) + quantity,
                 };
-                set({inventory: {...state.inventory, slots: newSlots}});
+                set({
+                    inventory: {...state.inventory, slots: newSlots},
+                    pendingLootNotifications: lootToast,
+                });
                 onQuestItemCollected(get, set, itemId, quantity);
                 return true;
             }
@@ -510,7 +564,10 @@ function createGameStoreSlice(set, get) {
             const entry = {id: itemId, quantity};
             if (enchantLevel > 0) entry.enchantLevel = enchantLevel;
             newSlots[emptySlot] = entry;
-            set({inventory: {...state.inventory, slots: newSlots}});
+            set({
+                inventory: {...state.inventory, slots: newSlots},
+                pendingLootNotifications: lootToast,
+            });
             onQuestItemCollected(get, set, itemId, quantity);
             return true;
         },
@@ -637,6 +694,72 @@ function createGameStoreSlice(set, get) {
             }));
 
             return { ok: true, healed };
+        },
+
+        /**
+         * Move or swap items between inventory slots (drag-and-drop).
+         * @param {number} fromIndex
+         * @param {number} toIndex
+         */
+        moveInventorySlot: (fromIndex, toIndex) => {
+            if (fromIndex === toIndex) return { ok: false, reason: 'same_slot' };
+
+            const state = get();
+            const newSlots = [...state.inventory.slots];
+            const from = newSlots[fromIndex];
+            if (!from) return { ok: false, reason: 'empty' };
+
+            const to = newSlots[toIndex];
+            const db = ItemDatabase[from.id];
+
+            if (!to) {
+                newSlots[toIndex] = from;
+                newSlots[fromIndex] = null;
+            } else if (to.id === from.id && db?.stackable) {
+                newSlots[toIndex] = {
+                    ...to,
+                    quantity: (to.quantity ?? 1) + (from.quantity ?? 1),
+                };
+                newSlots[fromIndex] = null;
+            } else {
+                newSlots[fromIndex] = to;
+                newSlots[toIndex] = from;
+            }
+
+            set({ inventory: { ...state.inventory, slots: newSlots } });
+            return { ok: true };
+        },
+
+        /**
+         * @param {number} inventorySlotIndex
+         */
+        setQuickSlot1FromInventory: (inventorySlotIndex) => {
+            const state = get();
+            const slot = state.inventory.slots[inventorySlotIndex];
+            if (!slot?.id) return { ok: false, reason: 'empty' };
+
+            const dbItem = ItemDatabase[slot.id];
+            if (!dbItem || dbItem.type !== ItemTypes.CONSUMABLE) {
+                return { ok: false, reason: 'not_consumable' };
+            }
+
+            set({ quickSlot1: { itemId: slot.id } });
+            return { ok: true, itemId: slot.id };
+        },
+
+        clearQuickSlot1: () => set({ quickSlot1: null }),
+
+        useQuickSlot1: () => {
+            const state = get();
+            const itemId = state.quickSlot1?.itemId;
+            if (!itemId) return { ok: false, reason: 'empty' };
+
+            const slotIndex = state.inventory.slots.findIndex((s) => s?.id === itemId);
+            if (slotIndex === -1) {
+                return { ok: false, reason: 'no_item' };
+            }
+
+            return get().useConsumableFromSlot(slotIndex);
         },
 
         // ===== RECALCULATE STATS =====
@@ -957,6 +1080,7 @@ function createGameStoreSlice(set, get) {
                 screenFlash: 0,
                 damageNumbers: [],
                 levelUpEffect: false,
+                pendingLootNotifications: [],
                 showStartScreen: false,
                 restartGeneration: nextGen,
             }));
@@ -1066,7 +1190,11 @@ function getDefaultProgressPayload() {
             gold: 0,
             void_essence: 0,
         },
+
+        /** @type {{ itemId: string } | null} Bound consumable for Q (quick slot 1). */
+        quickSlot1: null,
         abilities: cloneDefaultAbilities(),
+        abilityBarLayout: [...DEFAULT_ABILITY_BAR_LAYOUT],
 
         /** Empower buff end time (`performance.now()` ms). */
         empowerBuff: { endsAt: 0 },
@@ -1116,7 +1244,11 @@ function mergePersistedState(persisted, current) {
         ...current,
         player: p.player ?? current.player,
         inventory: p.inventory ?? current.inventory,
+        quickSlot1: p.quickSlot1 ?? current.quickSlot1 ?? null,
         abilities: mergeAbilitiesForLoad(p.abilities, current.abilities),
+        abilityBarLayout: normalizeAbilityBarLayout(
+            p.abilityBarLayout ?? current.abilityBarLayout
+        ),
         kills: typeof p.kills === 'number' ? p.kills : current.kills,
         worldSeed: (() => {
             if (typeof p.worldSeed === 'number' && Number.isFinite(p.worldSeed)) {
@@ -1179,7 +1311,9 @@ export const useGameStore = create(
         partialize: (state) => ({
             player: state.player,
             inventory: state.inventory,
+            quickSlot1: state.quickSlot1,
             abilities: state.abilities,
+            abilityBarLayout: state.abilityBarLayout,
             kills: state.kills,
             worldSeed: state.worldSeed,
             openedInteractableIds: state.openedInteractableIds,

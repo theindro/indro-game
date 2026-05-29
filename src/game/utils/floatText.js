@@ -44,6 +44,7 @@ export function showFloat(wx, wy, msg, color = '#ffb347', opts = {}) {
         '-webkit-font-smoothing:none',
         'text-rendering:geometricPrecision',
 
+        `text-shadow: 0 4px 6px rgba(0,0,0,0.15)`,
 
         'transform:translate(-50%,-50%) scale(1)',
         'z-index:20',

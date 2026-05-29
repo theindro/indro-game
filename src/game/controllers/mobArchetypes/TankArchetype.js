@@ -161,31 +161,66 @@ export class TankArchetype {
             moveY *= m.speed;
         }
 
-        if (this.groundSlamCooldown <= 0 && distToPlayer < this.slamRadius + 300) {
+        const slamRange = this.slamRadius + 300;
+        const slamReadyDist = m.isElite ? slamRange + 80 : slamRange;
+
+        if (this.groundSlamCooldown <= 0 && distToPlayer < slamReadyDist) {
             this._beginCast(px, py);
             return { moveX: 0, moveY: 0, attackOverride: true };
         }
 
         if (this.groundSlamCooldown > 0) {
-            this.groundSlamCooldown -= dt;
+            const cdRate = m.isElite ? 1.4 : 1;
+            this.groundSlamCooldown -= dt * cdRate;
         }
 
         return { moveX, moveY, attackOverride: false };
     }
 
-    performGroundSlam() {
-        this.groundAttacks.addAttack(this._slamX, this._slamY, {
+    _slamConfig() {
+        const m = this.mob;
+        const dmg = m.isElite ? Math.max(25, Math.round(m.damage * 1.15)) : 25;
+        const radius = m.isElite ? this.slamRadius * 0.92 : this.slamRadius;
+
+        return {
             shape: 'circle',
             color: '#006dff',
             warningColor: '#ffffff',
             innerColor: '#089bff',
-            radius: this.slamRadius,
+            radius,
             warningDuration: GROUND_WARN_NORMAL,
-            damage: 25,
+            damage: dmg,
             onImpact: (ix, iy) => {
                 VFX.playZapImpact(ix, iy, 0.95);
             },
-        });
+        };
+    }
+
+    performGroundSlam() {
+        const config = this._slamConfig();
+
+        if (this.mob.isElite) {
+            const ringCount = 5 + Math.floor(Math.random() * 2);
+            const spread = this.slamRadius * 1.05;
+
+            for (let i = 0; i < ringCount; i++) {
+                const angle = (i / ringCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+                const dist = spread * (0.4 + Math.random() * 0.5);
+                this.groundAttacks.addAttack(
+                    this._slamX + Math.cos(angle) * dist,
+                    this._slamY + Math.sin(angle) * dist,
+                    config
+                );
+            }
+
+            this.groundAttacks.addAttack(this._slamX, this._slamY, {
+                ...config,
+                radius: this.slamRadius,
+            });
+            return;
+        }
+
+        this.groundAttacks.addAttack(this._slamX, this._slamY, config);
     }
 
     destroy() {

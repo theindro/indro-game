@@ -1,6 +1,7 @@
 import {Graphics} from 'pixi.js';
 import {useGameStore} from "../../stores/gameStore.js";
 import { resolveCircleVsLake } from './lakes/lakeGeometry.js';
+import { getMobHitRadius } from '../combat/mobHitbox.js';
 
 /**
  * Push circle out of a rotated ellipse collider (lakes).
@@ -151,7 +152,7 @@ export function createDebugColliderToggle(world, colliders, getMobs = null) {
             const mobs = getMobs() || [];
             for (const mob of mobs) {
                 if (!mob || mob.hp <= 0) continue;
-                const r = mob.size ?? 16;
+                const r = getMobHitRadius(mob);
                 debugGraphics.circle(mob.x, mob.y, r)
                     .stroke({ width: 2, color: 0x00ffff, alpha: 0.9 });
                 debugGraphics.circle(mob.x, mob.y, 3)

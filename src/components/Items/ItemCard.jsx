@@ -3,6 +3,12 @@ import { Badge, Tooltip, Popover } from "antd";
 import { ItemDatabase, ItemTypes } from "../../game/items.js";
 import { ENCHANT_BONUS_PER_LEVEL } from "../../stores/gameStore.js";
 import { canDismantleItem, getDismantleEssenceYield } from "../../game/itemDismantle.js";
+import {
+    buildInventoryDragPayload,
+    beginInventoryDragSession,
+    endInventoryDragSession,
+    INVENTORY_DRAG_MIME,
+} from "../../game/inventory/inventoryDrag.js";
 
 const rarityClass = {
     Common: "",
@@ -152,9 +158,11 @@ const ItemCard = ({
     showName,
     enchantLevel: enchantLevelProp,
     inventorySlotIndex,
+    draggable = false,
 }) => {
     const canvasRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
+    const didDragRef = useRef(false);
 
     // Resolve the DB item and enchant level from either slot or item prop
     const resolvedSlot = slot ?? null;
@@ -185,6 +193,28 @@ const ItemCard = ({
         if (onAction) onAction(actionKey, slotPayload);
     };
 
+    const handleDragStart = (e) => {
+        if (!draggable || inventorySlotIndex == null) return;
+        didDragRef.current = true;
+        beginInventoryDragSession();
+        const payload = buildInventoryDragPayload(inventorySlotIndex);
+        e.dataTransfer.setData(INVENTORY_DRAG_MIME, payload);
+        e.dataTransfer.setData('text/plain', payload);
+        e.dataTransfer.effectAllowed = 'copyMove';
+    };
+
+    const handleDragEnd = () => {
+        endInventoryDragSession();
+        requestAnimationFrame(() => {
+            didDragRef.current = false;
+        });
+    };
+
+    const handleClick = () => {
+        if (didDragRef.current) return;
+        if (onClick) onClick(slotPayload, inventorySlotIndex);
+    };
+
     if (!dbItem) return null;
 
     const dismantleYield = canDismantleItem(dbItem.id) ? getDismantleEssenceYield(dbItem.id) : 0;
@@ -200,7 +230,75 @@ const ItemCard = ({
         )
         : null;
 
-    return (
+    const cardInner = (
+        <div
+            onClick={handleClick}
+            onContextMenu={handleContextMenu}
+            className={'item-card ' + (rarityClass[dbItem.rarity?.name] ?? '')}
+            style={{ position: 'relative' }}
+        >
+            {isLegendary && (
+                <canvas
+                    ref={canvasRef}
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        pointerEvents: 'none',
+                        zIndex: 1,
+                        borderRadius: 8,
+                    }}
+                />
+            )}
+
+            <img
+                src={dbItem.texture}
+                width={24}
+                alt=""
+                draggable={false}
+                style={{ position: 'relative', zIndex: 2 }}
+            />
+
+            {quantity > 1 && (
+                <Badge
+                    count={quantity}
+                    size="small"
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        right: 0,
+                        top: 10,
+                        background: 'transparent',
+                        fontSize: 10,
+                        padding: 0,
+                    }}
+                />
+            )}
+
+            {enchantLevel > 0 && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: 2,
+                        left: 2,
+                        zIndex: 3,
+                        fontSize: 8,
+                        fontWeight: 800,
+                        lineHeight: 1,
+                        color: enchantLevelColor(enchantLevel),
+                        textShadow: `0 0 4px ${enchantLevelColor(enchantLevel)}`,
+                        pointerEvents: 'none',
+                        letterSpacing: '-0.5px',
+                    }}
+                >
+                    +{enchantLevel}
+                </div>
+            )}
+        </div>
+    );
+
+    const cardWithMenus = (
         <Tooltip
             overlayStyle={{ zIndex: 10001 }}
             title={
@@ -274,74 +372,23 @@ const ItemCard = ({
                     />
                 }
             >
-                <div
-                    onClick={() => onClick && onClick(slotPayload, inventorySlotIndex)}
-                    onContextMenu={handleContextMenu}
-                    className={"item-card " + (rarityClass[dbItem.rarity?.name] ?? '')}
-                    style={{ position: 'relative' }}
-                >
-                    {isLegendary && (
-                        <canvas
-                            ref={canvasRef}
-                            style={{
-                                position: 'absolute',
-                                inset: 0,
-                                width: '100%',
-                                height: '100%',
-                                pointerEvents: 'none',
-                                zIndex: 1,
-                                borderRadius: 8,
-                            }}
-                        />
-                    )}
-
-                    <img
-                        src={dbItem.texture}
-                        width={24}
-                        alt=""
-                        style={{ position: 'relative', zIndex: 2 }}
-                    />
-
-                    {/* Quantity badge */}
-                    {quantity > 1 && (
-                        <Badge
-                            count={quantity}
-                            size="small"
-                            style={{
-                                position: 'absolute',
-                                bottom: 0,
-                                right: 0,
-                                top: 10,
-                                background: 'transparent',
-                                fontSize: 10,
-                                padding: 0,
-                            }}
-                        />
-                    )}
-
-                    {/* Enchant level badge — bottom-left corner */}
-                    {enchantLevel > 0 && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                bottom: 2,
-                                left: 2,
-                                zIndex: 3,
-                                fontSize: 8,
-                                fontWeight: 800,
-                                lineHeight: 1,
-                                color: enchantLevelColor(enchantLevel),
-                                textShadow: `0 0 4px ${enchantLevelColor(enchantLevel)}`,
-                                pointerEvents: 'none',
-                                letterSpacing: '-0.5px',
-                            }}
-                        >
-                            +{enchantLevel}
-                        </div>
-                    )}
-                </div>
+                {cardInner}
             </Popover>
         </Tooltip>
+    );
+
+    const canDrag = draggable && inventorySlotIndex != null;
+    if (!canDrag) return cardWithMenus;
+
+    return (
+        <div
+            className="inventory-item-drag-root item-card--draggable"
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+        >
+            {cardWithMenus}
+        </div>
     );
 };
 

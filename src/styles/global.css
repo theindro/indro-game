@@ -106,17 +106,114 @@ body {
 }
 
 
+.inventory-slot-cell {
+    min-width: 50px;
+    min-height: 50px;
+    border-radius: 8px;
+    transition: box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.inventory-slot-cell--empty .item-card--empty-slot {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    border: 1.5px dashed rgba(70, 48, 20, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.inventory-slot-drop-active,
+.quick-slot-drop-active,
+.ability-bar-slot-drop-active {
+    box-shadow: 0 0 0 2px rgba(255, 220, 120, 0.85);
+    background: rgba(255, 220, 120, 0.08);
+}
+
+.ability-bar-slot--draggable[draggable="true"] {
+    cursor: grab;
+    -webkit-user-drag: element;
+}
+
+.ability-bar-slot--draggable[draggable="true"]:active {
+    cursor: grabbing;
+    opacity: 0.88;
+}
+
+html.ability-bar-dragging .ability-bar-hud {
+    z-index: 10002;
+}
+
+/* Override global `* { -webkit-user-drag: none }` so inventory HTML5 drag works */
+.inventory-item-drag-root[draggable="true"],
+.item-card--draggable[draggable="true"] {
+    cursor: grab;
+    -webkit-user-drag: element;
+    display: inline-block;
+}
+
+.inventory-item-drag-root[draggable="true"]:active,
+.item-card--draggable[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.inventory-item-drag-root[draggable="true"]:active .item-card {
+    opacity: 0.85;
+}
+
+.quick-slot-cell {
+    position: relative;
+    cursor: pointer;
+}
+
+/* Inventory panel (z-index 10000) sits over the ability bar — lift HUD while dragging */
+html.inventory-dragging .ability-bar-hud {
+    z-index: 10002;
+}
+
+html.inventory-dragging .bottom-right-float-card {
+    pointer-events: none;
+}
+
+html.inventory-dragging .inventory-slot-cell,
+html.inventory-dragging .inventory-quick-slot-drop {
+    pointer-events: auto;
+}
+
+.inventory-quick-slot-drop {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1.5px dashed rgba(255, 220, 120, 0.45);
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 220, 120, 0.9);
+    letter-spacing: 0.5px;
+    cursor: copy;
+}
+
+html.inventory-dragging .inventory-quick-slot-drop {
+    display: flex;
+}
+
 .item-card {
     width: 50px;
     height: 50px;
     border-radius: 8px;
-    border: solid 1px rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(70, 48, 20, 0.4);
     display: flex;
     align-self: center;
     justify-content: center;
     position: relative;
     overflow: hidden!important;
     align-items: center;
+    background: linear-gradient(145deg, rgb(176, 144, 106), rgb(152, 112, 80));
     color: rgba(255, 255, 255, 0.08);
 }
 
@@ -133,7 +230,7 @@ body {
 .loot-card.Magic {
     background: radial-gradient(
             ellipse at 50% 110%,
-            rgba(46, 204, 113, 0.22) 0%,
+            rgba(46, 204, 113, 0.5) 0%,
             transparent 70%
     );
 }
@@ -143,7 +240,7 @@ body {
 }
 
 .item-card.rare:after, .loot-card.Rare {
-    background: radial-gradient(ellipse at 50% 110%, rgba(0, 140, 255, 0.2) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 110%, rgba(0, 140, 255, 0.5) 0%, transparent 70%);
 }
 
 .item-card.epic {
@@ -172,7 +269,7 @@ body {
 
 /* Subtle bottom heat glow */
 .item-legendary::after, .loot-card.Legendary {
-    background: radial-gradient(ellipse at 50% 110%, rgba(255, 120, 0, 0.35) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 110%, rgba(255, 120, 0, 0.75) 0%, transparent 70%);
 }
 
 /* Icon sits above the glow layers */
@@ -236,60 +333,8 @@ body {
     right: 24px;
     width: 700px;
     z-index: 10000;
-    background: rgba(10, 12, 16, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-}
-
-/* Primary button gradient override */
-.ant-btn-primary {
-    background: linear-gradient(135deg, #a020f0 0%, #6a0dad 50%, #4a0080 100%) !important;
-    border: 1px solid rgba(180, 60, 255, 0.5) !important;
-    box-shadow:
-            0 0 12px rgba(150, 20, 240, 0.4),
-            0 2px 8px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-    transition: all 0.15s ease !important;
-}
-
-.ant-btn-primary:hover {
-    background: linear-gradient(135deg, #b830ff 0%, #8a1ddd 50%, #6a10bb 100%) !important;
-    box-shadow:
-            0 0 20px rgba(170, 40, 255, 0.6),
-            0 4px 12px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-1px);
-}
-
-.ant-btn-primary:active {
-    background: linear-gradient(135deg, #8010d0 0%, #5a0aaa 50%, #3a0070 100%) !important;
-    box-shadow:
-            0 0 8px rgba(130, 20, 220, 0.4),
-            0 1px 4px rgba(0, 0, 0, 0.5),
-            inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-    transform: translateY(0px);
-}
-
-/* Shine sweep on hover */
-.ant-btn-primary::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(
-            105deg,
-            transparent 40%,
-            rgba(255, 255, 255, 0.12) 50%,
-            transparent 60%
-    );
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.ant-btn-primary:hover::after {
-    opacity: 1;
+    background: linear-gradient(rgb(200, 176, 144) 0%, rgb(184, 152, 112) 100%);
+    border: 2px solid rgb(138, 104, 64);
 }
 
 * {

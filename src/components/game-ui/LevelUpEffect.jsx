@@ -5,22 +5,23 @@ import {audioManager} from "../../game/utils/audioManager.js";
 import { MAX_PLAYER_LEVEL } from '../../game/skills/skillTreeDefinitions.js';
 
 export default function LevelUpEffect() {
+    const levelUpEffect = useGameStore((s) => s.levelUpEffect);
+    const clearLevelUpEffect = useGameStore((s) => s.clearLevelUpEffect);
     const playerLevel = useGameStore((s) => s.player?.pLevel);
     const [visible, setVisible] = useState(false);
     const [displayLevel, setDisplayLevel] = useState(playerLevel);
-    const [initialized, setInitialized] = useState(false);
 
     useEffect(() => {
-        if (!initialized) {
-            setInitialized(true);
-            return;
-        }
+        if (!levelUpEffect) return;
+
         setDisplayLevel(playerLevel);
         setVisible(true);
+        clearLevelUpEffect();
         audioManager.playSFX('/sounds/level-up.mp3', 0.15);
+
         const t = setTimeout(() => setVisible(false), 5000);
         return () => clearTimeout(t);
-    }, [playerLevel, initialized]);
+    }, [levelUpEffect, playerLevel, clearLevelUpEffect]);
 
     if (!visible) return null;
 

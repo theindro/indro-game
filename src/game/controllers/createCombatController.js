@@ -119,15 +119,47 @@ export function createCombatController(ctx) {
         return useSpinshot({ ...ctx, arrows });
     }
 
-    function isAbilityUnlocked(num) {
-        const key = `ability${num}`;
+    function getAbilityKeyAtBarSlot(barIndex) {
+        const layout = useGameStore.getState().abilityBarLayout;
+        return layout?.[barIndex] ?? `ability${barIndex + 1}`;
+    }
+
+    function isAbilityUnlockedAtBarSlot(barIndex) {
+        const key = getAbilityKeyAtBarSlot(barIndex);
         return !!useGameStore.getState().skillUnlocks?.[key];
+    }
+
+    /** @deprecated use isAbilityUnlockedAtBarSlot */
+    function isAbilityUnlocked(num) {
+        return isAbilityUnlockedAtBarSlot(num - 1);
+    }
+
+    function useAbilityByKey(abilityKey, targetX, targetY) {
+        switch (abilityKey) {
+            case 'ability1':
+                return useArrowBarrageWrapper(targetX, targetY);
+            case 'ability2':
+                return useRapidFireWrapper(targetX, targetY);
+            case 'ability3':
+                return useEmpowerWrapper();
+            case 'ability4':
+                return useFrostArrowWrapper(targetX, targetY);
+            case 'ability5':
+                return useVenomNovaWrapper(targetX, targetY);
+            case 'ability6':
+                return useSpinshotWrapper();
+            default:
+                return undefined;
+        }
     }
 
     return {
         tryShoot,
         killMob: arrowSystem.killMob,
         isAbilityUnlocked,
+        isAbilityUnlockedAtBarSlot,
+        useAbilityByKey,
+        getAbilityKeyAtBarSlot,
         updateArrows: arrowSystem.updateArrows,
         updateEnemyProjs: projectileSystem.updateEnemyProjs,
         updateDrops: dropSystem.updateDrops,

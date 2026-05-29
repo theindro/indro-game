@@ -1,7 +1,7 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import { getMonsterLevel } from '../world/worldProgression.js';
 
-const BADGE_FILL = 0x1a2233;
+const BADGE_FILL = "rgb(64, 58, 52)";
 const BADGE_STROKE = 0x8899bb;
 const CONNECTOR = 0x556677;
 
@@ -37,18 +37,15 @@ export function attachMonsterLevelUi(entity, worldDifficulty, layout = {}) {
     if (!entity.levelUi) {
         const root = new Container();
         const badgeBg = new Graphics();
-        const connector = new Graphics();
         const levelText = new Text({
             text: '',
             style: {
-                fontFamily: 'Arial, sans-serif',
                 fontSize: Math.max(9, Math.round(badgeR * 0.95)),
                 fontWeight: '700',
                 fill: 0xe8f0ff,
             },
         });
         levelText.anchor.set(0.5);
-        root.addChild(connector);
         root.addChild(badgeBg);
         root.addChild(levelText);
         uiRoot.addChild(root);
@@ -56,7 +53,6 @@ export function attachMonsterLevelUi(entity, worldDifficulty, layout = {}) {
         entity.levelUi = {
             root,
             badgeBg,
-            connector,
             levelText,
             badgeR,
             badgeCenterX,
@@ -69,7 +65,7 @@ export function attachMonsterLevelUi(entity, worldDifficulty, layout = {}) {
 
     entity.worldDifficulty = worldDifficulty;
     entity.monsterLevel = getMonsterLevel(worldDifficulty);
-    entity.levelUi.levelText.text = entity.isElite ? `★${entity.monsterLevel}` : String(entity.monsterLevel);
+    entity.levelUi.levelText.text = entity.isElite ? `★` : String(entity.monsterLevel);
 
     if (entity.isElite && layout.eliteType) {
         entity.levelUi.badgeStroke = ELITE_BADGE_STROKE[layout.eliteType] ?? 0x9b59b6;
@@ -88,40 +84,59 @@ export function drawMonsterHpWithLevel(entity, hpPct) {
 
     const {
         badgeBg,
-        connector,
         levelText,
-        badgeR,
-        badgeCenterX,
-        badgeY,
         barHalfWidth,
         barY,
         barHeight,
     } = ui;
 
     const pct = Math.max(0, Math.min(1, hpPct));
-    const barFullW = barHalfWidth * 2 + 4;
+
+    // LEVEL BOX
+    const badgeW = 16;
+    const badgeH = 16;
+    const badgeX = -barHalfWidth - badgeW + 1;
+    const badgeY = barY - 6;
 
     badgeBg.clear();
-    badgeBg.circle(badgeCenterX, badgeY, badgeR).fill({ color: BADGE_FILL, alpha: 0.92 });
-    const strokeCol = ui.badgeStroke ?? BADGE_STROKE;
-    badgeBg.circle(badgeCenterX, badgeY, badgeR).stroke({ color: strokeCol, width: 1.5, alpha: 0.9 });
 
-    connector.clear();
-    const connX0 = badgeCenterX + badgeR;
-    const connX1 = -barHalfWidth - 2;
-    connector
-        .moveTo(connX0, badgeY)
-        .lineTo(connX1, badgeY)
-        .stroke({ color: CONNECTOR, width: 2, alpha: 0.85 });
+    badgeBg
+        .roundRect(badgeX, badgeY, badgeW, badgeH, 2)
+        .fill({ color: BADGE_FILL, alpha: 0.95 });
 
-    levelText.position.set(badgeCenterX, badgeY);
+    badgeBg
+        .roundRect(badgeX, badgeY, badgeW, badgeH, 2)
+        .stroke({
+            color: BADGE_STROKE,
+            width: 1,
+            alpha: 0.8,
+        });
 
+    levelText.position.set(
+        badgeX + badgeW * 0.5,
+        badgeY + badgeH * 0.5
+    );
+
+    // HP BAR
     hpBar.clear();
+
+    // background
+    hpBar
+        .roundRect(-barHalfWidth, barY, barHalfWidth * 2, barHeight, 2)
+        .fill(0x1a1a1a);
+
+    // fill
     if (pct > 0) {
-        const col =
-            pct > 0.5 ? 0x44ff88 :
-                pct > 0.25 ? 0xffaa00 :
-                    0xff2222;
-        hpBar.rect(-barHalfWidth - 2, barY + 1, barFullW * pct, barHeight).fill(col);
+        const col = entity.isElite ? "#9422fe" : "#c90f0f";
+
+        hpBar
+            .roundRect(
+                -barHalfWidth,
+                barY,
+                barHalfWidth * 2 * pct,
+                barHeight + 1,
+                2
+            )
+            .fill(col);
     }
 }

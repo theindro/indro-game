@@ -182,7 +182,6 @@ const BottomRightMenu = () => {
                                 const button = (
                                     <Button
                                         disabled={item.disabled}
-                                        type={openPanel === item.key ? "primary" : "text"}
                                         icon={item.key === 'inventory' ?
                                             <img style={{marginBottom: -3}} src={item.icon} width={20}
                                                  alt=""/> : item.icon}
@@ -192,7 +191,7 @@ const BottomRightMenu = () => {
                                             height: 52,
                                             borderRadius: 10,
                                             fontSize: 22,
-                                            background: 'rgba(10, 12, 16, 0.85)'
+                                            opacity: 1
                                         }}
                                     />
                                 );

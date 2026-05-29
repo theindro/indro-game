@@ -15,6 +15,8 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { audioManager } from "../../game/utils/audioManager.js";
 import {ItemDatabase, ItemTypes} from "../../game/items.js";
 import ItemCard from "../Items/ItemCard.jsx";
+import InventorySlotCell from "./InventorySlotCell.jsx";
+import { useQuickSlotDropHandlers } from './useQuickSlotDropHandlers.js';
 
 const { Text } = Typography;
 
@@ -62,10 +64,13 @@ export default function Inventory({ isOpen, setIsOpen }) {
     const sortInventory = useGameStore((s) => s.sortInventory);
     const dismantleInventorySlot = useGameStore((s) => s.dismantleInventorySlot);
     const dismantleAllGearInBag = useGameStore((s) => s.dismantleAllGearInBag);
+    const moveInventorySlot = useGameStore((s) => s.moveInventorySlot);
+    const quickSlotDrop = useQuickSlotDropHandlers();
     const openEnchantmentUI = useGameStore((s) => s.openEnchantmentUI);
     const playerLocation = useGameStore((s) => s.player.location);
+    const pendingLootNotifications = useGameStore((s) => s.pendingLootNotifications);
+    const clearLootNotifications = useGameStore((s) => s.clearLootNotifications);
     const [lootToasts, setLootToasts] = useState([]);
-    const prevSlotsRef = useRef([]);
     const toastKeyRef = useRef(0);
 
     const dismissLootToast = useCallback((key) => {
@@ -73,51 +78,22 @@ export default function Inventory({ isOpen, setIsOpen }) {
     }, []);
 
     useEffect(() => {
-        const prev = prevSlotsRef.current;
-        const current = inventory?.slots || [];
+        if (!pendingLootNotifications?.length) return;
 
-        if (!prev.length) {
-            prevSlotsRef.current = current;
-            return;
-        }
-
-        const changes = [];
-
-        for (let i = 0; i < current.length; i++) {
-            const prevItem = prev[i];
-            const currItem = current[i];
-
-            if (!currItem) continue;
-
-            // new item
-            if (!prevItem && currItem) {
-                changes.push({
-                    id: currItem.id,
-                    quantity: currItem.quantity,
-                });
-            }
-
-            // quantity increase
-            if (prevItem && currItem && currItem.quantity > prevItem.quantity) {
-                changes.push({
-                    id: currItem.id,
-                    quantity: currItem.quantity - prevItem.quantity,
-                });
-            }
-        }
-
-        if (changes.length > 0) {
-            const merged = mergeLootChanges(changes);
-            const incoming = merged.map((entry) => ({
-                key: ++toastKeyRef.current,
-                itemId: entry.id,
-                quantity: entry.quantity,
-            }));
-            setLootToasts((prev) => [...prev, ...incoming].slice(-MAX_LOOT_TOASTS));
-        }
-
-        prevSlotsRef.current = current;
-    }, [inventory?.slots]);
+        const merged = mergeLootChanges(
+            pendingLootNotifications.map((n) => ({
+                id: n.itemId,
+                quantity: n.quantity,
+            }))
+        );
+        const incoming = merged.map((entry) => ({
+            key: ++toastKeyRef.current,
+            itemId: entry.id,
+            quantity: entry.quantity,
+        }));
+        setLootToasts((prev) => [...prev, ...incoming].slice(-MAX_LOOT_TOASTS));
+        clearLootNotifications();
+    }, [pendingLootNotifications, clearLootNotifications]);
 
     useEffect(() => {
         if (isOpen) audioManager.playSFX('/sounds/open-close.mp3', 0.15);
@@ -271,6 +247,16 @@ export default function Inventory({ isOpen, setIsOpen }) {
                                     </Text>
                                 </Space>
                                 <Space size={4}>
+                                    <div
+                                        className="inventory-quick-slot-drop"
+                                        title="Drop consumable for Q quick slot"
+                                        onDragOver={quickSlotDrop.handleDragOver}
+                                        onDragEnter={quickSlotDrop.handleDragEnter}
+                                        onDragLeave={quickSlotDrop.handleDragLeave}
+                                        onDrop={quickSlotDrop.handleDrop}
+                                    >
+                                        Q slot
+                                    </div>
                                     <Tooltip title="Sort by rarity" overlayStyle={{zIndex: 10001}}>
                                         <Button
                                             size="small"
@@ -305,26 +291,31 @@ export default function Inventory({ isOpen, setIsOpen }) {
                                     gridTemplateColumns: 'repeat(4, 1fr)',
                                     gap: 10,
                                 }}>
-                                    {slots.map((item, i) => {
-                                        if (!item) return <div key={i} className="item-card">-</div>
-
-                                        const dbItem = ItemDatabase[item?.id];
-
-                                        return (
-                                            <ItemCard
-                                                key={i}
-                                                slot={item}
-                                                inventorySlotIndex={i}
-                                                quantity={item?.quantity}
-                                                enchantLevel={item?.enchantLevel}
-                                                item={dbItem}
-                                                onClick={handleItemClick}
-                                                onAction={(actionKey, slotPayload) =>
-                                                    handleAction(actionKey, slotPayload, i)
-                                                }
-                                            />
-                                        )
-                                    })}
+                                    {slots.map((item, i) => (
+                                        <InventorySlotCell
+                                            key={i}
+                                            slotIndex={i}
+                                            isEmpty={!item}
+                                            onDropSlot={(from, to) => moveInventorySlot(from, to)}
+                                        >
+                                            {!item ? (
+                                                <div className="item-card item-card--empty-slot">-</div>
+                                            ) : (
+                                                <ItemCard
+                                                    slot={item}
+                                                    inventorySlotIndex={i}
+                                                    quantity={item?.quantity}
+                                                    enchantLevel={item?.enchantLevel}
+                                                    item={ItemDatabase[item?.id]}
+                                                    draggable
+                                                    onClick={handleItemClick}
+                                                    onAction={(actionKey, slotPayload) =>
+                                                        handleAction(actionKey, slotPayload, i)
+                                                    }
+                                                />
+                                            )}
+                                        </InventorySlotCell>
+                                    ))}
                                 </div>
                             </div>
                         </Col>

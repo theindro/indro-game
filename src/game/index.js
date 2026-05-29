@@ -394,35 +394,47 @@ function initWeatherSystem(app, world) {
 // Key listeners
 function setupEventListeners(input, dash, combat, stats, mouseWorld) {
     window.addEventListener('keydown', (e) => {
+        if (
+            e.target instanceof HTMLInputElement ||
+            e.target instanceof HTMLTextAreaElement ||
+            e.target?.isContentEditable
+        ) {
+            return;
+        }
+
         const key = e.key;
 
         if (e.code === 'Space') dash.tryDash();
 
         switch (key) {
             case '1':
-                if (combat.isAbilityUnlocked(1))
-                    combat.useArrowBarrage(mouseWorld.x, mouseWorld.y);
-                break;
             case '2':
-                if (combat.isAbilityUnlocked(2))
-                    combat.useRapidFire(mouseWorld.x, mouseWorld.y);
-                break;
             case '3':
-                if (combat.isAbilityUnlocked(3))
-                    combat.useEmpower();
-                break;
             case '4':
-                if (combat.isAbilityUnlocked(4))
-                    combat.useFrostArrow(mouseWorld.x, mouseWorld.y);
-                break;
             case '5':
-                if (combat.isAbilityUnlocked(5))
-                    combat.useVenomNova(mouseWorld.x, mouseWorld.y);
+            case '6': {
+                const barIndex = Number(key) - 1;
+                if (!combat.isAbilityUnlockedAtBarSlot(barIndex)) break;
+                const abilityKey = combat.getAbilityKeyAtBarSlot(barIndex);
+                combat.useAbilityByKey(abilityKey, mouseWorld.x, mouseWorld.y);
                 break;
-            case '6':
-                if (combat.isAbilityUnlocked(6))
-                    combat.useSpinshot();
+            }
+            case 'q':
+            case 'Q': {
+                const store = useGameStore.getState();
+                const res = store.useQuickSlot1();
+                const pl = store.player?.location ?? { x: 0, y: 0 };
+                if (res.ok) {
+                    VFX.addFloat(`+${res.healed} HP`, pl.x, pl.y - 36, '#66ff99', { opacity: 0.95 });
+                } else if (res.reason === 'cooldown') {
+                    VFX.addFloat(`${res.remainingSec}s`, pl.x, pl.y - 36, '#ffcc66', { opacity: 0.9 });
+                } else if (res.reason === 'empty' || res.reason === 'no_item') {
+                    VFX.addFloat('No quick item', pl.x, pl.y - 36, '#cccccc', { opacity: 0.85 });
+                } else if (res.reason === 'full_hp') {
+                    VFX.addFloat('Full HP', pl.x, pl.y - 36, '#aaccff', { opacity: 0.85 });
+                }
                 break;
+            }
         }
     });
 }

@@ -14,6 +14,7 @@ import {VFX} from "../../GlobalEffects.js";
 import { killMob } from '../../combat/killMob.js';
 import { destroyBossTotem, TOTEM_RADIUS } from '../bossTotem.js';
 import { applyMobCombatAggro, applyBossCombatAggro } from '../../combat/combatAggro.js';
+import { getBossHitRadius, getMobHitRadius } from '../../combat/mobHitbox.js';
 
 // Constants
 const COLLISION_RADIUS = 16;
@@ -319,7 +320,7 @@ export function createArrowSystem(ctx) {
                 const mob = entities.mobs[mi];
                 if (!mob.c || mob.hp <= 0) continue; // ← ADD THIS guard
 
-                const mobRadius = (mob.size ?? COLLISION_RADIUS);
+                const mobRadius = getMobHitRadius(mob);
 
                 if (Math.hypot(mob.x - arrow.c.x, mob.y - arrow.c.y) >= mobRadius) continue;
 
@@ -424,7 +425,8 @@ export function createArrowSystem(ctx) {
             for (let bi = 0; bi < entities.bosses.length; bi++) {
                 const boss = entities.bosses[bi];
                 if (boss.dead) continue;
-                if (Math.hypot(boss.x - arrow.c.x, boss.y - arrow.c.y) >= BOSS_RADIUS) continue;
+                const bossRadius = getBossHitRadius(boss);
+                if (Math.hypot(boss.x - arrow.c.x, boss.y - arrow.c.y) >= bossRadius) continue;
 
                 // Calculate boss damage
                 let baseDamage = ARROW_CONFIG.BOSS_BASE_DAMAGE + Math.floor(Math.random() * 10);
