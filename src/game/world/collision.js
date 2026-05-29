@@ -47,11 +47,11 @@ export function resolveVsColliders(nx, ny, radius, colliders) {
         if (!col || !col.collision) continue;
         if (col.blocksMovement === false) continue;
 
-        if (col.isLakePolygon && col.shape) {
+        if ((col.isLakePolygon || col.isPropPolygon) && col.shape) {
             const out = resolveCircleVsLake(rx, ry, radius, {
                 x: col.x,
                 z: col.z ?? col.y,
-                rotation: col.rotation,
+                rotation: col.rotation ?? 0,
                 shape: col.shape,
             });
             rx = out.x;
@@ -103,15 +103,32 @@ export function drawDebugColliders(world, colliders) {
     colliders.forEach(col => {
         if (!col.collision) return;
 
+        if ((col.isPropPolygon || col.isLakePolygon) && col.shape?.length >= 6) {
+            const rot = col.rotation ?? 0;
+            const cos = Math.cos(rot);
+            const sin = Math.sin(rot);
+            const pts = [];
+            for (let i = 0; i < col.shape.length; i += 2) {
+                const lx = col.shape[i];
+                const lz = col.shape[i + 1];
+                pts.push(
+                    col.x + lx * cos - lz * sin,
+                    (col.z ?? col.y) + lx * sin + lz * cos
+                );
+            }
+            g.poly(pts).stroke({ width: 2, color: col.isPropPolygon ? 0xffaa44 : 0xff4444, alpha: 0.85 });
+            g.poly(pts).fill({ color: col.isPropPolygon ? 0xffaa44 : 0xff4444, alpha: 0.08 });
+            g.circle(col.x, col.z ?? col.y, 3).fill({ color: 0x00ff00, alpha: 0.8 });
+            return;
+        }
+
         const x = col.x - col.width / 2;
         const y = col.y - col.height / 2;
 
-        // Draw rectangle
         g.rect(x, y, col.width, col.height)
             .stroke({width: 2, color: 0xff0000, alpha: 0.8});
         g.rect(x, y, col.width, col.height)
             .fill({color: 0xff0000, alpha: 0.1});
-        // Draw center point
         g.circle(col.x, col.y, 3).fill({color: 0x00ff00, alpha: 0.8});
     });
     world.addChild(g);
@@ -132,6 +149,26 @@ export function createDebugColliderToggle(world, colliders, getMobs = null) {
 
         colliders.forEach(col => {
             if (!col.collision) return;
+
+            if ((col.isPropPolygon || col.isLakePolygon) && col.shape?.length >= 6) {
+                const rot = col.rotation ?? 0;
+                const cos = Math.cos(rot);
+                const sin = Math.sin(rot);
+                const pts = [];
+                for (let i = 0; i < col.shape.length; i += 2) {
+                    const lx = col.shape[i];
+                    const lz = col.shape[i + 1];
+                    pts.push(
+                        col.x + lx * cos - lz * sin,
+                        (col.z ?? col.y) + lx * sin + lz * cos
+                    );
+                }
+                const color = col.isPropPolygon ? 0xffaa44 : 0xff4444;
+                debugGraphics.poly(pts).stroke({ width: 2, color, alpha: 0.85 });
+                debugGraphics.poly(pts).fill({ color, alpha: 0.08 });
+                debugGraphics.circle(col.x, col.z ?? col.y, 3).fill({ color: 0x00ff00, alpha: 0.8 });
+                return;
+            }
 
             const x = col.x - col.width / 2;
             const y = col.y - col.height / 2;

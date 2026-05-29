@@ -8,7 +8,7 @@ export const PROP_TYPES = {
         name: 'stone',
         variants: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5', 'stone6', 'stone7', 'stone8', 'stone9', 'stone10'],
         collision: true,
-        collisionType: 'auto',
+        collisionType: 'footprint',
         minDistance: 500,  // Stones can be closer together
         margin: 0.7,
         damageOnTouch: 0,
@@ -48,7 +48,7 @@ export const PROP_TYPES = {
         name: 'snow_stone',
         variants: ['snowstone1', 'snowstone2', 'snowstone3' , 'snowstone4', 'snowstone5'],
         collision: true,
-        collisionType: 'auto',
+        collisionType: 'footprint',
         minDistance: 500,
         margin: 0.8,
         damageOnTouch: 0,

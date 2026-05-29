@@ -326,7 +326,7 @@ export class PropManager {
             this._enableOcclusionFade(propVisual);
         }
 
-        const bounds = computePropColliderBounds(x, z, propVisual, propType);
+        const bounds = computePropColliderBounds(x, z, propVisual, propType, p.id);
         if (bounds && shouldCreatePropCollider(wantsCollision, propType)) {
             this.worldObjects.addWorldCollider({
                 ...bounds,
@@ -544,7 +544,7 @@ export class PropManager {
                 this._enableOcclusionFade(propVisual);
             }
 
-            const bounds = computePropColliderBounds(x, z, propVisual, propType);
+            const bounds = computePropColliderBounds(x, z, propVisual, propType, assetId);
             if (bounds && shouldCreatePropCollider(propType.collision, propType)) {
                 this.worldObjects.addWorldCollider({
                     ...bounds,

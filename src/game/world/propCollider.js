@@ -1,26 +1,101 @@
 /**
- * Prop collision boxes for world movement (see collision.js — center-based AABB).
+ * Prop collision for world movement (see collision.js).
  *
  * collisionType:
- * - `auto` — box from sprite bounds (×0.85), vertically centered on foot
- * - `rect` — fixed box at foot (bottom-center), default 50×50
+ * - `footprint` — tight outline from texture alpha (cached), polygon collision
+ * - `auto` — footprint for rocks/stones; otherwise sprite AABB (×0.85)
+ * - `rect` — fixed box at foot (bottom-center)
  * - `none` — no collider
  */
 
+import {
+    getPropFootprintShape,
+    scaleFootprintShape,
+    getFootprintBounds,
+} from './propFootprint.js';
+
 const DEFAULT_RECT_SIZE = 50;
+
+const FOOTPRINT_TYPE_KEYS = new Set(['STONE', 'SNOW_STONE', 'LAVA_STONE']);
+
+/** @type {Set<string>} */
+const footprintWarned = new Set();
+
+/**
+ * @param {object | null | undefined} propType
+ */
+function wantsFootprintCollision(propType, collisionType) {
+    if (collisionType === 'footprint') return true;
+    if (collisionType !== 'auto') return false;
+    if (propType?.footprintCollision === true) return true;
+    if (propType?.typeKey && FOOTPRINT_TYPE_KEYS.has(propType.typeKey)) return true;
+    return false;
+}
+
+/**
+ * @param {number} footX
+ * @param {number} footZ
+ * @param {import('pixi.js').Sprite | import('pixi.js').Graphics} propVisual
+ * @param {object | null | undefined} propType
+ */
+function buildFootprintCollider(footX, footZ, propVisual, propType, assetId) {
+    const texture = propVisual?.texture;
+    if (!texture) return null;
+
+    const anchor = propVisual.anchor ?? { x: 0.5, y: 1 };
+    const baseShape = getPropFootprintShape(texture, anchor.x, anchor.y, assetId);
+    if (!baseShape || baseShape.length < 6) {
+        if (
+            import.meta.env.DEV &&
+            wantsFootprintCollision(propType, propType?.collisionType ?? 'auto')
+        ) {
+            const key = assetId ?? propType?.typeKey ?? 'prop';
+            if (!footprintWarned.has(key)) {
+                footprintWarned.add(key);
+                console.warn(
+                    `[propCollider] No footprint for ${key} — using box collider. Re-enter the area after assets load.`
+                );
+            }
+        }
+        return null;
+    }
+
+    const scale = Math.max(
+        Math.abs(propVisual.scale?.x ?? 1),
+        Math.abs(propVisual.scale?.y ?? 1)
+    );
+    const shape = scaleFootprintShape(baseShape, scale);
+    const bounds = getFootprintBounds(shape);
+
+    return {
+        x: footX,
+        y: footZ,
+        z: footZ,
+        shape,
+        isPropPolygon: true,
+        rotation: 0,
+        width: Math.max(12, bounds.width),
+        height: Math.max(12, bounds.height),
+    };
+}
 
 /**
  * @param {number} footX Prop foot world X (sprite anchor 0.5, 1).
  * @param {number} footZ Prop foot world Y / Z.
  * @param {import('pixi.js').Sprite | import('pixi.js').Graphics} propVisual
  * @param {object | null | undefined} propType Entry from PROP_TYPES
- * @returns {{ x: number, y: number, width: number, height: number } | null}
+ * @returns {object | null}
  */
-export function computePropColliderBounds(footX, footZ, propVisual, propType) {
+export function computePropColliderBounds(footX, footZ, propVisual, propType, assetId) {
     const collisionType = propType?.collisionType ?? 'auto';
 
     if (collisionType === 'none') {
         return null;
+    }
+
+    if (wantsFootprintCollision(propType, collisionType)) {
+        const footprint = buildFootprintCollider(footX, footZ, propVisual, propType, assetId);
+        if (footprint) return footprint;
     }
 
     if (collisionType === 'rect') {

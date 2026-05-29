@@ -15,6 +15,7 @@ import { killMob } from '../../combat/killMob.js';
 import { destroyBossTotem, TOTEM_RADIUS } from '../bossTotem.js';
 import { applyMobCombatAggro, applyBossCombatAggro } from '../../combat/combatAggro.js';
 import { getBossHitRadius, getMobHitRadius } from '../../combat/mobHitbox.js';
+import { isCircleOverlappingLake } from '../../world/lakes/lakeGeometry.js';
 import { applyArrowHitKnockback } from '../../combat/mobKnockback.js';
 
 // Constants
@@ -93,6 +94,20 @@ export function createArrowSystem(ctx) {
         for (const collider of colliders) {
             if (!collider.collision) continue;
             if (collider.type === 'lake' || collider.blocksProjectiles === false) continue;
+
+            if ((collider.isPropPolygon || collider.isLakePolygon) && collider.shape) {
+                if (
+                    isCircleOverlappingLake(arrowX, arrowY, ARROW_RADIUS, {
+                        x: collider.x,
+                        z: collider.z ?? collider.y,
+                        rotation: collider.rotation ?? 0,
+                        shape: collider.shape,
+                    })
+                ) {
+                    return true;
+                }
+                continue;
+            }
 
             const halfW = collider.width * 0.5;
             const halfH = collider.height * 0.5;

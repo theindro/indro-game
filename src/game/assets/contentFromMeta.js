@@ -42,11 +42,14 @@ function normalizeInteractableDef(raw) {
 /** @param {Record<string, unknown>} raw */
 function normalizePropTypeDef(raw) {
     const name = raw.name ?? raw.id;
+    const typeKey = raw.typeKey ?? name;
     return {
+        typeKey,
         name,
         variants: Array.isArray(raw.variants) ? raw.variants : [],
         collision: raw.collision !== false,
         collisionType: raw.collisionType ?? 'auto',
+        footprintCollision: raw.footprintCollision === true,
         minDistance: raw.minDistance ?? 80,
         margin: raw.margin ?? 0.8,
         damageOnTouch: raw.damageOnTouch ?? 0,

@@ -1,6 +1,6 @@
 // world/OpenWorldManager.js
 import {Container, Graphics, Sprite, Assets, TilingSprite, BlurFilter} from 'pixi.js';
-import {BIOME_COLORS} from '../constants.js';
+import { BIOME_COLORS, MOB_RADIUS } from '../constants.js';
 import {PropManager} from "./PropManager.js";
 import {useGameStore} from "../../stores/gameStore.js";
 import {InteractablePropManager} from './interactablePropManager.js';
@@ -9,7 +9,11 @@ import {WorldObjectManager} from './WorldObjectManager.js';
 import { WorldEditorController } from '../devtools/WorldEditorController.js';
 import { pickChunkProfile, computeLayoutAnchors } from './chunkProfile.js';
 import { generateLakesForChunk, isPointInLake } from './lakes/lakeGen.js';
-import { buildLakeRenderShape, getLakeShapeBounds } from './lakes/lakeGeometry.js';
+import {
+    buildLakeRenderShape,
+    getLakeShapeBounds,
+    isCircleOverlappingLake,
+} from './lakes/lakeGeometry.js';
 import {
     clearLakeAnimatorsForChunk,
     renderLakesIntoChunk,
@@ -699,13 +703,19 @@ export class OpenWorldManager {
                 const isBlocked = this.worldObjects.colliders.some(c => {
                     if (!c.collision || c.type === 'lake') return false;
 
+                    if ((c.isPropPolygon || c.isLakePolygon) && c.shape) {
+                        return isCircleOverlappingLake(x, z, MOB_RADIUS, {
+                            x: c.x,
+                            z: c.z ?? c.y,
+                            rotation: c.rotation ?? 0,
+                            shape: c.shape,
+                        });
+                    }
+
                     const dx = c.x - x;
                     const dy = c.y - z;
-
                     const d = Math.sqrt(dx * dx + dy * dy);
-
                     const minDist = Math.max(c.width || 40, c.height || 40) * 0.5;
-
                     return d < minDist;
                 });
 

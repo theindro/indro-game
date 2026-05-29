@@ -6,7 +6,7 @@
       "name": "stone",
       "variants": ["stone1", "stone2", "stone3", "stone4", "stone5", "stone6", "stone7", "stone8"],
       "collision": true,
-      "collisionType": "auto",
+      "collisionType": "footprint",
       "minDistance": 500,
       "margin": 0.7,
       "scaleRange": { "min": 0.6, "max": 0.6 }
@@ -16,7 +16,7 @@
       "name": "snow_stone",
       "variants": ["snowstone1", "snowstone2", "snowstone3", "snowstone4", "snowstone5"],
       "collision": true,
-      "collisionType": "auto",
+      "collisionType": "footprint",
       "minDistance": 500,
       "margin": 0.8,
       "scaleRange": { "min": 0.5, "max": 0.7 }

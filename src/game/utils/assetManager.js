@@ -3,6 +3,7 @@ import { Rectangle, Texture, Sprite, AnimatedSprite } from 'pixi.js';
 import { assetRegistry } from '../assets/assetRegistry.js';
 import { discoverAssetManifest, loadDiscoveredTextures } from '../assets/discoverAssets.js';
 import { invalidateContentCache } from '../assets/contentFromMeta.js';
+import { prewarmPropFootprints } from '../world/propFootprint.js';
 import { getPropTypeByAssetId } from '../world/propConfig.js';
 
 /**
@@ -28,6 +29,7 @@ class AssetManager {
         const manifest = discoverAssetManifest();
         invalidateContentCache();
         await loadDiscoveredTextures();
+        await prewarmPropFootprints();
 
         this.loaded = true;
         console.log('✓ Assets discovered and loaded', manifest);
